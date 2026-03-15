@@ -2,37 +2,49 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>McKayla's Crochet Lab v3.4.6</title>
+    <title>Build-A-Crochet v3.4.7</title>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; }
+        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #fff0f5; overflow: hidden; }
         #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
-        #main-container { display: flex; height: 100vh; }
+        
+        /* New Build-A-Crochet Header */
+        #header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid #ff69b4; position: relative; }
+        #header h1 { margin: 0; color: #d02090; font-size: 28px; letter-spacing: 1px; text-transform: uppercase; }
+        
+        #main-container { display: flex; height: calc(100vh - 70px); }
         #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; cursor: move; }
         #controls-panel { width: 380px; background: white; padding: 25px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; }
+        
         .input-group { margin-bottom: 20px; }
         label { font-weight: bold; color: #d02090; display: block; margin-bottom: 10px; font-size: 16px; }
-        input[type=range] { width: 100%; accent-color: #ff69b4; }
-        button { background: #ff69b4; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; font-size: 18px; transition: 0.2s; }
-        button:hover { background: #ff1493; }
-        #pattern-output { flex: 1; overflow-y: auto; margin-top: 25px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.8; border-top: 2px solid #fff0f5; padding-top: 20px; }
-        .stuff-here { color: #ff1493; font-weight: bold; background: #ffe4e1; padding: 2px 8px; border-radius: 10px; }
-        .section-header { color: #ff1493; font-weight: bold; margin-top: 15px; display: block; border-bottom: 1px dashed #ffc0cb; }
+        input[type=range] { width: 100%; accent-color: #ff69b4; cursor: pointer; }
+        
+        button { background: #ff69b4; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; font-size: 18px; transition: 0.2s; box-shadow: 0 4px 10px rgba(255, 105, 180, 0.3); }
+        button:hover { background: #ff1493; transform: scale(1.02); }
+        
+        #pattern-output { flex: 1; overflow-y: auto; margin-top: 25px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.8; border-top: 2px solid #fff0f5; padding-top: 20px; color: #444; }
+        .stuff-here { color: #ff1493; font-weight: bold; background: #ffe4e1; padding: 2px 8px; border-radius: 10px; border: 1px solid #ffb6c1; }
+        .section-header { color: #ff1493; font-weight: bold; margin-top: 15px; display: block; border-bottom: 1px dashed #ffc0cb; font-size: 15px; }
     </style>
 </head>
 <body>
 
-<div id="version-tag">🧸 v3.4.6 🧸</div>
+<div id="version-tag">🧸 v3.4.7 🧸</div>
+
+<div id="header">
+    <h1>✨ Build-A-Crochet ✨</h1>
+</div>
 
 <div id="main-container">
     <div id="viewer"></div>
     <div id="controls-panel">
         <div class="input-group">
-            <label>Sphere Size: <span id="r-val">10</span>cm</label>
+            <label>Sphere Diameter: <span id="r-val">10</span>cm</label>
             <input type="range" id="r-slider" min="4" max="30" value="10">
         </div>
-        <button onclick="makePattern()">✨ Generate Pattern</button>
-        <div id="pattern-output">Your smart pattern will appear here!</div>
+        <button onclick="makePattern()">✨ Generate Pro Pattern</button>
+        <div id="pattern-output">Welcome to Build-A-Crochet! Adjust the size to start.</div>
     </div>
 </div>
 
@@ -58,7 +70,7 @@
 
     camera.position.z = 12;
 
-    // --- Interaction ---
+    // --- Interaction Logic ---
     let isDown = false;
     viewer.onmousedown = () => isDown = true;
     window.onmouseup = () => isDown = false;
@@ -81,7 +93,7 @@
     }
     animate();
 
-    // --- Controls & Pattern Logic ---
+    // --- Controls & Pattern Math ---
     const slider = document.getElementById('r-slider');
     const rText = document.getElementById('r-val');
     
@@ -97,7 +109,7 @@
         const incRounds = Math.max(3, Math.floor(radius * 1.5));
         const middleRows = Math.max(2, Math.floor(incRounds * 0.8));
         
-        let output = "<b>🧶 MCKAYLA'S " + d + "cm SPHERE</b>\n";
+        let output = "<b>🧶 BUILD-A-CROCHET: " + d + "cm SPHERE</b>\n";
         output += "---------------------------\n";
         
         // 1. INCREASES
@@ -124,21 +136,18 @@
         // 3. DECREASES
         output += "\n<span class='section-header'>PART 3: DECREASES</span>\n";
         
-        // Create an array of rounds so we can find the second-to-last one
         for (let k = incRounds - 1; k >= 1; k--) {
             sts -= 6;
             roundCount++;
             output += "R" + roundCount + ": (sc " + k + ", dec) x 6 [" + sts + "]";
             
-            // Second-to-last row logic:
-            // The last row is always (dec) x 6, so k=1 is the round before that!
+            // Stuff here on the second to last row
             if (k === 1) {
                 output += " <span class='stuff-here'>Stuff here</span>";
             }
             output += "\n";
         }
         
-        // Final Round
         roundCount++;
         output += "R" + roundCount + ": (dec) x 6 [6]\n";
         output += "\nFinish: Close and weave in ends.";
