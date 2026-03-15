@@ -2,54 +2,30 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.5</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>Build-A-Crochet v3.5.6</title>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; color: #333; }
         #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
         #header { background: white; padding: 12px; text-align: center; border-bottom: 4px solid #ff69b4; }
         #header h1 { margin: 0; color: #d02090; font-size: 24px; text-transform: uppercase; }
+        
         #main-container { display: flex; height: calc(100vh - 65px); }
         
-        /* Viewer area - made slightly darker so the pink pops! */
-        #viewer { flex: 1; background: #f0f0f0; border-right: 2px solid #ffc0cb; position: relative; cursor: move; }
+        /* The Canvas is the "Drawing Board" */
+        #viewer { flex: 1; background: #fdfdfd; border-right: 2px solid #ffc0cb; position: relative; cursor: ns-resize; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         
         #measurements { 
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             background: white; padding: 10px 20px; border-radius: 20px;
             border: 3px solid #ff69b4; color: #d02090; font-weight: bold; font-size: 14px;
-            z-index: 10; display: flex; gap: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex; gap: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
         #controls-panel { width: 350px; background: white; padding: 20px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; overflow-y: auto; }
-        .instruction { font-size: 13px; color: #444; margin-bottom: 15px; background: #fff0f5; padding: 12px; border-radius: 10px; border-left: 5px solid #ff1493; }
-        button { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        button:hover { background: #ff69b4; }
+        .instruction { font-size: 13px; margin-bottom: 15px; background: #fff0f5; padding: 12px; border-radius: 10px; border-left: 5px solid #ff1493; }
         
-        #pattern-output { margin-top: 20px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; color: #333; background: #fafafa; padding: 10px; border-radius: 5px; }
-        .size-box { text-align: center; }
-        .size-label { font-size: 10px; text-transform: uppercase; color: #ff69b4; display: block; margin-bottom: 2px; }
-    </style>
-</head>
-<body>
-
-<div id="version-tag">🧸 v3.5.5 🧸</div>
-
-<div id="header">
-    <h1>✨ Build-A-Crochet ✨</h1>
-</div>
-
-<div id="main-container">
-    <div id="viewer">
-        <div id="measurements">
-            <div class="size-box"><span class="size-label">Width</span><span id="m-width">10.0</span>cm</div>
-            <div class="size-box"><span class="size-label">Height</span><span id="m-height">10.0</span>cm</div>
-            <div class="size-box"><span class="size-label">Length</span><span id="m-length">10.0</span>cm</div>
-        </div>
-    </div>
-    <div id="controls-panel">
-        <div class="instruction">
-            🖱️ <b>Drag UP/DOWN</b>: Change Height<br>
-            🖱️ <b>Drag LEFT/RIGHT</b>: Change Width & Length
-        </div>
-        <button onclick="makePattern()">🧶 GENERATE PATTERN</button>
+        button { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; box-shadow: 0 4px 0 #b01060; }
+        button:active { transform: translateY(2px); box-shadow: 0 2px 0 #b01060; }
+        
+        #pattern-output { margin-top: 20px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 14px; color: #333; background: #fff9fb; padding: 15px; border: 1px solid #ffc0cb; border-radius: 8px; }
+        .
