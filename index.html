@@ -2,37 +2,38 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.4</title>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <title>Build-A-Crochet v3.5.5</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; }
         #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
         #header { background: white; padding: 12px; text-align: center; border-bottom: 4px solid #ff69b4; }
         #header h1 { margin: 0; color: #d02090; font-size: 24px; text-transform: uppercase; }
         #main-container { display: flex; height: calc(100vh - 65px); }
-        #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; position: relative; touch-action: none; cursor: crosshair; }
+        
+        /* Viewer area - made slightly darker so the pink pops! */
+        #viewer { flex: 1; background: #f0f0f0; border-right: 2px solid #ffc0cb; position: relative; cursor: move; }
         
         #measurements { 
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.95); padding: 10px 20px; border-radius: 20px;
-            border: 2px solid #ff69b4; color: #d02090; font-weight: bold; font-size: 14px;
-            pointer-events: none; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            display: flex; gap: 20px;
+            background: white; padding: 10px 20px; border-radius: 20px;
+            border: 3px solid #ff69b4; color: #d02090; font-weight: bold; font-size: 14px;
+            z-index: 10; display: flex; gap: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
-        #controls-panel { width: 350px; background: white; padding: 20px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; }
-        .instruction { font-size: 13px; color: #666; margin-bottom: 15px; background: #fff0f5; padding: 10px; border-radius: 8px; border-left: 4px solid #ff69b4; }
-        button { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.2s; }
-        button:hover { background: #ff69b4; transform: scale(1.02); }
-        #pattern-output { flex: 1; overflow-y: auto; margin-top: 20px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; border-top: 1px solid #eee; padding-top: 15px; color: #444; }
-        .stuff-here { color: #ff1493; font-weight: bold; background: #ffe4e1; padding: 2px 6px; border-radius: 8px; }
+        #controls-panel { width: 350px; background: white; padding: 20px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; overflow-y: auto; }
+        .instruction { font-size: 13px; color: #444; margin-bottom: 15px; background: #fff0f5; padding: 12px; border-radius: 10px; border-left: 5px solid #ff1493; }
+        button { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:hover { background: #ff69b4; }
+        
+        #pattern-output { margin-top: 20px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; color: #333; background: #fafafa; padding: 10px; border-radius: 5px; }
         .size-box { text-align: center; }
-        .size-label { font-size: 10px; text-transform: uppercase; color: #ff69b4; display: block; }
+        .size-label { font-size: 10px; text-transform: uppercase; color: #ff69b4; display: block; margin-bottom: 2px; }
     </style>
 </head>
 <body>
 
-<div id="version-tag">🧸 v3.5.4 🧸</div>
+<div id="version-tag">🧸 v3.5.5 🧸</div>
 
 <div id="header">
     <h1>✨ Build-A-Crochet ✨</h1>
@@ -48,101 +49,7 @@
     </div>
     <div id="controls-panel">
         <div class="instruction">
-            ↕️ <b>Drag Vertical</b>: Stretch Height<br>
-            ↔️ <b>Drag Horizontal</b>: Stretch Width & Length
+            🖱️ <b>Drag UP/DOWN</b>: Change Height<br>
+            🖱️ <b>Drag LEFT/RIGHT</b>: Change Width & Length
         </div>
-        <button onclick="makePattern()">✨ Generate Pattern</button>
-        <div id="pattern-output">Stretch your shape then click generate!</div>
-    </div>
-</div>
-
-<script>
-    // 1. Scene Setup
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xfcfcfc);
-    const viewer = document.getElementById('viewer');
-    const camera = new THREE.PerspectiveCamera(45, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(viewer.clientWidth, viewer.clientHeight);
-    viewer.appendChild(renderer.domElement);
-
-    // 2. Add Sphere
-    const geometry = new THREE.SphereGeometry(2, 32, 32);
-    const material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 30 });
-    const sphere = new THREE.Mesh(geometry, material);
-    scene.add(sphere);
-
-    // Wireframe overlay
-    const wire = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xff1493, wireframe: true, transparent: true, opacity: 0.1 }));
-    sphere.add(wire);
-
-    // 3. Lighting
-    const sun = new THREE.DirectionalLight(0xffffff, 1);
-    sun.position.set(5, 10, 7);
-    scene.add(sun);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-
-    camera.position.z = 15;
-
-    // 4. Elements for Display
-    const dH = document.getElementById('m-height');
-    const dW = document.getElementById('m-width');
-    const dL = document.getElementById('m-length');
-
-    // 5. Drag & Pull Logic
-    let active = false;
-    let startY = 0, startX = 0;
-
-    viewer.onmousedown = (e) => { active = true; startY = e.clientY; startX = e.clientX; };
-    window.onmouseup = () => { active = false; };
-    
-    window.onmousemove = (e) => {
-        if (!active) return;
-
-        const moveY = (startY - e.clientY) * 0.015;
-        const moveX = (e.clientX - startX) * 0.015;
-
-        sphere.scale.y = Math.max(0.2, sphere.scale.y + moveY);
-        sphere.scale.x = Math.max(0.2, sphere.scale.x + moveX);
-        sphere.scale.z = Math.max(0.2, sphere.scale.z + moveX);
-
-        // Update CM displays (Scale 1 = 10cm)
-        dH.innerText = (sphere.scale.y * 10).toFixed(1);
-        dW.innerText = (sphere.scale.x * 10).toFixed(1);
-        dL.innerText = (sphere.scale.z * 10).toFixed(1);
-
-        startY = e.clientY; startX = e.clientX;
-    };
-
-    function animate() {
-        requestAnimationFrame(animate);
-        if(!active) sphere.rotation.y += 0.005;
-        renderer.render(scene, camera);
-    }
-    animate();
-
-    // 6. Pattern Generation
-    function makePattern() {
-        const h = sphere.scale.y * 10;
-        const w = sphere.scale.x * 10;
-        const radius = w / 2;
-        const incRounds = Math.max(3, Math.floor(radius * 1.5));
-        const middleRows = Math.max(2, Math.floor(incRounds * 0.8 * (h/w)));
-
-        let output = "<b>🧶 BUILD-A-CROCHET DATA</b>\n";
-        output += "Size: " + w.toFixed(1) + "cm Wide x " + h.toFixed(1) + "cm High\n";
-        output += "---------------------------\n";
-        output += "R1: Magic Ring 6\n";
-        output += "R2: (inc) x 6\n";
-        
-        let sts = 12;
-        let rCount = 2;
-        for (let i = 1; i < incRounds; i++) {
-            sts += 6; rCount++;
-            output += "R" + rCount + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
-        }
-        
-        output += "\n✨ MIDDLE (" + middleRows + " rows)\n";
-        for (let m = 1; m <= middleRows; m++) {
-            rCount++;
-            output += "R" + rCount + ": sc in each stitch [" + sts + "]\n";
+        <button onclick="makePattern()">🧶 GENERATE PATTERN</button>
