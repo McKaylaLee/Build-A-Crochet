@@ -2,21 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.30</title>
+    <title>Build-A-Crochet v3.5.31</title>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        body { margin: 0; font-family: sans-serif; background: #fff0f5; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
         #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; z-index: 10; }
-        #header h1 { margin: 0; color: #d02090; font-size: 22px; text-transform: uppercase; }
+        #header h1 { margin: 0; color: #d02090; font-size: 22px; }
 
-        #main-container { display: flex; flex: 1; overflow: hidden; }
+        #main-container { display: flex; flex: 1; }
 
         /* 3D VIEWPORT */
-        #viewer { flex: 1; background: #fdfdfd; position: relative; perspective: 800px; display: flex; align-items: center; justify-content: center; touch-action: none; }
+        #viewer { flex: 1; background: #f0f0f0; position: relative; perspective: 1000px; display: flex; align-items: center; justify-content: center; touch-action: none; }
         
         /* THE VIEWCUBE */
         #cube-container { position: absolute; top: 20px; left: 20px; width: 80px; height: 80px; perspective: 400px; z-index: 100; }
         #viewcube { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transition: transform 0.5s; transform: rotateX(-20deg) rotateY(-20deg); cursor: pointer; }
-        .face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; user-select: none; }
+        .face { position: absolute; width: 60px; height: 60px; background: rgba(255,255,255,0.9); border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; }
         .f  { transform: translateZ(30px); }
         .bk { transform: rotateY(180deg) translateZ(30px); }
         .t  { transform: rotateX(90deg) translateZ(30px); }
@@ -24,29 +24,33 @@
         .r  { transform: rotateY(90deg) translateZ(30px); }
         .l  { transform: rotateY(-90deg) translateZ(30px); }
 
-        /* THE 3D SPHERE AREA */
-        #world { transform-style: preserve-3d; transition: transform 0.5s; }
-        #yarn-ball { 
+        /* THE 3D SPHERE (Cross-Section Method) */
+        #world { transform-style: preserve-3d; transition: transform 0.5s; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; }
+        .yarn-layer { 
+            position: absolute;
             width: 150px; height: 150px; 
-            background: radial-gradient(circle at 30% 30%, #ffb6c1, #ff69b4 60%, #c71585 100%);
+            background: radial-gradient(circle at 35% 35%, #ffb6c1, #ff69b4 60%, #c71585 100%);
             border-radius: 50%; 
-            border: 3px solid #d02090;
+            border: 2px solid #d02090;
             cursor: move;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            backface-visibility: visible;
         }
+        #layer-front { transform: rotateY(0deg); }
+        #layer-side { transform: rotateY(90deg); }
+        #layer-top { transform: rotateX(90deg); }
 
         #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; z-index: 50; }
 
         /* SIDE PANEL */
-        #panel { width: 360px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; z-index: 10; }
-        #gen-btn { background: #ff1493; color: white; border: none; padding: 18px; border-radius: 35px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 5px 0 #b01060; }
-        #output { flex: 1; margin-top: 20px; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 12px; padding: 15px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; color: #333; }
+        #panel { width: 360px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; }
+        #gen-btn { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 4px 0 #b01060; }
+        #output { flex: 1; margin-top: 15px; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 10px; padding: 15px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; }
     </style>
 </head>
 <body>
 
 <div id="header">
-    <h1>✨ Build-A-Crochet v3.5.30 ✨</h1>
+    <h1>✨ Build-A-Crochet v3.5.31 ✨</h1>
 </div>
 
 <div id="main-container">
@@ -68,13 +72,15 @@
         </div>
 
         <div id="world">
-            <div id="yarn-ball" onmousedown="startStretch(event)"></div>
+            <div class="yarn-layer" id="layer-front" onmousedown="startStretch(event)"></div>
+            <div class="yarn-layer" id="layer-side" onmousedown="startStretch(event)"></div>
+            <div class="yarn-layer" id="layer-top" onmousedown="startStretch(event)"></div>
         </div>
     </div>
 
     <div id="panel">
         <button id="gen-btn" onclick="generate()">🧶 MAKE PATTERN</button>
-        <div id="output">Grab the ball to stretch! Click Cube to spin!</div>
+        <div id="output">Stretch the ball and use the Cube to see it in 3D!</div>
     </div>
 </div>
 
@@ -83,77 +89,36 @@
     let dragging = false;
     let startX, startY;
 
-    const ball = document.getElementById('yarn-ball');
+    const layers = document.querySelectorAll('.yarn-layer');
     const world = document.getElementById('world');
     const cube = document.getElementById('viewcube');
 
     // 1. STRETCHING (By Grabbing Ball)
     function startStretch(e) {
         dragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
+        startX = e.clientX; startY = e.clientY;
         window.onmousemove = (ev) => {
             if (!dragging) return;
-            let dx = (ev.clientX - startX) * 0.15;
-            let dy = (startY - ev.clientY) * 0.15;
+            let dx = (ev.clientX - startX) * 0.2;
+            let dy = (startY - ev.clientY) * 0.2;
             
             w = Math.max(5, w + dx);
             h = Math.max(5, h + dy);
             
-            ball.style.width = (w * 15) + "px";
-            ball.style.height = (h * 15) + "px";
+            layers.forEach(l => {
+                l.style.width = (w * 15) + "px";
+                l.style.height = (h * 15) + "px";
+            });
             
             document.getElementById('w-val').innerText = w.toFixed(1);
             document.getElementById('h-val').innerText = h.toFixed(1);
-            
-            startX = ev.clientX;
-            startY = ev.clientY;
+            startX = ev.clientX; startY = ev.clientY;
         };
-        window.onmouseup = () => { dragging = false; window.onmousemove = null; };
+        window.onmouseup = () => { dragging = false; };
     }
 
-    // 2. VIEWCUBE (Controls the World)
+    // 2. VIEWCUBE (Controls the 3D World)
     function rotateSpace(x, y) {
         world.style.transform = `rotateX(${x}deg) rotateY(${y}deg)`;
         cube.style.transform = `rotateX(${-x-20}deg) rotateY(${y-20}deg)`;
     }
-
-    // 3. FULL PATTERN (Step-by-Step)
-    function generate() {
-        const width = parseFloat(document.getElementById('w-val').innerText);
-        const height = parseFloat(document.getElementById('h-val').innerText);
-        const inc = Math.max(3, Math.floor((width/2) * 1.5));
-        const mid = Math.max(1, Math.floor(inc * (height/width)));
-        let sts = 6;
-
-        let p = "<b>🧶 FULL CROCHET PATTERN</b>\n";
-        p += width + "cm Wide x " + height + "cm High\n";
-        p += "------------------------------\n";
-        p += "R1: Magic Ring 6 [6]\n";
-        
-        for (let i = 1; i < inc; i++) {
-            sts += 6;
-            p += "R" + (i+1) + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
-        }
-
-        p += "\n🧶 MIDDLE SECTION (No Increases):\n";
-        for (let m = 1; m <= mid; m++) {
-            p += "R" + (inc + m) + ": sc in each stitch around [" + sts + "]\n";
-        }
-
-        p += "\n🧶 CLOSING SECTION:\n";
-        let r = inc + mid + 1;
-        let d = inc - 1;
-        while (sts > 6) {
-            sts -= 6;
-            p += "R" + r + ": (sc " + d + ", dec) x 6 [" + sts + "]\n";
-            d--; r++;
-            if (sts === 12) p += "<b>-> STUFF FIRMLY NOW! <-</b>\n";
-        }
-        p += "R" + r + ": dec x 6 [6]\nFinish: Sew closed.";
-        
-        document.getElementById('output').innerHTML = p;
-    }
-</script>
-</body>
-</html>
