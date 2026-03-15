@@ -2,63 +2,63 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>McKayla's Crochet Lab v3.4.4</title>
+    <title>McKayla's Crochet Lab v3.4.6</title>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <style>
-        body { margin: 0; font-family: sans-serif; background: #fff0f5; overflow: hidden; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; }
         #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
         #main-container { display: flex; height: 100vh; }
         #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; cursor: move; }
-        #controls-panel { width: 350px; background: white; padding: 20px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; }
+        #controls-panel { width: 380px; background: white; padding: 25px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; }
         .input-group { margin-bottom: 20px; }
-        label { font-weight: bold; color: #d02090; display: block; margin-bottom: 10px; }
+        label { font-weight: bold; color: #d02090; display: block; margin-bottom: 10px; font-size: 16px; }
         input[type=range] { width: 100%; accent-color: #ff69b4; }
-        button { background: #ff69b4; color: white; border: none; padding: 15px; border-radius: 25px; font-weight: bold; cursor: pointer; width: 100%; }
-        #pattern-output { flex: 1; overflow-y: auto; margin-top: 20px; white-space: pre-wrap; font-family: monospace; font-size: 13px; border-top: 1px solid #eee; padding-top: 15px; }
-        .stuff-tag { background: #ff1493; color: white; padding: 2px 6px; border-radius: 5px; font-weight: bold; }
+        button { background: #ff69b4; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; font-size: 18px; transition: 0.2s; }
+        button:hover { background: #ff1493; }
+        #pattern-output { flex: 1; overflow-y: auto; margin-top: 25px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.8; border-top: 2px solid #fff0f5; padding-top: 20px; }
+        .stuff-here { color: #ff1493; font-weight: bold; background: #ffe4e1; padding: 2px 8px; border-radius: 10px; }
+        .section-header { color: #ff1493; font-weight: bold; margin-top: 15px; display: block; border-bottom: 1px dashed #ffc0cb; }
     </style>
 </head>
 <body>
 
-<div id="version-tag">🧸 v3.4.4 🧸</div>
+<div id="version-tag">🧸 v3.4.6 🧸</div>
 
 <div id="main-container">
     <div id="viewer"></div>
     <div id="controls-panel">
         <div class="input-group">
             <label>Sphere Size: <span id="r-val">10</span>cm</label>
-            <input type="range" id="r-slider" min="2" max="30" value="10">
+            <input type="range" id="r-slider" min="4" max="30" value="10">
         </div>
         <button onclick="makePattern()">✨ Generate Pattern</button>
-        <div id="pattern-output">Change the slider and click generate!</div>
+        <div id="pattern-output">Your smart pattern will appear here!</div>
     </div>
 </div>
 
 <script>
-    // 1. Setup Scene
+    // --- 3D Scene ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xfff9fb);
+    scene.background = new THREE.Color(0xfdfdfd);
     const viewer = document.getElementById('viewer');
-    const camera = new THREE.PerspectiveCamera(75, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(60, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(viewer.clientWidth, viewer.clientHeight);
     viewer.appendChild(renderer.domElement);
 
-    // 2. Add Sphere
     const geometry = new THREE.SphereGeometry(1, 64, 64);
-    const material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 50 });
+    const material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 40 });
     const sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
 
-    // 3. Add Lights
     const light = new THREE.DirectionalLight(0xffffff, 1);
     light.position.set(5, 5, 5);
     scene.add(light);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
-    camera.position.z = 10;
+    camera.position.z = 12;
 
-    // 4. Zoom & Spin Logic
+    // --- Interaction ---
     let isDown = false;
     viewer.onmousedown = () => isDown = true;
     window.onmouseup = () => isDown = false;
@@ -71,8 +71,8 @@
     viewer.onwheel = (e) => {
         e.preventDefault();
         camera.position.z += e.deltaY * 0.02;
-        camera.position.z = Math.min(Math.max(camera.position.z, 2), 50);
-    };
+        camera.position.z = Math.min(Math.max(camera.position.z, 2), 60);
+    }, { passive: false };
 
     function animate() {
         requestAnimationFrame(animate);
@@ -81,7 +81,7 @@
     }
     animate();
 
-    // 5. Pattern Logic
+    // --- Controls & Pattern Logic ---
     const slider = document.getElementById('r-slider');
     const rText = document.getElementById('r-val');
     
@@ -92,28 +92,65 @@
     };
 
     function makePattern() {
-        const d = slider.value;
-        const incRounds = Math.max(2, Math.floor((d/2) * 1.5));
-        let output = "<b>🧶 SPHERE PATTERN (" + d + "cm)</b>\n\n";
-        output += "R1: MR 6\nR2: (inc) x 6\n";
+        const d = parseInt(slider.value);
+        const radius = d / 2;
+        const incRounds = Math.max(3, Math.floor(radius * 1.5));
+        const middleRows = Math.max(2, Math.floor(incRounds * 0.8));
+        
+        let output = "<b>🧶 MCKAYLA'S " + d + "cm SPHERE</b>\n";
+        output += "---------------------------\n";
+        
+        // 1. INCREASES
+        output += "<span class='section-header'>PART 1: INCREASES</span>\n";
+        output += "R1: Magic Ring 6 [6]\n";
+        output += "R2: (inc) in each stitch [12]\n";
         
         let sts = 12;
+        let roundCount = 2;
+
         for (let i = 1; i < incRounds; i++) {
             sts += 6;
-            output += "R" + (i+2) + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
+            roundCount++;
+            output += "R" + roundCount + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
         }
         
-        output += "\n✨ MIDDLE (" + Math.floor(incRounds * 0.8) + " rows)\n";
+        // 2. MIDDLE
+        output += "\n<span class='section-header'>PART 2: MIDDLE</span>\n";
+        for (let m = 1; m <= middleRows; m++) {
+            roundCount++;
+            output += "R" + roundCount + ": sc in each stitch [" + sts + "]\n";
+        }
         
-        output += "\n✨ DECREASES\n";
+        // 3. DECREASES
+        output += "\n<span class='section-header'>PART 3: DECREASES</span>\n";
+        
+        // Create an array of rounds so we can find the second-to-last one
         for (let k = incRounds - 1; k >= 1; k--) {
             sts -= 6;
-            output += "sc " + k + ", dec... [" + sts + "]";
-            if (sts <= 18) output += " <span class='stuff-tag'>Stuff</span>";
+            roundCount++;
+            output += "R" + roundCount + ": (sc " + k + ", dec) x 6 [" + sts + "]";
+            
+            // Second-to-last row logic:
+            // The last row is always (dec) x 6, so k=1 is the round before that!
+            if (k === 1) {
+                output += " <span class='stuff-here'>Stuff here</span>";
+            }
             output += "\n";
         }
+        
+        // Final Round
+        roundCount++;
+        output += "R" + roundCount + ": (dec) x 6 [6]\n";
+        output += "\nFinish: Close and weave in ends.";
+        
         document.getElementById('pattern-output').innerHTML = output;
     }
+
+    window.onresize = () => {
+        renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+        camera.aspect = viewer.clientWidth / viewer.clientHeight;
+        camera.updateProjectionMatrix();
+    };
 </script>
 </body>
 </html>
