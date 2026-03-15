@@ -2,45 +2,42 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.11</title>
+    <title>Build-A-Crochet v3.5.12</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; }
         #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
-        #header { background: white; padding: 12px; text-align: center; border-bottom: 4px solid #ff69b4; }
-        #header h1 { margin: 0; color: #d02090; font-size: 24px; text-transform: uppercase; }
-        #main-container { display: flex; height: calc(100vh - 65px); }
-        #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; position: relative; touch-action: none; cursor: s-resize; }
         
-        /* Measurements Bubble */
-        #measurements { 
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.9); padding: 10px 20px; border-radius: 20px;
-            border: 2px solid #ff69b4; color: #d02090; font-weight: bold; font-size: 14px;
-            display: flex; gap: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            pointer-events: none; z-index: 10;
+        #header { background: white; padding: 12px; text-align: center; border-bottom: 4px solid #ff69b4; position: relative; z-index: 10; }
+        #header h1 { margin: 0; color: #d02090; font-size: 24px; text-transform: uppercase; }
+
+        #main-container { display: flex; height: calc(100vh - 65px); width: 100vw; }
+
+        /* Left Side: The Sphere */
+        #viewer { flex: 1; background: #fafafa; position: relative; touch-action: none; cursor: s-resize; }
+        
+        /* Right Side: The Pattern (Locked in place so it can't disappear) */
+        #controls-panel { 
+            width: 380px; 
+            background: white; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            border-left: 4px solid #ffc0cb; 
+            z-index: 20;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.05);
         }
 
-        #controls-panel { width: 350px; background: white; padding: 20px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; }
+        #measurements { 
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: white; padding: 10px 20px; border-radius: 20px;
+            border: 2px solid #ff69b4; color: #d02090; font-weight: bold; font-size: 14px;
+            display: flex; gap: 20px; z-index: 30; pointer-events: none;
+        }
+
         .instruction { font-size: 13px; color: #666; margin-bottom: 15px; background: #fff0f5; padding: 10px; border-radius: 8px; border-left: 4px solid #ff69b4; }
-        button { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.2s; }
-        button:hover { background: #ff69b4; }
-        #pattern-output { flex: 1; overflow-y: auto; margin-top: 20px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; border-top: 1px solid #eee; padding-top: 15px; color: #444; }
-        .size-box { text-align: center; }
-        .size-label { font-size: 10px; text-transform: uppercase; color: #ff69b4; display: block; }
-    </style>
-</head>
-<body>
-
-<div id="version-tag">🧸 v3.5.11 🧸</div>
-
-<div id="header">
-    <h1>✨ Build-A-Crochet ✨</h1>
-</div>
-
-<div id="main-container">
-    <div id="viewer">
-        <div id="measurements">
-            <div class="size-box"><span class="size-label">Width</span><span id="m-width">10.0</span>cm</div>
-            <div class="size-box"><span class="size-label">Height</span><span id="m-height">10.0</span>cm</div>
-            <div class="size-box"><span class="size-label">Length</span><span id="m-length">10.0</span>cm</div>
+        
+        button { 
+            background: #ff1493; color: white; border: none; padding: 18px; border-radius: 35px; 
+            font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; 
+            box-shadow: 0 4px 0 #b01060; transition: 0.1s;
