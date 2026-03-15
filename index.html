@@ -3,34 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>McKayla's Crochet Lab v3.4.2</title>
+    <title>McKayla's Crochet Lab v3.4.3</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #fff0f5; color: #333; overflow: hidden; }
-        #version-tag { position: absolute; top: 10px; left: 10px; background: rgba(255, 20, 147, 0.9); color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
+        #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
         #header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid #ff69b4; position: relative; }
-        #header h1 { margin: 0; color: #d02090; font-size: 24px; }
         #main-container { display: flex; height: calc(100vh - 75px); }
-        #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; position: relative; cursor: grab; }
-        #viewer:active { cursor: grabbing; }
+        #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; position: relative; cursor: move; }
         #controls-panel { width: 400px; background: white; display: flex; flex-direction: column; }
         #controls-top { padding: 25px; border-bottom: 1px solid #eee; }
         #pattern-area { flex: 1; padding: 25px; overflow-y: auto; background: #fff9fb; }
         .input-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 8px; color: #d02090; font-size: 16px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #d02090; }
         input[type=range] { width: 100%; cursor: pointer; accent-color: #ff69b4; }
         input[type=color] { width: 100%; height: 40px; border: none; cursor: pointer; background: none; }
         button { background: #ff69b4; color: white; border: none; padding: 15px; width: 100%; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 18px; transition: 0.3s; }
-        button:hover { background: #ff1493; transform: scale(1.02); }
-        #pattern-output { white-space: pre-wrap; font-family: 'Courier New', monospace; line-height: 1.7; font-size: 14px; color: #444; }
+        button:hover { background: #ff1493; }
+        #pattern-output { white-space: pre-wrap; font-family: 'Courier New', monospace; line-height: 1.7; font-size: 14px; }
         .stuff-here { color: #ff1493; font-weight: bold; background: #ffe4e1; padding: 2px 5px; border-radius: 4px; }
-        .hint { font-size: 11px; color: #999; margin-top: 5px; text-align: center; }
     </style>
 </head>
 <body>
 
-<div id="version-tag">🧸 MCKAYLA'S LAB v3.4.2 🧸</div>
+<div id="version-tag">🧸 MCKAYLA'S LAB v3.4.3 🧸</div>
 
 <div id="header">
     <h1>🧶 Smart Amigurumi Lab</h1>
@@ -41,7 +37,7 @@
     <div id="controls-panel">
         <div id="controls-top">
             <div class="input-group">
-                <label>Sphere Size: <span id="r-val">10</span>cm Wide</label>
+                <label>Size: <span id="r-val">10</span>cm Wide</label>
                 <input type="range" id="r-slider" min="2" max="30" value="10">
             </div>
             <div class="input-group">
@@ -49,16 +45,15 @@
                 <input type="color" id="color-picker" value="#ff69b4">
             </div>
             <button onclick="makePattern()">✨ Generate Pattern</button>
-            <p class="hint">🖱️ Scroll to Zoom | Click & Drag to Spin</p>
         </div>
         <div id="pattern-area">
-            <div id="pattern-output">Your custom pattern will appear here...</div>
+            <div id="pattern-output">Your pattern will appear here!</div>
         </div>
     </div>
 </div>
 
 <script>
-    // --- 3D Scene Setup ---
+    // --- Basic 3D Setup ---
     var scene = new THREE.Scene();
     scene.background = new THREE.Color(0xfafafb);
     var viewer = document.getElementById('viewer');
@@ -67,12 +62,58 @@
     renderer.setSize(viewer.clientWidth, viewer.clientHeight);
     viewer.appendChild(renderer.domElement);
 
-    // Create Sphere
     var geometry = new THREE.SphereGeometry(1, 64, 64);
     var material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 70 });
     var sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
 
-    // Lights
-    var mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    mainLight.position.set(5, 1
+    var light = new THREE.DirectionalLight(0xffffff, 1.2);
+    light.position.set(5, 10, 7);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0x404040, 1.3));
+
+    camera.position.z = 10;
+
+    // --- Simple Zoom & Rotation ---
+    var isDragging = false;
+    var previousMousePosition = { x: 0, y: 0 };
+
+    viewer.addEventListener('mousedown', function(e) { isDragging = true; });
+    window.addEventListener('mouseup', function(e) { isDragging = false; });
+    viewer.addEventListener('mousemove', function(e) {
+        var deltaMove = { x: e.offsetX - previousMousePosition.x, y: e.offsetY - previousMousePosition.y };
+        if (isDragging) {
+            sphere.rotation.y += deltaMove.x * 0.01;
+            sphere.rotation.x += deltaMove.y * 0.01;
+        }
+        previousMousePosition = { x: e.offsetX, y: e.offsetY };
+    });
+
+    // Zooming with Scroll
+    viewer.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        camera.position.z += e.deltaY * 0.02;
+        camera.position.z = Math.max(2, Math.min(camera.position.z, 100));
+    }, { passive: false });
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if(!isDragging) sphere.rotation.y += 0.005;
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // --- Control Panel Logic ---
+    var slider = document.getElementById('r-slider');
+    var rText = document.getElementById('r-val');
+    var colorPicker = document.getElementById('color-picker');
+
+    slider.oninput = function() {
+        var d = this.value;
+        rText.innerText = d;
+        var scale = d / 5; 
+        sphere.scale.set(scale, scale, scale);
+    };
+
+    colorPicker.oninput = function() {
+        sphere.material.color.set(this.value);
