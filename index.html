@@ -1,36 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.41</title>
+    <title>Build-A-Crochet v3.5.42</title>
     <style>
-        body { margin: 0; font-family: sans-serif; background: #fff0f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
-        #app-body { display: flex; flex: 1; }
-
-        /* Viewer Area */
-        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; }
+        body { background-color: white; font-family: Arial, sans-serif; padding: 20px; }
+        #container { border: 5px solid #ff69b4; padding: 20px; display: table; margin: 0 auto; background: #fff0f5; }
         
-        /* The Remote Control (Bigger & Solid) */
-        #remote { position: absolute; top: 20px; left: 20px; background: white; border: 3px solid #ff69b4; padding: 12px; border-radius: 10px; z-index: 9999; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .cube-btn { background: #ff69b4; color: white; border: none; padding: 10px; margin: 4px; border-radius: 5px; cursor: pointer; font-size: 12px; width: 80px; font-weight: bold; display: block; }
-        .cube-btn:active { background: #d02090; }
-        
-        #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; z-index: 1000; }
-
-        /* The Ball (Bulletproof Stretching) */
-        #yarn-ball { 
-            width: 150px; height: 150px; 
-            background: radial-gradient(circle at 30% 30%, #ffb6c1, #ff69b4 60%, #c71585 100%);
+        /* The Ball: Solid color, no fancy effects */
+        #ball { 
+            background-color: #ff69b4; 
+            border: 5px solid #d02090; 
             border-radius: 50%; 
-            border: 4px solid #d02090;
-            cursor: move;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            user-select: none;
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            text-align: center;
         }
 
-        /* Pattern Panel */
-        #panel { width: 350px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; }
-        #make-btn { background: #ff1493; color: white; border: none; padding: 18px; border-radius: 40px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 5px 0 #b01060; margin-bottom: 20px; }
-        #make-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #b01060; }
-        #output { flex: 1; background: #fff9fb; border: 1px solid #ffc0cb; border-radius
+        .control-panel { background: white; border: 2px solid #ff69b4; padding: 15px; margin-bottom: 10px; }
+        .btn { background: #ff69b4; color: white; padding: 10px; border: none; cursor: pointer; font-weight: bold; margin: 5px; }
+        #pattern-box { background: #fff; border: 1px solid #ccc; padding: 10px; width: 400px; height: 300px; overflow: auto; white-space: pre-wrap; font-family: monospace; }
+        
+        label { font-weight: bold; color: #d02090; }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <h1 style="color:#d02090; text-align:center;">✨ Build-A-Crochet v3.5.42 ✨</h1>
+
+    <div class="control-panel">
+        <label>WIDTH: </label>
+        <input type="range" id="w-slider" min="50" max="400" value="150" oninput="updateSize()">
+        <span id="w-num">10.0</span>cm
+        <br><br>
+        <label>HEIGHT: </label>
+        <input type="range" id="h-slider" min="50" max="400" value="150" oninput="updateSize()">
+        <span id="h-num">10.0</span>cm
+    </div>
+
+    <div class="control-panel">
+        <label>VIEW REMOTE: </label>
+        <button class="btn" onclick="setView('FRONT')">FRONT</button>
+        <button class="btn" onclick="setView('TOP')">TOP</button>
+        <button class="btn" onclick="setView('SIDE')">SIDE</button>
+        <button class="btn" onclick="setView('BOTTOM')">BOTTOM</button>
+    </div>
+
+    <div id="ball" style="width:150px; height:150px;">
+        <span id="view-text">FRONT VIEW</span>
+    </div>
+
+    <div class="control-panel">
+        <button class="btn" style="background:#ff1493; width:100%; font-size:20px;" onclick="makePattern()">🧶 MAKE PATTERN</button>
+        <h3>Your Pattern:</h3>
+        <div id="pattern-box">Your pattern will appear here...</div>
+    </div>
+</div>
+
+<script>
+    function updateSize() {
+        var w = document.getElementById('w-slider').value;
+        var h = document.getElementById('h-slider').value;
+        
+        var ball = document.getElementById('ball');
+        ball.style.width = w + "px";
+        ball.style.height = h + "px";
+        
+        document.getElementById('w-num').innerText = (w / 15).toFixed(1);
+        document.getElementById('h-num').innerText = (h / 15).toFixed(1);
+    }
+
+    function setView(v) {
+        document.getElementById('view-text').innerText = v + " VIEW";
+    }
+
+    function makePattern() {
+        var cw = parseFloat(document.getElementById('w-num').innerText);
+        var ch = parseFloat(document.getElementById('h-num').innerText);
+        
+        var incs = Math.max(3, Math.floor((cw/2) * 1.5));
+        var mids = Math.max(1, Math.floor(incs * (ch/cw)));
+        var sts = 6;
+
+        var p = "🧶 PATTERN FOR: " + cw + "cm x " + ch + "cm\n";
+        p += "---------------------------------\n";
+        p += "R1: Magic Ring 6 [6]\n";
+        for (var i = 1; i < incs; i++) {
+            sts += 6;
+            p += "R" + (i+1) + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
+        }
+        p += "\nR-Middle: Repeat sc for " + mids + " rounds [" + sts + "]\n";
+        p += "\nCLOSING:\n";
+        
+        var r = incs + mids + 1;
+        var d = incs - 1;
+        while (sts > 6) {
+            sts -= 6;
+            p += "R" + r + ": (sc " + d + ", dec) x 6 [" + sts + "]\n";
+            d--; r++;
+        }
+        p += "Final R: dec x 6\nFinish: Close hole.";
+        
+        document.getElementById('pattern-box').innerText = p;
+    }
+</script>
+
+</body>
+</html>
