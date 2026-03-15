@@ -2,56 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.18</title>
+    <title>Build-A-Crochet v3.5.19</title>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
-        #header h1 { margin: 0; color: #d02090; font-size: 22px; text-transform: uppercase; }
-        #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 4px 12px; border-radius: 12px; font-size: 10px; font-weight: bold; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        #header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid #ff69b4; position: relative; }
+        #header h1 { margin: 0; color: #d02090; font-size: 26px; text-transform: uppercase; }
+        #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 11px; font-weight: bold; }
 
         #main-container { display: flex; flex: 1; overflow: hidden; }
 
-        /* Left Side: The Viewport */
-        #viewer { flex: 1; background: #fdfdfd; position: relative; display: flex; align-items: center; justify-content: center; touch-action: none; }
+        /* Left Side: The Drawing Area */
+        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; touch-action: none; }
         
-        /* ViewCube (Tinkercad Style) */
-        #viewcube-container { position: absolute; top: 20px; left: 20px; width: 80px; height: 80px; perspective: 300px; z-index: 100; }
-        #viewcube { width: 50px; height: 50px; position: relative; transform-style: preserve-3d; transform: rotateX(-20deg) rotateY(-20deg); transition: transform 0.4s; cursor: pointer; }
-        .cube-face { position: absolute; width: 50px; height: 50px; background: white; border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; color: #d02090; }
-        .front  { transform: translateZ(25px); }
-        .back   { transform: rotateY(180deg) translateZ(25px); }
-        .top    { transform: rotateX(90deg) translateZ(25px); }
-        .bottom { transform: rotateX(-90deg) translateZ(25px); }
-        .right  { transform: rotateY(90deg) translateZ(25px); }
-        .left   { transform: rotateY(-90deg) translateZ(25px); }
+        /* The Measurements Bubble */
+        #measurements { 
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: white; padding: 10px 20px; border-radius: 20px;
+            border: 2px solid #ff69b4; color: #d02090; font-weight: bold;
+            display: flex; gap: 20px; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
 
         /* Right Side: The Pattern */
-        #panel { width: 360px; background: white; padding: 20px; border-left: 3px solid #ffc0cb; display: flex; flex-direction: column; }
-        button { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 0 #b01060; }
-        button:active { transform: translateY(2px); box-shadow: 0 2px 0 #b01060; }
-        #pattern-box { flex: 1; margin-top: 15px; padding: 15px; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 10px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; }
-
-        #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 8px 15px; border-radius: 15px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 15px; z-index: 50; pointer-events: none; font-size: 14px; }
-        
-        /* The Sphere (SVG is bulletproof!) */
-        #yarn-svg { filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1)); }
-        #yarn-ball { fill: #ff69b4; stroke: #d02090; stroke-width: 4; transition: rx 0.1s, ry 0.1s; }
-        .handle { fill: white; stroke: #ff1493; stroke-width: 2; cursor: pointer; }
-    </style>
-</head>
-<body>
-
-<div id="version-tag">🧸 v3.5.18 🧸</div>
-
-<div id="header">
-    <h1>✨ Build-A-Crochet Designer ✨</h1>
-</div>
-
-<div id="main-container">
-    <div id="viewer">
-        <div id="viewcube-container">
-            <div id="viewcube" id="cube">
-                <div class="cube-face front" onclick="rotateTo('front')">FRONT</div>
-                <div class="cube-face back" onclick="rotateTo('back')">BACK</div>
-                <div class="cube-face top" onclick="rotateTo('top')">TOP</div>
-                <div class="cube-face bottom" onclick="rotateTo('bottom')">BOT</div>
+        #panel { width: 380px; background: white; padding: 25px; border-left: 3px solid #ffc0cb; display: flex; flex-direction: column; }
+        button { background: #ff1493; color: white; border: none;
