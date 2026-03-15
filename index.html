@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.40</title>
+    <title>Build-A-Crochet v3.5.41</title>
     <style>
         body { margin: 0; font-family: sans-serif; background: #fff0f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
@@ -11,13 +11,14 @@
         /* Viewer Area */
         #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; }
         
-        /* The Remote Control */
-        #remote { position: absolute; top: 20px; left: 20px; background: white; border: 3px solid #ff69b4; padding: 10px; border-radius: 10px; z-index: 999; text-align: center; }
-        .cube-btn { background: #ff69b4; color: white; border: none; padding: 8px; margin: 2px; border-radius: 5px; cursor: pointer; font-size: 11px; width: 65px; font-weight: bold; display: block; }
+        /* The Remote Control (Bigger & Solid) */
+        #remote { position: absolute; top: 20px; left: 20px; background: white; border: 3px solid #ff69b4; padding: 12px; border-radius: 10px; z-index: 9999; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .cube-btn { background: #ff69b4; color: white; border: none; padding: 10px; margin: 4px; border-radius: 5px; cursor: pointer; font-size: 12px; width: 80px; font-weight: bold; display: block; }
+        .cube-btn:active { background: #d02090; }
         
-        #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; z-index: 100; }
+        #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; z-index: 1000; }
 
-        /* The Ball (Simple and Safe) */
+        /* The Ball (Bulletproof Stretching) */
         #yarn-ball { 
             width: 150px; height: 150px; 
             background: radial-gradient(circle at 30% 30%, #ffb6c1, #ff69b4 60%, #c71585 100%);
@@ -25,87 +26,11 @@
             border: 4px solid #d02090;
             cursor: move;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            user-select: none;
         }
 
         /* Pattern Panel */
         #panel { width: 350px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; }
-        #make-btn { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 4px 0 #b01060; margin-bottom: 15px; }
-        #output { flex: 1; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 10px; padding: 15px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; color: #333; }
-    </style>
-</head>
-<body>
-
-<div id="header">
-    <h1 style="margin:0; color:#d02090;">✨ Build-A-Crochet v3.5.40 ✨</h1>
-</div>
-
-<div id="app-body">
-    <div id="viewer">
-        <div id="remote">
-            <div style="font-size: 10px; color: #ff1493; margin-bottom: 5px; font-weight: bold;">VIEW REMOTE</div>
-            <button class="cube-btn" onclick="setView('30% 10%', 'TOP')">TOP</button>
-            <button class="cube-btn" onclick="setView('30% 30%', 'FRONT')">FRONT</button>
-            <button class="cube-btn" onclick="setView('70% 30%', 'SIDE')">SIDE</button>
-            <button class="cube-btn" onclick="setView('30% 80%', 'BOTTOM')">BOTTOM</button>
-        </div>
-
-        <div id="measurements">
-            <span>W: <span id="w-val">10.0</span>cm</span>
-            <span>H: <span id="h-val">10.0</span>cm</span>
-        </div>
-
-        <div id="yarn-ball" onmousedown="startStretch(event)"></div>
-    </div>
-
-    <div id="panel">
-        <button id="make-btn" onclick="generate()">🧶 MAKE PATTERN</button>
-        <div id="output">Grab the pink ball to stretch it! Click the buttons to change the view.</div>
-    </div>
-</div>
-
-<script>
-    let w = 150; let h = 150;
-    let isDragging = false;
-    let startX, startY;
-
-    const ball = document.getElementById('yarn-ball');
-
-    // 1. STRETCHING (Direct Size Control)
-    function startStretch(e) {
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        
-        window.onmousemove = function(ev) {
-            if (!isDragging) return;
-            let dx = ev.clientX - startX;
-            let dy = startY - ev.clientY;
-            
-            w = Math.max(50, w + dx);
-            h = Math.max(50, h + dy);
-            
-            ball.style.width = w + "px";
-            ball.style.height = h + "px";
-            
-            document.getElementById('w-val').innerText = (w / 15).toFixed(1);
-            document.getElementById('h-val').innerText = (h / 15).toFixed(1);
-            
-            startX = ev.clientX;
-            startY = ev.clientY;
-        };
-
-        window.onmouseup = function() {
-            isDragging = false;
-            window.onmousemove = null;
-        };
-    }
-
-    // 2. VIEW CONTROL (Safe Shading)
-    function setView(pos, label) {
-        ball.style.background = "radial-gradient(circle at " + pos + ", #ffb6c1, #ff69b4 60%, #c71585 100%)";
-        document.getElementById('output').innerText = "Switched to " + label + " view. Keep shaping!";
-    }
-
-    // 3. PATTERN GENERATOR
-    function generate() {
-        const cw = parseFloat(document.getElementById('w-val').innerText
+        #make-btn { background: #ff1493; color: white; border: none; padding: 18px; border-radius: 40px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 5px 0 #b01060; margin-bottom: 20px; }
+        #make-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #b01060; }
+        #output { flex: 1; background: #fff9fb; border: 1px solid #ffc0cb; border-radius
