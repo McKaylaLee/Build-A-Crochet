@@ -2,86 +2,34 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.38</title>
+    <title>Build-A-Crochet v3.5.39</title>
     <style>
         body { margin: 0; font-family: sans-serif; background: #fff0f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
         
         #app-area { display: flex; flex: 1; }
 
-        /* Left Side */
-        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; }
+        /* Left Side: The Ball View */
+        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; perspective: 1000px; }
         
-        /* The View Remote (ViewCube) */
+        /* The View Remote (ViewCube) - EXACTLY AS BEFORE */
         #remote { position: absolute; top: 20px; left: 20px; background: white; border: 3px solid #ff69b4; padding: 10px; border-radius: 10px; z-index: 100; text-align: center; }
         .cube-btn { background: #ff69b4; color: white; border: none; padding: 8px; margin: 2px; border-radius: 5px; cursor: pointer; font-size: 11px; width: 60px; font-weight: bold; }
         
         #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; z-index: 100; }
 
-        /* THE 3D SPHERE (Multi-Layer Volume) */
-        #ball-container { transform-style: preserve-3d; transition: transform 0.5s; position: relative; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; }
-        .ball-layer { 
-            position: absolute;
-            border-radius: 50%; 
-            border: 2px solid #d02090;
+        /* THE SPHERE (Single Object 3D) */
+        #ball-container { transform-style: preserve-3d; transition: transform 0.5s; }
+        #yarn-ball { 
+            width: 150px; height: 150px; 
             background: radial-gradient(circle at 30% 30%, #ffb6c1, #ff69b4 60%, #c71585 100%);
+            border-radius: 50%; 
+            border: 3px solid #d02090;
             cursor: move;
-            backface-visibility: visible;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            /* This gives it a slight 3D pop without breaking the mouse click */
+            transform: translateZ(1px); 
         }
-        /* These layers create the 3D depth without crashing */
-        #layer-f { transform: translateZ(0px); }
-        #layer-s { transform: rotateY(90deg); }
-        #layer-t { transform: rotateX(90deg); }
 
         /* Right Side: The Pattern */
-        #panel { width: 350px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; }
-        #make-btn { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 4px 0 #b01060; margin-bottom: 15px; }
-        #output { flex: 1; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 10px; padding: 15px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; color: #333; }
-    </style>
-</head>
-<body>
-
-<div id="header">
-    <h1 style="margin:0; color:#d02090;">✨ Build-A-Crochet v3.5.38 ✨</h1>
-</div>
-
-<div id="app-area">
-    <div id="viewer">
-        <div id="remote">
-            <div style="font-size: 10px; color: #ff1493; margin-bottom: 5px; font-weight: bold;">VIEW CUBE</div>
-            <button class="cube-btn" onclick="rotateBall(90, 0)">TOP</button><br>
-            <button class="cube-btn" onclick="rotateBall(0, 0)">FRONT</button>
-            <button class="cube-btn" onclick="rotateBall(0, 90)">SIDE</button><br>
-            <button class="cube-btn" onclick="rotateBall(-90, 0)">BOTTOM</button>
-        </div>
-
-        <div id="measurements">
-            <span>W: <span id="w-txt">10.0</span>cm</span>
-            <span>H: <span id="h-txt">10.0</span>cm</span>
-        </div>
-
-        <div id="ball-container">
-            <div class="ball-layer" id="layer-f" style="width:150px; height:150px;" onmousedown="startStretch(event)"></div>
-            <div class="ball-layer" id="layer-s" style="width:150px; height:150px;" onmousedown="startStretch(event)"></div>
-            <div class="ball-layer" id="layer-t" style="width:150px; height:150px;" onmousedown="startStretch(event)"></div>
-        </div>
-    </div>
-
-    <div id="panel">
-        <button id="make-btn" onclick="createPattern()">🧶 MAKE PATTERN</button>
-        <div id="output">Grab the ball to stretch! The layers make it 3D!</div>
-    </div>
-</div>
-
-<script>
-    let w = 150; let h = 150;
-    let isDragging = false;
-    let lastX, lastY;
-
-    const layers = document.querySelectorAll('.ball-layer');
-    const container = document.getElementById('ball-container');
-
-    function startStretch(e) {
-        isDragging = true;
-        lastX = e.clientX; lastY = e.clientY;
-        window.onmousemove =
+        #panel { width: 350px; background: white; border
