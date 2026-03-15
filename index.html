@@ -69,4 +69,81 @@
 </div>
 
 <script>
-    let w =
+    let w = 150; let h = 150;
+    let dragging = false;
+    let oldX, oldY;
+
+    const ball = document.getElementById('yarn-ball');
+
+    // 1. GRAB & STRETCH
+    function startStretch(e) {
+        dragging = true;
+        oldX = e.clientX;
+        oldY = e.clientY;
+        e.preventDefault();
+    }
+
+    window.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        
+        let dx = e.clientX - oldX;
+        let dy = oldY - e.clientY;
+        
+        w = Math.max(60, w + dx);
+        h = Math.max(60, h + dy);
+        
+        ball.style.width = w + "px";
+        ball.style.height = h + "px";
+        
+        document.getElementById('w-txt').innerText = (w / 15).toFixed(1);
+        document.getElementById('h-txt').innerText = (h / 15).toFixed(1);
+        
+        oldX = e.clientX;
+        oldY = e.clientY;
+    });
+
+    window.addEventListener('mouseup', function() {
+        dragging = false;
+    });
+
+    // 2. REAL 3D VIEW (Moves the light/shadow)
+    function changeView(lightPos, viewName) {
+        ball.style.background = `radial-gradient(circle at ${lightPos}, #ffb6c1, #ff69b4 50%, #8b1050 100%)`;
+        document.getElementById('output').innerText = "Viewing: " + viewName;
+    }
+
+    // 3. PATTERN GENERATOR
+    function generate() {
+        const cw = parseFloat(document.getElementById('w-txt').innerText);
+        const ch = parseFloat(document.getElementById('h-txt').innerText);
+        
+        let inc = Math.max(3, Math.floor((cw/2) * 1.5));
+        let mid = Math.max(1, Math.floor(inc * (ch/cw)));
+        let sts = 6;
+
+        let p = "<b>🧶 CROCHET PATTERN</b>\nSize: " + cw + "cm x " + ch + "cm\n------------------\n";
+        p += "R1: Magic Ring 6\n";
+        for (let i = 1; i < inc; i++) {
+            sts += 6;
+            p += "R" + (i+1) + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
+        }
+        p += "\n🧶 MIDDLE (The Body):\n";
+        for (let m = 1; m <= mid; m++) {
+            p += "R" + (inc + m) + ": sc around [" + sts + "]\n";
+        }
+        p += "\n🧶 CLOSING:\n";
+        let r = inc + mid + 1;
+        let d = inc - 1;
+        while (sts > 6) {
+            sts -= 6;
+            p += "R" + r + ": (sc " + d + ", dec) x 6 [" + sts + "]\n";
+            d--; r++;
+            if (sts === 12) p += "<b>-> STUFF FIRMLY! <-</b>\n";
+        }
+        p += "R" + r + ": dec x 6\nFinish: Sew closed.";
+        
+        document.getElementById('output').innerHTML = p;
+    }
+</script>
+</body>
+</html>
