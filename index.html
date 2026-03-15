@@ -2,39 +2,39 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>McKayla's Crochet Lab v3.3.6</title>
+    <title>McKayla's Crochet Lab v3.3.7</title>
     <style>
         body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #fff0f5; color: #333; }
-        #version-tag { background: #ff69b4; color: white; padding: 5px 15px; font-weight: bold; text-align: center; font-size: 14px; }
-        #header { background: white; padding: 20px; text-align: center; border-bottom: 3px solid #ff69b4; }
-        .container { max-width: 600px; margin: 20px auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
-        .input-group { margin-bottom: 20px; }
-        label { display: block; font-weight: bold; margin-bottom: 10px; color: #d02090; }
+        #version-tag { background: #ff1493; color: white; padding: 8px; font-weight: bold; text-align: center; font-size: 14px; letter-spacing: 1px; }
+        #header { background: white; padding: 20px; text-align: center; border-bottom: 4px solid #ff69b4; }
+        .container { max-width: 600px; margin: 20px auto; background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        .input-group { margin-bottom: 25px; padding: 15px; background: #fff9fb; border-radius: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 10px; color: #d02090; font-size: 18px; }
         input[type=range] { width: 100%; cursor: pointer; accent-color: #ff69b4; }
-        button { background: #ff69b4; color: white; border: none; padding: 15px; width: 100%; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 18px; transition: 0.3s; }
-        button:hover { background: #ff1493; transform: translateY(-2px); }
-        #pattern-output { margin-top: 25px; white-space: pre-wrap; background: #fdfdfd; padding: 20px; border-radius: 15px; border: 2px dashed #ffc0cb; font-family: 'Courier New', monospace; line-height: 1.6; }
-        .round-line { border-bottom: 1px solid #eee; padding: 5px 0; }
+        button { background: #ff69b4; color: white; border: none; padding: 18px; width: 100%; border-radius: 40px; cursor: pointer; font-weight: bold; font-size: 20px; transition: 0.3s; box-shadow: 0 4px 15px rgba(255, 105, 180, 0.4); }
+        button:hover { background: #ff1493; transform: scale(1.02); }
+        #pattern-output { margin-top: 30px; white-space: pre-wrap; background: #fafafa; padding: 25px; border-radius: 15px; border: 2px dashed #ffc0cb; font-family: 'Courier New', monospace; line-height: 1.7; font-size: 15px; }
+        .highlight { color: #ff1493; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="version-tag">McKayla's Crochet Lab - Version 3.3.6</div>
+<div id="version-tag">✨ MCKAYLA'S LAB - VERSION 3.3.7 ✨</div>
 
 <div id="header">
-    <h1>🧶 Crochet Pattern Maker</h1>
-    <p>By McKayla & Elliot</p>
+    <h1>🧶 Smart Sphere Designer</h1>
+    <p>Patterns that grow with your yarn!</p>
 </div>
 
 <div class="container">
     <div class="input-group">
-        <label>How big is your sphere? (Radius: <span id="r-val">5</span>cm)</label>
-        <input type="range" id="r-slider" min="1" max="15" value="5">
+        <label>Set Diameter: <span id="r-val">10</span>cm</label>
+        <input type="range" id="r-slider" min="2" max="30" value="10">
     </div>
 
-    <button onclick="makePattern()">✨ Create My Pattern</button>
+    <button onclick="makePattern()">✨ Generate Pro Pattern</button>
 
-    <div id="pattern-output">Your custom pattern will appear here!</div>
+    <div id="pattern-output">Adjust the slider and click the button!</div>
 </div>
 
 <script>
@@ -46,48 +46,53 @@
     };
 
     function makePattern() {
-        const r = parseFloat(slider.value);
-        let output = "🌟 MCKAYLA'S SPHERE PATTERN 🌟\n";
-        output += "Size: " + (r * 2) + "cm Wide\n";
+        const diameter = parseFloat(slider.value);
+        const radius = diameter / 2;
+        
+        // This is the "Magic Formula" for amigurumi
+        // Number of increase rounds depends on the size
+        const incRounds = Math.max(2, Math.floor(radius * 1.5)); 
+        
+        // Dynamic Middle: Bigger sphere = more middle rows!
+        const middleRows = Math.max(1, Math.floor(incRounds * 0.8));
+
+        let output = "🧶 MCKAYLA'S SMART PATTERN 🧶\n";
+        output += "Size: " + diameter + "cm Sphere\n";
         output += "--------------------------------\n\n";
 
-        // Logic for a standard Amigurumi Sphere
-        // We calculate how many rounds based on the radius
-        const rowsToMiddle = Math.round(r * 2); 
-        
-        // 1. INCREASING SECTION
-        output += "--- START (Increases) ---\n";
+        // 1. INCREASES
+        output += "✨ PART 1: INCREASES\n";
         output += "R1: Magic Ring 6 [6]\n";
         output += "R2: (inc) x 6 [12]\n";
         
         let currentSts = 12;
-        let roundsIncr = 2;
+        let totalRounds = 2;
 
-        for (let i = 1; i <= rowsToMiddle - 2; i++) {
+        for (let i = 1; i < incRounds; i++) {
             currentSts += 6;
-            roundsIncr++;
-            output += "R" + roundsIncr + ": (sc " + i + ", inc) x 6 [" + currentSts + "]\n";
+            totalRounds++;
+            output += "R" + totalRounds + ": (sc " + i + ", inc) x 6 [" + currentSts + "]\n";
         }
 
-        // 2. MIDDLE SECTION (Even rounds)
-        output += "\n--- MIDDLE (No Changes) ---\n";
-        for (let j = 1; j <= 3; j++) {
-            roundsIncr++;
-            output += "R" + roundsIncr + ": sc in each stitch [" + currentSts + "]\n";
+        // 2. DYNAMIC MIDDLE
+        output += "\n✨ PART 2: THE MIDDLE (" + middleRows + " rows)\n";
+        for (let m = 1; m <= middleRows; m++) {
+            totalRounds++;
+            output += "R" + totalRounds + ": sc in each stitch [" + currentSts + "]\n";
         }
 
-        // 3. DECREASING SECTION
-        output += "\n--- END (Decreases) ---\n";
-        for (let k = rowsToMiddle - 2; k >= 1; k--) {
+        // 3. DECREASES
+        output += "\n✨ PART 3: DECREASES\n";
+        for (let k = incRounds - 1; k >= 1; k--) {
             let nextSts = currentSts - 6;
-            roundsIncr++;
-            output += "R" + roundsIncr + ": (sc " + k + ", dec) x 6 [" + nextSts + "]\n";
+            totalRounds++;
+            output += "R" + totalRounds + ": (sc " + k + ", dec) x 6 [" + nextSts + "]\n";
             currentSts = nextSts;
         }
         
-        roundsIncr++;
-        output += "R" + roundsIncr + ": (dec) x 6 [6]\n";
-        output += "\nFinish: Fasten off and weave in ends!";
+        totalRounds++;
+        output += "R" + totalRounds + ": (dec) x 6 [6]\n";
+        output += "\nFinish: Stuff firmly and sew closed!";
 
         document.getElementById('pattern-output').innerText = output;
     }
