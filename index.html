@@ -2,18 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.10</title>
+    <title>Build-A-Crochet v3.5.11</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; }
         #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
         #header { background: white; padding: 12px; text-align: center; border-bottom: 4px solid #ff69b4; }
         #header h1 { margin: 0; color: #d02090; font-size: 24px; text-transform: uppercase; }
-        
         #main-container { display: flex; height: calc(100vh - 65px); }
-        #viewer { flex: 1; background: #fdfdfd; border-right: 2px solid #ffc0cb; position: relative; touch-action: none; cursor: s-resize; }
+        #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; position: relative; touch-action: none; cursor: s-resize; }
         
-        /* The Measurement Box from 3.5.2 style */
+        /* Measurements Bubble */
         #measurements { 
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.9); padding: 10px 20px; border-radius: 20px;
@@ -33,7 +32,7 @@
 </head>
 <body>
 
-<div id="version-tag">🧸 v3.5.10 🧸</div>
+<div id="version-tag">🧸 v3.5.11 🧸</div>
 
 <div id="header">
     <h1>✨ Build-A-Crochet ✨</h1>
@@ -45,89 +44,3 @@
             <div class="size-box"><span class="size-label">Width</span><span id="m-width">10.0</span>cm</div>
             <div class="size-box"><span class="size-label">Height</span><span id="m-height">10.0</span>cm</div>
             <div class="size-box"><span class="size-label">Length</span><span id="m-length">10.0</span>cm</div>
-        </div>
-    </div>
-    <div id="controls-panel">
-        <div class="instruction">
-            🖱️ <b>Click and Drag UP/DOWN</b> to change Height.<br>
-            ↔️ <b>Click and Drag LEFT/RIGHT</b> to change Width & Length.
-        </div>
-        <button onclick="makePattern()">✨ Generate Pattern</button>
-        <div id="pattern-output">Stretch the sphere then click generate!</div>
-    </div>
-</div>
-
-<script>
-    // 1. Scene Setup
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xfcfcfc);
-    const viewer = document.getElementById('viewer');
-    const camera = new THREE.PerspectiveCamera(50, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(viewer.clientWidth, viewer.clientHeight);
-    viewer.appendChild(renderer.domElement);
-
-    // 2. Add Sphere (Same as 3.5.2)
-    const geometry = new THREE.SphereGeometry(2, 32, 32);
-    const material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 40 });
-    const sphere = new THREE.Mesh(geometry, material);
-    scene.add(sphere);
-
-    // Wireframe (Stitching points)
-    const wire = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xff1493, wireframe: true, transparent: true, opacity: 0.1 }));
-    sphere.add(wire);
-
-    // 3. Lights (Required to see the sphere!)
-    const light = new THREE.DirectionalLight(0xffffff, 1.2);
-    light.position.set(5, 10, 7);
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-
-    camera.position.z = 15;
-
-    // 4. Stretching Logic (Exactly like 3.5.2)
-    let isDragging = false;
-    let lastY = 0, lastX = 0;
-
-    const dH = document.getElementById('m-height');
-    const dW = document.getElementById('m-width');
-    const dL = document.getElementById('m-length');
-
-    viewer.onmousedown = (e) => { isDragging = true; lastY = e.clientY; lastX = e.clientX; };
-    window.onmouseup = () => { isDragging = false; };
-    
-    window.onmousemove = (e) => {
-        if (!isDragging) return;
-
-        const deltaY = (lastY - e.clientY) * 0.015;
-        const deltaX = (e.clientX - lastX) * 0.015;
-
-        sphere.scale.y = Math.max(0.2, sphere.scale.y + deltaY);
-        sphere.scale.x = Math.max(0.2, sphere.scale.x + deltaX);
-        sphere.scale.z = Math.max(0.2, sphere.scale.z + deltaX);
-
-        // Update CM displays (Scale 1 = 10cm)
-        dH.innerText = (sphere.scale.y * 10).toFixed(1);
-        dW.innerText = (sphere.scale.x * 10).toFixed(1);
-        dL.innerText = (sphere.scale.z * 10).toFixed(1);
-
-        lastY = e.clientY; lastX = e.clientX;
-    };
-
-    function animate() {
-        requestAnimationFrame(animate);
-        if(!isDragging) sphere.rotation.y += 0.005;
-        renderer.render(scene, camera);
-    }
-    animate();
-
-    // 5. Pattern Logic
-    function makePattern() {
-        const h = sphere.scale.y * 10;
-        const w = sphere.scale.x * 10;
-        const radius = w / 2;
-        const incRounds = Math.max(3, Math.floor(radius * 1.5));
-        const middleRows = Math.max(2, Math.floor(incRounds * 0.8 * (h/w)));
-
-        let output = "<b>🧶 BUILD-A-CROCHET PATTERN</b>\n";
-        output += "Size: " + w.toFixed(1) + "cm x " + h.toFixed(1) + "cm\
