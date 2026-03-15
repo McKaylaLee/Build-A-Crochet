@@ -2,118 +2,118 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>McKayla's Crochet Lab v3.4.3</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>McKayla's Crochet Lab v3.4.4</title>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #fff0f5; color: #333; overflow: hidden; }
+        body { margin: 0; font-family: sans-serif; background: #fff0f5; overflow: hidden; }
         #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
-        #header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid #ff69b4; position: relative; }
-        #main-container { display: flex; height: calc(100vh - 75px); }
-        #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; position: relative; cursor: move; }
-        #controls-panel { width: 400px; background: white; display: flex; flex-direction: column; }
-        #controls-top { padding: 25px; border-bottom: 1px solid #eee; }
-        #pattern-area { flex: 1; padding: 25px; overflow-y: auto; background: #fff9fb; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 8px; color: #d02090; }
-        input[type=range] { width: 100%; cursor: pointer; accent-color: #ff69b4; }
-        input[type=color] { width: 100%; height: 40px; border: none; cursor: pointer; background: none; }
-        button { background: #ff69b4; color: white; border: none; padding: 15px; width: 100%; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 18px; transition: 0.3s; }
-        button:hover { background: #ff1493; }
-        #pattern-output { white-space: pre-wrap; font-family: 'Courier New', monospace; line-height: 1.7; font-size: 14px; }
-        .stuff-here { color: #ff1493; font-weight: bold; background: #ffe4e1; padding: 2px 5px; border-radius: 4px; }
+        #main-container { display: flex; height: 100vh; }
+        #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; cursor: move; }
+        #controls-panel { width: 350px; background: white; padding: 20px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; }
+        .input-group { margin-bottom: 20px; }
+        label { font-weight: bold; color: #d02090; display: block; margin-bottom: 10px; }
+        input[type=range] { width: 100%; accent-color: #ff69b4; }
+        button { background: #ff69b4; color: white; border: none; padding: 15px; border-radius: 25px; font-weight: bold; cursor: pointer; width: 100%; }
+        #pattern-output { flex: 1; overflow-y: auto; margin-top: 20px; white-space: pre-wrap; font-family: monospace; font-size: 13px; border-top: 1px solid #eee; padding-top: 15px; }
+        .stuff-tag { background: #ff1493; color: white; padding: 2px 6px; border-radius: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="version-tag">🧸 MCKAYLA'S LAB v3.4.3 🧸</div>
-
-<div id="header">
-    <h1>🧶 Smart Amigurumi Lab</h1>
-</div>
+<div id="version-tag">🧸 v3.4.4 🧸</div>
 
 <div id="main-container">
     <div id="viewer"></div>
     <div id="controls-panel">
-        <div id="controls-top">
-            <div class="input-group">
-                <label>Size: <span id="r-val">10</span>cm Wide</label>
-                <input type="range" id="r-slider" min="2" max="30" value="10">
-            </div>
-            <div class="input-group">
-                <label>Yarn Color:</label>
-                <input type="color" id="color-picker" value="#ff69b4">
-            </div>
-            <button onclick="makePattern()">✨ Generate Pattern</button>
+        <div class="input-group">
+            <label>Sphere Size: <span id="r-val">10</span>cm</label>
+            <input type="range" id="r-slider" min="2" max="30" value="10">
         </div>
-        <div id="pattern-area">
-            <div id="pattern-output">Your pattern will appear here!</div>
-        </div>
+        <button onclick="makePattern()">✨ Generate Pattern</button>
+        <div id="pattern-output">Change the slider and click generate!</div>
     </div>
 </div>
 
 <script>
-    // --- Basic 3D Setup ---
-    var scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xfafafb);
-    var viewer = document.getElementById('viewer');
-    var camera = new THREE.PerspectiveCamera(75, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
-    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    // 1. Setup Scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xfff9fb);
+    const viewer = document.getElementById('viewer');
+    const camera = new THREE.PerspectiveCamera(75, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(viewer.clientWidth, viewer.clientHeight);
     viewer.appendChild(renderer.domElement);
 
-    var geometry = new THREE.SphereGeometry(1, 64, 64);
-    var material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 70 });
-    var sphere = new THREE.Mesh(geometry, material);
+    // 2. Add Sphere
+    const geometry = new THREE.SphereGeometry(1, 64, 64);
+    const material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 50 });
+    const sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
 
-    var light = new THREE.DirectionalLight(0xffffff, 1.2);
-    light.position.set(5, 10, 7);
+    // 3. Add Lights
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(5, 5, 5);
     scene.add(light);
-    scene.add(new THREE.AmbientLight(0x404040, 1.3));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 
     camera.position.z = 10;
 
-    // --- Simple Zoom & Rotation ---
-    var isDragging = false;
-    var previousMousePosition = { x: 0, y: 0 };
-
-    viewer.addEventListener('mousedown', function(e) { isDragging = true; });
-    window.addEventListener('mouseup', function(e) { isDragging = false; });
-    viewer.addEventListener('mousemove', function(e) {
-        var deltaMove = { x: e.offsetX - previousMousePosition.x, y: e.offsetY - previousMousePosition.y };
-        if (isDragging) {
-            sphere.rotation.y += deltaMove.x * 0.01;
-            sphere.rotation.x += deltaMove.y * 0.01;
+    // 4. Zoom & Spin Logic
+    let isDown = false;
+    viewer.onmousedown = () => isDown = true;
+    window.onmouseup = () => isDown = false;
+    viewer.onmousemove = (e) => {
+        if(isDown) {
+            sphere.rotation.y += e.movementX * 0.01;
+            sphere.rotation.x += e.movementY * 0.01;
         }
-        previousMousePosition = { x: e.offsetX, y: e.offsetY };
-    });
-
-    // Zooming with Scroll
-    viewer.addEventListener('wheel', function(e) {
+    };
+    viewer.onwheel = (e) => {
         e.preventDefault();
         camera.position.z += e.deltaY * 0.02;
-        camera.position.z = Math.max(2, Math.min(camera.position.z, 100));
-    }, { passive: false });
+        camera.position.z = Math.min(Math.max(camera.position.z, 2), 50);
+    };
 
     function animate() {
         requestAnimationFrame(animate);
-        if(!isDragging) sphere.rotation.y += 0.005;
+        if(!isDown) sphere.rotation.y += 0.005;
         renderer.render(scene, camera);
     }
     animate();
 
-    // --- Control Panel Logic ---
-    var slider = document.getElementById('r-slider');
-    var rText = document.getElementById('r-val');
-    var colorPicker = document.getElementById('color-picker');
-
+    // 5. Pattern Logic
+    const slider = document.getElementById('r-slider');
+    const rText = document.getElementById('r-val');
+    
     slider.oninput = function() {
-        var d = this.value;
-        rText.innerText = d;
-        var scale = d / 5; 
-        sphere.scale.set(scale, scale, scale);
+        rText.innerText = this.value;
+        const s = this.value / 5;
+        sphere.scale.set(s, s, s);
     };
 
-    colorPicker.oninput = function() {
-        sphere.material.color.set(this.value);
+    function makePattern() {
+        const d = slider.value;
+        const incRounds = Math.max(2, Math.floor((d/2) * 1.5));
+        let output = "<b>🧶 SPHERE PATTERN (" + d + "cm)</b>\n\n";
+        output += "R1: MR 6\nR2: (inc) x 6\n";
+        
+        let sts = 12;
+        for (let i = 1; i < incRounds; i++) {
+            sts += 6;
+            output += "R" + (i+2) + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
+        }
+        
+        output += "\n✨ MIDDLE (" + Math.floor(incRounds * 0.8) + " rows)\n";
+        
+        output += "\n✨ DECREASES\n";
+        for (let k = incRounds - 1; k >= 1; k--) {
+            sts -= 6;
+            output += "sc " + k + ", dec... [" + sts + "]";
+            if (sts <= 18) output += " <span class='stuff-tag'>Stuff</span>";
+            output += "\n";
+        }
+        document.getElementById('pattern-output').innerHTML = output;
+    }
+</script>
+</body>
+</html>
