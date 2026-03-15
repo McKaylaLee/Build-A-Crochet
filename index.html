@@ -2,29 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.25</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>Build-A-Crochet v3.5.26</title>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; }
-        #header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid #ff69b4; z-index: 100; position: relative; }
-        #header h1 { margin: 0; color: #d02090; font-size: 24px; text-transform: uppercase; }
+        body { margin: 0; font-family: sans-serif; background: #fff0f5; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
+        #header h1 { margin: 0; color: #d02090; font-size: 22px; }
 
-        #main-container { display: flex; height: calc(100vh - 65px); width: 100vw; }
+        #main-container { display: flex; flex: 1; }
 
-        /* 3D Studio */
-        #viewer { flex: 1; background: #eeeeee; position: relative; cursor: crosshair; }
+        /* Left Side: The 3D Space */
+        #viewer { flex: 1; background: #fafafa; position: relative; display: flex; align-items: center; justify-content: center; perspective: 1000px; }
         
-        /* ViewCube (Tinkercad Style) */
-        #viewcube-container { position: absolute; top: 20px; left: 20px; width: 100px; height: 100px; perspective: 400px; z-index: 200; }
-        #viewcube { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transform: rotateX(-20deg) rotateY(-20deg); cursor: grab; }
-        .cube-face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; user-select: none; }
-        .front  { transform: translateZ(30px); }
-        .back   { transform: rotateY(180deg) translateZ(30px); }
-        .top    { transform: rotateX(90deg) translateZ(30px); }
-        .bottom { transform: rotateX(-90deg) translateZ(30px); }
-        .right  { transform: rotateY(90deg) translateZ(30px); }
-        .left   { transform: rotateY(-90deg) translateZ(30px); }
+        /* THE VIEWCUBE */
+        #cube-panel { position: absolute; top: 20px; left: 20px; z-index: 100; perspective: 400px; }
+        #viewcube { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transition: transform 0.5s; cursor: pointer; transform: rotateX(-20deg) rotateY(-20deg); }
+        .cube-face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; }
+        .f { transform: translateZ(30px); }
+        .bk { transform: rotateY(180deg) translateZ(30px); }
+        .t { transform: rotateX(90deg) translateZ(30px); }
+        .bt { transform: rotateX(-90deg) translateZ(30px); }
+        .r { transform: rotateY(90deg) translateZ(30px); }
+        .l { transform: rotateY(-90deg) translateZ(30px); }
 
-        /* Panel */
-        #controls-panel { width: 380px; background: white; padding: 20px; border-left: 4px solid #ffc0cb; z-index: 200; display: flex; flex-direction: column; }
-        #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4;
+        #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; z-index: 50; }
+
+        /* THE SPHERE */
+        #sphere-container { transform-style: preserve-3d; transition: transform 0.5s; cursor: move; }
+        #yarn-sphere { 
+            width: 150px; height: 150px; 
+            background: radial-gradient(circle at 30% 30%, #ffb6c1, #ff69b4 60%, #c71585 100%);
+            border-radius
