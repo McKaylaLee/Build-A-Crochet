@@ -2,38 +2,145 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.36</title>
+    <title>Build-A-Crochet v3.5.37</title>
     <style>
-        body { margin: 0; font-family: sans-serif; background: #fff0f5; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        body { margin: 0; font-family: sans-serif; background: #fff0f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
-        #header h1 { margin: 0; color: #d02090; font-size: 20px; }
+        
+        #app-area { display: flex; flex: 1; }
 
-        #main { display: flex; flex: 1; }
+        /* Left Side: The Ball View */
+        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; }
+        
+        /* The View Remote (ViewCube) */
+        #remote { position: absolute; top: 20px; left: 20px; background: white; border: 3px solid #ff69b4; padding: 10px; border-radius: 10px; z-index: 100; text-align: center; }
+        .cube-btn { background: #ff69b4; color: white; border: none; padding: 8px; margin: 2px; border-radius: 5px; cursor: pointer; font-size: 11px; width: 60px; font-weight: bold; }
+        
+        #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; z-index: 100; }
 
-        /* Left side: Canvas Drawing */
-        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; touch-action: none; }
-        #draw-layer { cursor: move; border: 1px solid #eee; }
+        /* The Ball (Simple Box with rounded corners) */
+        #ball-container { perspective: 1000px; transition: transform 0.5s; }
+        #yarn-ball { 
+            width: 150px; height: 150px; 
+            background: radial-gradient(circle at 30% 30%, #ffb6c1, #ff69b4 60%, #c71585 100%);
+            border-radius: 50%; 
+            border: 3px solid #d02090;
+            cursor: move;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
 
-        /* Directional Remote (ViewCube) */
-        #remote { position: absolute; top: 20px; left: 20px; background: white; border: 2px solid #ff69b4; padding: 10px; border-radius: 10px; z-index: 10; }
-        .r-btn { background: #ff69b4; color: white; border: none; padding: 5px; margin: 2px; border-radius: 4px; cursor: pointer; font-size: 10px; width: 50px; font-weight: bold; }
-
-        #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; }
-
-        /* Right side: Pattern */
-        #panel { width: 340px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; }
-        #make-btn { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 4px 0 #b01060; }
-        #output { flex: 1; margin-top: 15px; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 10px; padding: 15px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; color: #333; }
+        /* Right Side: The Pattern */
+        #panel { width: 350px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; }
+        #make-btn { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 4px 0 #b01060; margin-bottom: 15px; }
+        #output { flex: 1; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 10px; padding: 15px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; color: #333; }
     </style>
 </head>
 <body>
 
 <div id="header">
-    <h1>✨ Build-A-Crochet v3.5.36 ✨</h1>
+    <h1 style="margin:0; color:#d02090;">✨ Build-A-Crochet v3.5.37 ✨</h1>
 </div>
 
-<div id="main">
+<div id="app-area">
     <div id="viewer">
         <div id="remote">
-            <div style="font-size: 9px; font-weight: bold; color: #ff1493; margin-bottom: 5px;">VIEW REMOTE</div>
-            <button class="r-btn" onclick="setView(0.5, 0.2)">TOP</button><br>
+            <div style="font-size: 10px; color: #ff1493; margin-bottom: 5px; font-weight: bold;">VIEW CUBE</div>
+            <button class="cube-btn" onclick="rotateBall(90, 0)">TOP</button><br>
+            <button class="cube-btn" onclick="rotateBall(0, 0)">FRONT</button>
+            <button class="cube-btn" onclick="rotateBall(0, 90)">SIDE</button><br>
+            <button class="cube-btn" onclick="rotateBall(-90, 0)">BOTTOM</button>
+        </div>
+
+        <div id="measurements">
+            <span>W: <span id="w-txt">10.0</span>cm</span>
+            <span>H: <span id="h-txt">10.0</span>cm</span>
+        </div>
+
+        <div id="ball-container">
+            <div id="yarn-ball" onmousedown="startStretch(event)"></div>
+        </div>
+    </div>
+
+    <div id="panel">
+        <button id="make-btn" onclick="createPattern()">🧶 MAKE PATTERN</button>
+        <div id="output">Grab the pink ball to stretch! Click the buttons to rotate!</div>
+    </div>
+</div>
+
+<script>
+    let w = 150; let h = 150;
+    let isDragging = false;
+    let lastX, lastY;
+
+    const ball = document.getElementById('yarn-ball');
+    const container = document.getElementById('ball-container');
+
+    // 1. STRETCHING
+    function startStretch(e) {
+        isDragging = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        
+        window.onmousemove = function(ev) {
+            if (!isDragging) return;
+            let dx = ev.clientX - lastX;
+            let dy = lastY - ev.clientY;
+            
+            w = Math.max(50, w + dx);
+            h = Math.max(50, h + dy);
+            
+            ball.style.width = w + "px";
+            ball.style.height = h + "px";
+            
+            document.getElementById('w-txt').innerText = (w / 15).toFixed(1);
+            document.getElementById('h-txt').innerText = (h / 15).toFixed(1);
+            
+            lastX = ev.clientX;
+            lastY = ev.clientY;
+        };
+
+        window.onmouseup = function() {
+            isDragging = false;
+        };
+    }
+
+    // 2. ROTATING
+    function rotateBall(x, y) {
+        container.style.transform = `rotateX(${x}deg) rotateY(${y}deg)`;
+    }
+
+    // 3. PATTERN
+    function createPattern() {
+        const cw = parseFloat(document.getElementById('w-txt').innerText);
+        const ch = parseFloat(document.getElementById('h-txt').innerText);
+        
+        let inc = Math.max(3, Math.floor((cw/2) * 1.5));
+        let mid = Math.max(1, Math.floor(inc * (ch/cw)));
+        let sts = 6;
+
+        let p = "<b>🧶 CROCHET PATTERN</b>\nSize: " + cw + "cm x " + ch + "cm\n------------------\n";
+        p += "R1: Magic Ring 6\n";
+        for (let i = 1; i < inc; i++) {
+            sts += 6;
+            p += "R" + (i+1) + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
+        }
+        p += "\n🧶 MIDDLE ROUNDS:\n";
+        for (let m = 1; m <= mid; m++) {
+            p += "R" + (inc + m) + ": sc in each st around [" + sts + "]\n";
+        }
+        p += "\n🧶 CLOSING:\n";
+        let r = inc + mid + 1;
+        let d = inc - 1;
+        while (sts > 6) {
+            sts -= 6;
+            p += "R" + r + ": (sc " + d + ", dec) x 6 [" + sts + "]\n";
+            d--; r++;
+            if (sts === 12) p += "<b>-> STUFF FIRMLY! <-</b>\n";
+        }
+        p += "R" + r + ": dec x 6\nFinish: Sew closed.";
+        
+        document.getElementById('output').innerHTML = p;
+    }
+</script>
+</body>
+</html>
