@@ -2,21 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.34</title>
+    <title>Build-A-Crochet v3.5.35</title>
     <style>
         body { margin: 0; font-family: sans-serif; background: #fff0f5; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; z-index: 10; }
-        #header h1 { margin: 0; color: #d02090; font-size: 22px; text-transform: uppercase; }
+        #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
+        #header h1 { margin: 0; color: #d02090; font-size: 22px; }
 
-        #app-body { display: flex; flex: 1; overflow: hidden; }
+        #main-app { display: flex; flex: 1; }
 
-        /* Viewer */
+        /* Left Side: 3D View */
         #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; perspective: 1000px; }
         
-        /* THE VIEWCUBE */
-        #cube-container { position: absolute; top: 20px; left: 20px; width: 80px; height: 80px; perspective: 400px; z-index: 100; }
-        #viewcube { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform: rotateX(-20deg) rotateY(-20deg); cursor: pointer; }
-        .face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; user-select: none; }
+        /* The ViewCube (Direct Controller) */
+        #cube-box { position: absolute; top: 20px; left: 20px; width: 80px; height: 80px; perspective: 400px; z-index: 1000; }
+        #viewcube { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transition: transform 0.5s; transform: rotateX(-20deg) rotateY(-20deg); cursor: pointer; }
+        .face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; pointer-events: auto; }
         .f { transform: translateZ(30px); }
         .bk { transform: rotateY(180deg) translateZ(30px); }
         .t { transform: rotateX(90deg) translateZ(30px); }
@@ -24,64 +24,7 @@
         .r { transform: rotateY(90deg) translateZ(30px); }
         .l { transform: rotateY(-90deg) translateZ(30px); }
 
-        /* THE BALL (3D Container) */
-        #ball-pivot { transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; }
-        #ball { 
-            width: 150px; height: 150px; 
-            background: radial-gradient(circle at 35% 35%, #ffb6c1, #ff69b4 60%, #c71585 100%);
-            border-radius: 50%; 
-            border: 3px solid #d02090;
-            cursor: move;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-
         #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; }
 
-        /* Side Panel */
-        #panel { width: 350px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; z-index: 10; }
-        #make-btn { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 4px 0 #b01060; margin-bottom: 15px; }
-        #output { flex: 1; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 10px; padding: 15px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; color: #333; }
-    </style>
-</head>
-<body>
-
-<div id="header">
-    <h1>✨ Build-A-Crochet v3.5.34 ✨</h1>
-</div>
-
-<div id="app-body">
-    <div id="viewer">
-        <div id="cube-container">
-            <div id="viewcube">
-                <div class="face f" onclick="snapView(0, 0)">FRONT</div>
-                <div class="face bk" onclick="snapView(0, 180)">BACK</div>
-                <div class="face t" onclick="snapView(90, 0)">TOP</div>
-                <div class="face bt" onclick="snapView(-90, 0)">BOT</div>
-                <div class="face r" onclick="snapView(0, 90)">RIGHT</div>
-                <div class="face l" onclick="snapView(0, -90)">LEFT</div>
-            </div>
-        </div>
-
-        <div id="measurements">
-            <span>W: <span id="w-cm">10.0</span>cm</span>
-            <span>H: <span id="h-cm">10.0</span>cm</span>
-        </div>
-
-        <div id="ball-pivot">
-            <div id="ball" onmousedown="startStretch(event)"></div>
-        </div>
-    </div>
-
-    <div id="panel">
-        <button id="make-btn" onclick="generatePattern()">🧶 MAKE PATTERN</button>
-        <div id="output">Grab the ball to stretch! Click the Cube to spin the view!</div>
-    </div>
-</div>
-
-<script>
-    let w = 150; let h = 150;
-    let isDragging = false;
-    let startX, startY;
-
-    const ball = document.getElementById('ball');
-    const pivot = document.getElementById('ball-pivot');
+        /* The Ball (Pivot) */
+        #ball-pivot { transform-style: preserve-3d; transition: transform 0.
