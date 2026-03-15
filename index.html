@@ -2,29 +2,38 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.35</title>
+    <title>Build-A-Crochet v3.5.36</title>
     <style>
         body { margin: 0; font-family: sans-serif; background: #fff0f5; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
         #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
-        #header h1 { margin: 0; color: #d02090; font-size: 22px; }
+        #header h1 { margin: 0; color: #d02090; font-size: 20px; }
 
-        #main-app { display: flex; flex: 1; }
+        #main { display: flex; flex: 1; }
 
-        /* Left Side: 3D View */
-        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; perspective: 1000px; }
-        
-        /* The ViewCube (Direct Controller) */
-        #cube-box { position: absolute; top: 20px; left: 20px; width: 80px; height: 80px; perspective: 400px; z-index: 1000; }
-        #viewcube { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transition: transform 0.5s; transform: rotateX(-20deg) rotateY(-20deg); cursor: pointer; }
-        .face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; pointer-events: auto; }
-        .f { transform: translateZ(30px); }
-        .bk { transform: rotateY(180deg) translateZ(30px); }
-        .t { transform: rotateX(90deg) translateZ(30px); }
-        .bt { transform: rotateX(-90deg) translateZ(30px); }
-        .r { transform: rotateY(90deg) translateZ(30px); }
-        .l { transform: rotateY(-90deg) translateZ(30px); }
+        /* Left side: Canvas Drawing */
+        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; touch-action: none; }
+        #draw-layer { cursor: move; border: 1px solid #eee; }
+
+        /* Directional Remote (ViewCube) */
+        #remote { position: absolute; top: 20px; left: 20px; background: white; border: 2px solid #ff69b4; padding: 10px; border-radius: 10px; z-index: 10; }
+        .r-btn { background: #ff69b4; color: white; border: none; padding: 5px; margin: 2px; border-radius: 4px; cursor: pointer; font-size: 10px; width: 50px; font-weight: bold; }
 
         #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; }
 
-        /* The Ball (Pivot) */
-        #ball-pivot { transform-style: preserve-3d; transition: transform 0.
+        /* Right side: Pattern */
+        #panel { width: 340px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; }
+        #make-btn { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 4px 0 #b01060; }
+        #output { flex: 1; margin-top: 15px; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 10px; padding: 15px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; color: #333; }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <h1>✨ Build-A-Crochet v3.5.36 ✨</h1>
+</div>
+
+<div id="main">
+    <div id="viewer">
+        <div id="remote">
+            <div style="font-size: 9px; font-weight: bold; color: #ff1493; margin-bottom: 5px;">VIEW REMOTE</div>
+            <button class="r-btn" onclick="setView(0.5, 0.2)">TOP</button><br>
