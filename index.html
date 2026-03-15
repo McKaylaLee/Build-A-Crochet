@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.26</title>
+    <title>Build-A-Crochet v3.5.27</title>
     <style>
         body { margin: 0; font-family: sans-serif; background: #fff0f5; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
         #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
@@ -10,25 +10,81 @@
 
         #main-container { display: flex; flex: 1; }
 
-        /* Left Side: The 3D Space */
-        #viewer { flex: 1; background: #fafafa; position: relative; display: flex; align-items: center; justify-content: center; perspective: 1000px; }
+        /* Left Side: Drawing Area */
+        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; touch-action: none; }
         
-        /* THE VIEWCUBE */
-        #cube-panel { position: absolute; top: 20px; left: 20px; z-index: 100; perspective: 400px; }
-        #viewcube { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transition: transform 0.5s; cursor: pointer; transform: rotateX(-20deg) rotateY(-20deg); }
-        .cube-face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; }
-        .f { transform: translateZ(30px); }
-        .bk { transform: rotateY(180deg) translateZ(30px); }
-        .t { transform: rotateX(90deg) translateZ(30px); }
-        .bt { transform: rotateX(-90deg) translateZ(30px); }
-        .r { transform: rotateY(90deg) translateZ(30px); }
-        .l { transform: rotateY(-90deg) translateZ(30px); }
-
+        /* The View Remote (Cube) */
+        #cube-remote { position: absolute; top: 20px; left: 20px; background: white; padding: 10px; border: 2px solid #ff69b4; border-radius: 10px; z-index: 100; text-align: center; }
+        .c-btn { background: #ff69b4; color: white; border: none; padding: 5px; margin: 2px; border-radius: 4px; cursor: pointer; font-size: 10px; width: 50px; font-weight: bold; }
+        
         #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; z-index: 50; }
 
-        /* THE SPHERE */
-        #sphere-container { transform-style: preserve-3d; transition: transform 0.5s; cursor: move; }
-        #yarn-sphere { 
-            width: 150px; height: 150px; 
-            background: radial-gradient(circle at 30% 30%, #ffb6c1, #ff69b4 60%, #c71585 100%);
-            border-radius
+        /* Right Side: The Pattern */
+        #panel { width: 360px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; }
+        #gen-btn { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 4px 0 #b01060; }
+        #output { flex: 1; margin-top: 15px; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 10px; padding: 15px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; }
+
+        /* The Sphere (SVG Drawing) */
+        #yarn-svg { cursor: move; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.1)); }
+        #ball { fill: url(#grad); stroke: #d02090; stroke-width: 4; transition: transform 0.4s; }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <h1>✨ Build-A-Crochet ✨</h1>
+</div>
+
+<div id="main-container">
+    <div id="viewer">
+        <div id="cube-remote">
+            <div style="font-size: 10px; color: #ff1493; margin-bottom: 5px; font-weight: bold;">VIEW CUBE</div>
+            <button class="c-btn" onclick="rotateView('top')">TOP</button><br>
+            <button class="c-btn" onclick="rotateView('front')">FRONT</button>
+            <button class="c-btn" onclick="rotateView('side')">SIDE</button><br>
+            <button class="c-btn" onclick="rotateView('bottom')">BOT</button>
+        </div>
+
+        <div id="measurements">
+            <span>W: <span id="vw">10.0</span>cm</span>
+            <span>H: <span id="vh">10.0</span>cm</span>
+        </div>
+
+        <svg id="yarn-svg" width="500" height="500" viewBox="0 0 500 500" onmousedown="startDrag(event)">
+            <defs>
+                <radialGradient id="grad" cx="35%" cy="35%" r="50%">
+                    <stop offset="0%" style="stop-color:#ffb6c1" />
+                    <stop offset="100%" style="stop-color:#ff69b4" />
+                </radialGradient>
+            </defs>
+            <ellipse id="ball" cx="250" cy="250" rx="80" ry="80" />
+        </svg>
+    </div>
+
+    <div id="panel">
+        <button id="gen-btn" onclick="makePattern()">🧶 MAKE PATTERN</button>
+        <div id="output">Grab the ball to stretch! Click Cube to spin!</div>
+    </div>
+</div>
+
+<script>
+    let rx = 80; let ry = 80;
+    let isDragging = false;
+    let sx, sy;
+    const ball = document.getElementById('ball');
+
+    // 1. STRETCHING (Grab and Pull)
+    function startDrag(e) {
+        isDragging = true;
+        sx = e.clientX; sy = e.clientY;
+        window.onmousemove = (ev) => {
+            if (!isDragging) return;
+            let dx = (ev.clientX - sx) * 0.5;
+            let dy = (sy - ev.clientY) * 0.5;
+            rx = Math.max(30, rx + dx);
+            ry = Math.max(30, ry + dy);
+            ball.setAttribute('rx', rx);
+            ball.setAttribute('ry', ry);
+            document.getElementById('vw').innerText = (rx / 8).toFixed(1);
+            document.getElementById('vh').innerText = (ry / 8).toFixed(1);
+            sx = ev.clientX; sy = ev.clientY
