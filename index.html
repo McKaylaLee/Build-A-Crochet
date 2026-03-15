@@ -2,159 +2,160 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.32</title>
+    <title>Build-A-Crochet v3.5.33</title>
     <style>
         body { margin: 0; font-family: sans-serif; background: #fff0f5; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
         #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
-        #header h1 { margin: 0; color: #d02090; font-size: 22px; }
+        #header h1 { margin: 0; color: #d02090; font-size: 22px; text-transform: uppercase; }
 
-        #main-container { display: flex; flex: 1; }
+        #app-body { display: flex; flex: 1; overflow: hidden; }
 
-        /* THE 3D STUDIO */
-        #viewer { flex: 1; background: #f9f9f9; position: relative; perspective: 1200px; display: flex; align-items: center; justify-content: center; touch-action: none; }
+        /* Viewer */
+        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; }
         
-        /* THE VIEWCUBE */
-        #cube-panel { position: absolute; top: 20px; left: 20px; width: 100px; height: 100px; perspective: 400px; z-index: 1000; }
-        #viewcube { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform: rotateX(-20deg) rotateY(-20deg); cursor: pointer; }
-        .face { position: absolute; width: 60px; height: 60px; background: rgba(255, 255, 255, 0.95); border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; user-select: none; box-shadow: inset 0 0 10px rgba(255,105,180,0.2); }
-        .f  { transform: translateZ(30px); }
+        /* ViewCube Remote */
+        #cube-container { position: absolute; top: 20px; left: 20px; z-index: 100; }
+        #viewcube { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transform: rotateX(-20deg) rotateY(-20deg); cursor: pointer; transition: 0.3s; }
+        .face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; }
+        .f { transform: translateZ(30px); }
         .bk { transform: rotateY(180deg) translateZ(30px); }
-        .t  { transform: rotateX(90deg) translateZ(30px); }
+        .t { transform: rotateX(90deg) translateZ(30px); }
         .bt { transform: rotateX(-90deg) translateZ(30px); }
-        .r  { transform: rotateY(90deg) translateZ(30px); }
-        .l  { transform: rotateY(-90deg) translateZ(30px); }
+        .r { transform: rotateY(90deg) translateZ(30px); }
+        .l { transform: rotateY(-90deg) translateZ(30px); }
 
-        #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; z-index: 100; display: flex; gap: 20px; }
-
-        /* THE VOLUMETRIC BALL */
-        #ball-container { transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); width: 300px; height: 300px; display: flex; align-items: center; justify-content: center; }
-        .sphere-shell { 
-            position: absolute; 
+        /* The Ball */
+        #ball { 
+            width: 150px; height: 150px; 
+            background: radial-gradient(circle at 35% 35%, #ffb6c1, #ff69b4 60%, #c71585 100%);
             border-radius: 50%; 
-            border: 1px solid rgba(208, 32, 144, 0.3);
-            background: radial-gradient(circle at 30% 30%, #ffb6c1, #ff69b4 70%, #8b1050 100%);
+            border: 3px solid #d02090;
             cursor: move;
-            pointer-events: auto;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transition: background 0.4s;
         }
 
-        /* SIDE PANEL */
-        #panel { width: 360px; background: white; border-left: 3px solid #ffc0cb; padding: 25px; display: flex; flex-direction: column; z-index: 100; }
-        #gen-btn { background: #ff1493; color: white; border: none; padding: 20px; border-radius: 40px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 5px 0 #b01060; transition: 0.1s; }
-        #gen-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #b01060; }
-        #output { flex: 1; margin-top: 20px; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 15px; padding: 20px; overflow-y: auto; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.5; color: #444; }
+        #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; }
+
+        /* Side Panel */
+        #panel { width: 350px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; }
+        #make-btn { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 4px 0 #b01060; margin-bottom: 15px; }
+        #output { flex: 1; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 10px; padding: 15px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; color: #333; }
     </style>
 </head>
 <body>
 
 <div id="header">
-    <h1>✨ Build-A-Crochet v3.5.32 ✨</h1>
+    <h1>✨ Build-A-Crochet v3.5.33 ✨</h1>
 </div>
 
-<div id="main-container">
+<div id="app-body">
     <div id="viewer">
-        <div id="cube-panel">
+        <div id="cube-container">
             <div id="viewcube">
-                <div class="face f" onclick="spin(0,0)">FRONT</div>
-                <div class="face bk" onclick="spin(0,180)">BACK</div>
-                <div class="face t" onclick="spin(90,0)">TOP</div>
-                <div class="face bt" onclick="spin(-90,0)">BOT</div>
-                <div class="face r" onclick="spin(0,-90)">RIGHT</div>
-                <div class="face l" onclick="spin(0,90)">LEFT</div>
+                <div class="face f" onclick="changeView('FRONT', '35% 35%')">FRONT</div>
+                <div class="face bk" onclick="changeView('BACK', '65% 65%')">BACK</div>
+                <div class="face t" onclick="changeView('TOP', '50% 10%')">TOP</div>
+                <div class="face bt" onclick="changeView('BOT', '50% 90%')">BOT</div>
+                <div class="face r" onclick="changeView('RIGHT', '90% 50%')">RIGHT</div>
+                <div class="face l" onclick="changeView('LEFT', '10% 50%')">LEFT</div>
             </div>
         </div>
 
         <div id="measurements">
-            <span>WIDTH: <span id="w-val">10.0</span>cm</span>
-            <span>HEIGHT: <span id="h-val">10.0</span>cm</span>
+            <span>W: <span id="w-cm">10.0</span>cm</span>
+            <span>H: <span id="h-cm">10.0</span>cm</span>
         </div>
 
-        <div id="ball-container">
-            <div class="sphere-shell" style="transform: translateZ(-20px) scale(0.95);"></div>
-            <div class="sphere-shell" style="transform: translateZ(-10px) scale(0.98);"></div>
-            <div class="sphere-shell" id="main-ball" style="transform: translateZ(0px);" onmousedown="initDrag(event)"></div>
-            <div class="sphere-shell" style="transform: translateZ(10px) scale(0.98);"></div>
-            <div class="sphere-shell" style="transform: translateZ(20px) scale(0.95);"></div>
-        </div>
+        <div id="ball" onmousedown="startStretch(event)"></div>
     </div>
 
     <div id="panel">
-        <button id="gen-btn" onclick="buildPattern()">🧶 MAKE PATTERN</button>
-        <div id="output">Grab the ball to stretch! Click the Cube to spin!</div>
+        <button id="make-btn" onclick="generatePattern()">🧶 MAKE PATTERN</button>
+        <div id="output">Grab and pull the ball to stretch! Click Cube to change view!</div>
     </div>
 </div>
 
 <script>
     let w = 150; let h = 150;
-    let isMoving = false;
+    let isDragging = false;
     let startX, startY;
 
-    const shells = document.querySelectorAll('.sphere-shell');
-    const container = document.getElementById('ball-container');
-    const cube = document.getElementById('viewcube');
+    const ball = document.getElementById('ball');
 
-    // 1. STRETCHING (Direct Interaction)
-    function initDrag(e) {
-        isMoving = true;
+    // 1. STRETCHING LOGIC
+    function startStretch(e) {
+        isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
         
-        window.onmousemove = (ev) => {
-            if (!isMoving) return;
-            let dx = (ev.clientX - startX) * 0.5;
-            let dy = (startY - ev.clientY) * 0.5;
+        window.onmousemove = function(ev) {
+            if (!isDragging) return;
+            let dx = (ev.clientX - startX);
+            let dy = (startY - ev.clientY);
             
-            w = Math.max(60, w + dx);
-            h = Math.max(60, h + dy);
+            w = Math.max(50, w + dx);
+            h = Math.max(50, h + dy);
             
-            shells.forEach(s => {
-                s.style.width = w + "px";
-                s.style.height = h + "px";
-            });
+            ball.style.width = w + "px";
+            ball.style.height = h + "px";
             
-            document.getElementById('w-val').innerText = (w / 15).toFixed(1);
-            document.getElementById('h-val').innerText = (h / 15).toFixed(1);
+            document.getElementById('w-cm').innerText = (w / 15).toFixed(1);
+            document.getElementById('h-cm').innerText = (h / 15).toFixed(1);
             
             startX = ev.clientX;
             startY = ev.clientY;
         };
 
-        window.onmouseup = () => {
-            isMoving = false;
+        window.onmouseup = function() {
+            isDragging = false;
             window.onmousemove = null;
         };
     }
 
-    // 2. VIEWCUBE (Real 3D Camera Spin)
-    function spin(x, y) {
-        container.style.transform = `rotateX(${x}deg) rotateY(${y}deg)`;
-        cube.style.transform = `rotateX(${-x-20}deg) rotateY(${y-20}deg)`;
+    // 2. VIEWCUBE LOGIC
+    function changeView(side, gradientPos) {
+        ball.style.background = `radial-gradient(circle at ${gradientPos}, #ffb6c1, #ff69b4 60%, #c71585 100%)`;
+        document.getElementById('output').innerText = "Switched to " + side + " view.\n\nNow stretch the ball or generate the pattern!";
     }
 
-    // 3. PATTERN GENERATOR (Round by Round)
-    function buildPattern() {
-        const curW = parseFloat(document.getElementById('w-val').innerText);
-        const curH = parseFloat(document.getElementById('h-val').innerText);
+    // 3. PATTERN GENERATOR
+    function generatePattern() {
+        const curW = parseFloat(document.getElementById('w-cm').innerText);
+        const curH = parseFloat(document.getElementById('h-cm').innerText);
         
-        let incRounds = Math.max(3, Math.floor((curW/2) * 1.5));
-        let midRounds = Math.max(1, Math.floor(incRounds * (curH/curW)));
+        let inc = Math.max(3, Math.floor((curW/2) * 1.5));
+        let mid = Math.max(1, Math.floor(inc * (curH/curW)));
         let sts = 6;
 
-        let p = "<b>🧶 CUSTOM CROCHET PATTERN</b>\n";
-        p += "Dimensions: " + curW + "cm x " + curH + "cm\n";
+        let p = "<b>🧶 FULL CROCHET PATTERN</b>\n";
+        p += curW + "cm x " + curH + "cm\n";
         p += "------------------------------\n";
         p += "R1: Magic Ring 6 [6]\n";
         
-        for (let i = 1; i < incRounds; i++) {
+        for (let i = 1; i < inc; i++) {
             sts += 6;
             p += "R" + (i+1) + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
         }
 
-        p += "\n🧶 MIDDLE (The Height):\n";
-        for (let m = 1; m <= midRounds; m++) {
-            p += "R" + (incRounds + m) + ": sc in each st around [" + sts + "]\n";
+        p += "\n🧶 MIDDLE ROUNDS:\n";
+        for (let m = 1; m <= mid; m++) {
+            p += "R" + (inc + m) + ": sc in each st [" + sts + "]\n";
         }
 
         p += "\n🧶 DECREASING:\n";
-        let r = incRounds + midRounds + 1;
-        let d = incRounds - 1;
-        while (sts > 6
+        let r = inc + mid + 1;
+        let d = inc - 1;
+        while (sts > 6) {
+            sts -= 6;
+            p += "R" + r + ": (sc " + d + ", dec) x 6 [" + sts + "]\n";
+            d--; r++;
+            if (sts === 12) p += "<b>-> STUFF FIRMLY! <-</b>\n";
+        }
+        p += "R" + r + ": dec x 6 [6]\nFinish: Sew closed.";
+        
+        document.getElementById('output').innerHTML = p;
+    }
+</script>
+</body>
+</html>
