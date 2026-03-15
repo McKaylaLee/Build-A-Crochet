@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.24</title>
+    <title>Build-A-Crochet v3.5.25</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; }
@@ -11,13 +11,13 @@
 
         #main-container { display: flex; height: calc(100vh - 65px); width: 100vw; }
 
-        /* Left Side: 3D Studio */
+        /* 3D Studio */
         #viewer { flex: 1; background: #eeeeee; position: relative; cursor: crosshair; }
         
         /* ViewCube (Tinkercad Style) */
         #viewcube-container { position: absolute; top: 20px; left: 20px; width: 100px; height: 100px; perspective: 400px; z-index: 200; }
-        #viewcube { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transition: transform 0.5s; transform: rotateX(-20deg) rotateY(-20deg); }
-        .cube-face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; cursor: pointer; }
+        #viewcube { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transform: rotateX(-20deg) rotateY(-20deg); cursor: grab; }
+        .cube-face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; user-select: none; }
         .front  { transform: translateZ(30px); }
         .back   { transform: rotateY(180deg) translateZ(30px); }
         .top    { transform: rotateX(90deg) translateZ(30px); }
@@ -25,162 +25,6 @@
         .right  { transform: rotateY(90deg) translateZ(30px); }
         .left   { transform: rotateY(-90deg) translateZ(30px); }
 
-        /* Right Side: Pattern & Mode */
+        /* Panel */
         #controls-panel { width: 380px; background: white; padding: 20px; border-left: 4px solid #ffc0cb; z-index: 200; display: flex; flex-direction: column; }
-        
-        #measurements { 
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: white; padding: 10px 20px; border-radius: 20px;
-            border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 15px; z-index: 150;
-        }
-
-        .mode-box { background: #fff0f5; padding: 15px; border-radius: 15px; margin-bottom: 15px; text-align: center; }
-        #stretch-btn { background: #ff1493; color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; }
-        .active-mode { background: #32cd32 !important; }
-
-        #gen-btn { background: #d02090; color: white; border: none; padding: 18px; border-radius: 35px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
-        #pattern-output { flex: 1; margin-top: 15px; background: #fff9fb; border: 1px solid #ffc0cb; padding: 15px; font-family: monospace; border-radius: 10px; overflow-y: auto; white-space: pre-wrap; font-size: 13px; }
-    </style>
-</head>
-<body>
-
-<div id="header">
-    <h1>✨ Build-A-Crochet ✨</h1>
-</div>
-
-<div id="main-container">
-    <div id="viewer">
-        <div id="viewcube-container">
-            <div id="viewcube">
-                <div class="cube-face front" onclick="snapView(0, 0)">FRONT</div>
-                <div class="cube-face back" onclick="snapView(0, 180)">BACK</div>
-                <div class="cube-face top" onclick="snapView(90, 0)">TOP</div>
-                <div class="cube-face bottom" onclick="snapView(-90, 0)">BOT</div>
-                <div class="cube-face right" onclick="snapView(0, 90)">RIGHT</div>
-                <div class="cube-face left" onclick="snapView(0, -90)">LEFT</div>
-            </div>
-        </div>
-
-        <div id="measurements">
-            <span>W: <span id="m-width">10.0</span>cm</span>
-            <span>H: <span id="m-height">10.0</span>cm</span>
-        </div>
-    </div>
-    
-    <div id="controls-panel">
-        <div class="mode-box">
-            <div style="margin-bottom: 10px; font-weight: bold; color: #d02090;">3D NAVIGATION</div>
-            <button id="stretch-btn" onclick="toggleMode()">STRETCH MODE: OFF</button>
-            <p style="font-size: 11px; margin-top: 8px;">OFF = Spin Camera | ON = Pull Sphere</p>
-        </div>
-        <button id="gen-btn" onclick="makePattern()">🧶 GENERATE PATTERN</button>
-        <div id="pattern-output">Stretch the ball then click generate!</div>
-    </div>
-</div>
-
-<script>
-    let isStretchMode = false;
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf5f5f5);
-    const viewer = document.getElementById('viewer');
-    const camera = new THREE.PerspectiveCamera(45, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(viewer.clientWidth, viewer.clientHeight);
-    viewer.appendChild(renderer.domElement);
-
-    // 3D Yarn Ball
-    const geometry = new THREE.SphereGeometry(2, 64, 64);
-    const material = new THREE.MeshStandardMaterial({ color: 0xff69b4, roughness: 0.8, metalness: 0.1 });
-    const sphere = new THREE.Mesh(geometry, material);
-    scene.add(sphere);
-
-    // Lights
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(5, 10, 7);
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-
-    camera.position.set(0, 5, 15);
-    camera.lookAt(0,0,0);
-
-    let isDragging = false;
-    let lastX, lastY;
-
-    viewer.onmousedown = (e) => { isDragging = true; lastX = e.clientX; lastY = e.clientY; };
-    window.onmouseup = () => { isDragging = false; };
-
-    window.onmousemove = (e) => {
-        if (!isDragging) return;
-        const dX = e.clientX - lastX;
-        const dY = e.clientY - lastY;
-
-        if (isStretchMode) {
-            sphere.scale.x = Math.max(0.5, sphere.scale.x + dX * 0.01);
-            sphere.scale.y = Math.max(0.5, sphere.scale.y - dY * 0.01);
-            sphere.scale.z = sphere.scale.x;
-            updateStats();
-        } else {
-            sphere.rotation.y += dX * 0.01;
-            sphere.rotation.x += dY * 0.01;
-            document.getElementById('viewcube').style.transform = `rotateX(${-sphere.rotation.x * 50}deg) rotateY(${sphere.rotation.y * 50}deg)`;
-        }
-        lastX = e.clientX; lastY = e.clientY;
-    };
-
-    function toggleMode() {
-        isStretchMode = !isStretchMode;
-        const btn = document.getElementById('stretch-btn');
-        btn.innerText = "STRETCH MODE: " + (isStretchMode ? "ON" : "OFF");
-        btn.className = isStretchMode ? "active-mode" : "";
-    }
-
-    function snapView(x, y) {
-        sphere.rotation.set(x * (Math.PI/180), y * (Math.PI/180), 0);
-        document.getElementById('viewcube').style.transform = `rotateX(${-x}deg) rotateY(${y}deg)`;
-    }
-
-    function updateStats() {
-        document.getElementById('m-width').innerText = (sphere.scale.x * 10).toFixed(1);
-        document.getElementById('m-height').innerText = (sphere.scale.y * 10).toFixed(1);
-    }
-
-    function animate() {
-        requestAnimationFrame(animate);
-        renderer.render(scene, camera);
-    }
-    animate();
-
-    function makePattern() {
-        const w = sphere.scale.x * 10;
-        const h = sphere.scale.y * 10;
-        const inc = Math.max(3, Math.floor((w/2) * 1.5));
-        const mid = Math.max(1, Math.floor(inc * (h/w)));
-        
-        let p = "<b>🧶 COMPLETE PATTERN</b>\n";
-        p += w.toFixed(1) + "cm x " + h.toFixed(1) + "cm\n";
-        p += "------------------------------\n";
-        p += "R1: Magic Ring 6 [6]\n";
-        let sts = 6;
-        for (let i = 1; i < inc; i++) {
-            sts += 6;
-            p += "R" + (i+1) + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
-        }
-        p += "\n🧶 MIDDLE SECTION:\n";
-        for (let m = 1; m <= mid; m++) {
-            p += "R" + (inc + m) + ": sc in each st around [" + sts + "]\n";
-        }
-        p += "\n🧶 CLOSING:\n";
-        let r = inc + mid + 1;
-        let d = inc - 1;
-        while (sts > 6) {
-            sts -= 6;
-            p += "R" + r + ": (sc " + d + ", dec) x 6 [" + sts + "]\n";
-            d--; r++;
-            if(sts == 12) p += "<b>Stuff firmly!</b>\n";
-        }
-        p += "R" + r + ": dec x 6 [6]\nFinish: Sew closed.";
-        document.getElementById('pattern-output').innerHTML = p;
-    }
-</script>
-</body>
-</html>
+        #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4;
