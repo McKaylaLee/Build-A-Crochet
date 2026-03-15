@@ -2,26 +2,120 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.19</title>
+    <title>Build-A-Crochet v3.5.20</title>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        #header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid #ff69b4; position: relative; }
-        #header h1 { margin: 0; color: #d02090; font-size: 26px; text-transform: uppercase; }
-        #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 11px; font-weight: bold; }
-
-        #main-container { display: flex; flex: 1; overflow: hidden; }
-
-        /* Left Side: The Drawing Area */
-        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; touch-action: none; }
+        body { margin: 0; font-family: sans-serif; background: #fff0f5; }
+        #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
+        #header h1 { margin: 0; color: #d02090; font-size: 24px; }
         
-        /* The Measurements Bubble */
-        #measurements { 
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: white; padding: 10px 20px; border-radius: 20px;
-            border: 2px solid #ff69b4; color: #d02090; font-weight: bold;
-            display: flex; gap: 20px; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        #main { display: flex; height: 90vh; }
+        
+        /* Left Panel: The Controls */
+        #left-bar { width: 250px; background: white; border-right: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        
+        /* The View Cube Area */
+        #view-box { border: 2px solid #ff69b4; padding: 10px; text-align: center; border-radius: 10px; }
+        .cube-btn { background: #ff69b4; color: white; border: none; padding: 5px; margin: 2px; cursor: pointer; font-size: 10px; border-radius: 3px; width: 40px; }
+        
+        /* Sliders (Stretching) */
+        .slider-group { display: flex; flex-direction: column; }
+        .slider-group label { font-weight: bold; color: #ff1493; font-size: 12px; }
+        
+        /* Center: The Sphere */
+        #center { flex: 1; display: flex; align-items: center; justify-content: center; background: #fafafa; position: relative; }
+        #sphere { 
+            background: #ff69b4; 
+            border: 4px solid #d02090; 
+            border-radius: 50%; 
+            width: 100px; height: 100px;
+            box-shadow: 10px 10px 20px rgba(0,0,0,0.1);
         }
 
-        /* Right Side: The Pattern */
-        #panel { width: 380px; background: white; padding: 25px; border-left: 3px solid #ffc0cb; display: flex; flex-direction: column; }
-        button { background: #ff1493; color: white; border: none;
+        /* Right Panel: The Pattern */
+        #right-bar { width: 350px; background: #fff9fb; padding: 20px; border-left: 2px solid #ffc0cb; overflow-y: auto; }
+        #make-btn { background: #d02090; color: white; border: none; padding: 15px; width: 100%; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        #output { margin-top: 15px; background: white; padding: 15px; border: 1px solid #ffc0cb; border-radius: 10px; white-space: pre-wrap; font-family: monospace; font-size: 13px; }
+        
+        #stats { position: absolute; top: 10px; font-weight: bold; color: #d02090; }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <h1>✨ Build-A-Crochet v3.5.20 ✨</h1>
+</div>
+
+<div id="main">
+    <div id="left-bar">
+        <div id="view-box">
+            <div style="font-size: 11px; margin-bottom: 5px;">VIEW CUBE</div>
+            <button class="cube-btn" onclick="setView('Top', '#ffb6c1')">TOP</button>
+            <button class="cube-btn" onclick="setView('Front', '#ff69b4')">FRONT</button><br>
+            <button class="cube-btn" onclick="setView('Side', '#d02090')">SIDE</button>
+            <button class="cube-btn" onclick="setView('Back', '#ff1493')">BACK</button>
+        </div>
+
+        <div class="slider-group">
+            <label>WIDTH: <span id="w-num">10</span>cm</label>
+            <input type="range" id="wSlide" min="5" max="25" value="10" oninput="draw()">
+        </div>
+
+        <div class="slider-group">
+            <label>HEIGHT: <span id="h-num">10</span>cm</label>
+            <input type="range" id="hSlide" min="5" max="25" value="10" oninput="draw()">
+        </div>
+    </div>
+
+    <div id="center">
+        <div id="stats">W: <span id="sw">10</span>cm | H: <span id="sh">10</span>cm | L: <span id="sl">10</span>cm</div>
+        <div id="sphere"></div>
+    </div>
+
+    <div id="right-bar">
+        <button id="make-btn" onclick="generate()">🧶 MAKE PATTERN</button>
+        <div id="output">Adjust the sphere then click make!</div>
+    </div>
+</div>
+
+<script>
+    function setView(name, color) {
+        document.getElementById('sphere').style.backgroundColor = color;
+        alert("Switched to " + name + " view!");
+    }
+
+    function draw() {
+        var w = document.getElementById('wSlide').value;
+        var h = document.getElementById('hSlide').value;
+        
+        document.getElementById('w-num').innerText = w;
+        document.getElementById('h-num').innerText = h;
+        document.getElementById('sw').innerText = w;
+        document.getElementById('sl').innerText = w;
+        document.getElementById('sh').innerText = h;
+        
+        var ball = document.getElementById('sphere');
+        ball.style.width = (w * 10) + "px";
+        ball.style.height = (h * 10) + "px";
+    }
+
+    function generate() {
+        var w = document.getElementById('wSlide').value;
+        var h = document.getElementById('hSlide').value;
+        var inc = Math.max(3, Math.floor((w/2) * 1.5));
+        var mid = Math.max(1, Math.floor(inc * (h/w)));
+
+        var p = "<b>🧶 PATTERN READY!</b>\n";
+        p += w + "cm Width x " + h + "cm Height\n\n";
+        p += "R1: Magic Ring 6\n";
+        for (var i = 1; i < inc; i++) {
+            p += "R" + (i+1) + ": (sc " + i + ", inc) x 6\n";
+        }
+        p += "\nMIDDLE: " + mid + " rounds\n";
+        p += "\nFINISH: Decrease and sew!";
+        
+        document.getElementById('output').innerHTML = p;
+    }
+</script>
+
+</body>
+</html>
