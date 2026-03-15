@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.37</title>
+    <title>Build-A-Crochet v3.5.38</title>
     <style>
         body { margin: 0; font-family: sans-serif; background: #fff0f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
         
         #app-area { display: flex; flex: 1; }
 
-        /* Left Side: The Ball View */
+        /* Left Side */
         #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; }
         
         /* The View Remote (ViewCube) */
@@ -18,16 +18,20 @@
         
         #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; z-index: 100; }
 
-        /* The Ball (Simple Box with rounded corners) */
-        #ball-container { perspective: 1000px; transition: transform 0.5s; }
-        #yarn-ball { 
-            width: 150px; height: 150px; 
-            background: radial-gradient(circle at 30% 30%, #ffb6c1, #ff69b4 60%, #c71585 100%);
+        /* THE 3D SPHERE (Multi-Layer Volume) */
+        #ball-container { transform-style: preserve-3d; transition: transform 0.5s; position: relative; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center; }
+        .ball-layer { 
+            position: absolute;
             border-radius: 50%; 
-            border: 3px solid #d02090;
+            border: 2px solid #d02090;
+            background: radial-gradient(circle at 30% 30%, #ffb6c1, #ff69b4 60%, #c71585 100%);
             cursor: move;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            backface-visibility: visible;
         }
+        /* These layers create the 3D depth without crashing */
+        #layer-f { transform: translateZ(0px); }
+        #layer-s { transform: rotateY(90deg); }
+        #layer-t { transform: rotateX(90deg); }
 
         /* Right Side: The Pattern */
         #panel { width: 350px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; }
@@ -38,7 +42,7 @@
 <body>
 
 <div id="header">
-    <h1 style="margin:0; color:#d02090;">✨ Build-A-Crochet v3.5.37 ✨</h1>
+    <h1 style="margin:0; color:#d02090;">✨ Build-A-Crochet v3.5.38 ✨</h1>
 </div>
 
 <div id="app-area">
@@ -57,13 +61,15 @@
         </div>
 
         <div id="ball-container">
-            <div id="yarn-ball" onmousedown="startStretch(event)"></div>
+            <div class="ball-layer" id="layer-f" style="width:150px; height:150px;" onmousedown="startStretch(event)"></div>
+            <div class="ball-layer" id="layer-s" style="width:150px; height:150px;" onmousedown="startStretch(event)"></div>
+            <div class="ball-layer" id="layer-t" style="width:150px; height:150px;" onmousedown="startStretch(event)"></div>
         </div>
     </div>
 
     <div id="panel">
         <button id="make-btn" onclick="createPattern()">🧶 MAKE PATTERN</button>
-        <div id="output">Grab the pink ball to stretch! Click the buttons to rotate!</div>
+        <div id="output">Grab the ball to stretch! The layers make it 3D!</div>
     </div>
 </div>
 
@@ -72,75 +78,10 @@
     let isDragging = false;
     let lastX, lastY;
 
-    const ball = document.getElementById('yarn-ball');
+    const layers = document.querySelectorAll('.ball-layer');
     const container = document.getElementById('ball-container');
 
-    // 1. STRETCHING
     function startStretch(e) {
         isDragging = true;
-        lastX = e.clientX;
-        lastY = e.clientY;
-        
-        window.onmousemove = function(ev) {
-            if (!isDragging) return;
-            let dx = ev.clientX - lastX;
-            let dy = lastY - ev.clientY;
-            
-            w = Math.max(50, w + dx);
-            h = Math.max(50, h + dy);
-            
-            ball.style.width = w + "px";
-            ball.style.height = h + "px";
-            
-            document.getElementById('w-txt').innerText = (w / 15).toFixed(1);
-            document.getElementById('h-txt').innerText = (h / 15).toFixed(1);
-            
-            lastX = ev.clientX;
-            lastY = ev.clientY;
-        };
-
-        window.onmouseup = function() {
-            isDragging = false;
-        };
-    }
-
-    // 2. ROTATING
-    function rotateBall(x, y) {
-        container.style.transform = `rotateX(${x}deg) rotateY(${y}deg)`;
-    }
-
-    // 3. PATTERN
-    function createPattern() {
-        const cw = parseFloat(document.getElementById('w-txt').innerText);
-        const ch = parseFloat(document.getElementById('h-txt').innerText);
-        
-        let inc = Math.max(3, Math.floor((cw/2) * 1.5));
-        let mid = Math.max(1, Math.floor(inc * (ch/cw)));
-        let sts = 6;
-
-        let p = "<b>🧶 CROCHET PATTERN</b>\nSize: " + cw + "cm x " + ch + "cm\n------------------\n";
-        p += "R1: Magic Ring 6\n";
-        for (let i = 1; i < inc; i++) {
-            sts += 6;
-            p += "R" + (i+1) + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
-        }
-        p += "\n🧶 MIDDLE ROUNDS:\n";
-        for (let m = 1; m <= mid; m++) {
-            p += "R" + (inc + m) + ": sc in each st around [" + sts + "]\n";
-        }
-        p += "\n🧶 CLOSING:\n";
-        let r = inc + mid + 1;
-        let d = inc - 1;
-        while (sts > 6) {
-            sts -= 6;
-            p += "R" + r + ": (sc " + d + ", dec) x 6 [" + sts + "]\n";
-            d--; r++;
-            if (sts === 12) p += "<b>-> STUFF FIRMLY! <-</b>\n";
-        }
-        p += "R" + r + ": dec x 6\nFinish: Sew closed.";
-        
-        document.getElementById('output').innerHTML = p;
-    }
-</script>
-</body>
-</html>
+        lastX = e.clientX; lastY = e.clientY;
+        window.onmousemove =
