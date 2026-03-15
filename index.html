@@ -2,30 +2,154 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.6</title>
+    <title>Build-A-Crochet v3.5.7</title>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; color: #333; }
-        #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
-        #header { background: white; padding: 12px; text-align: center; border-bottom: 4px solid #ff69b4; }
-        #header h1 { margin: 0; color: #d02090; font-size: 24px; text-transform: uppercase; }
+        /* Base Styles */
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #fff0f5; 
+            color: #333; 
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
         
-        #main-container { display: flex; height: calc(100vh - 65px); }
+        #header { 
+            background: white; 
+            padding: 20px; 
+            text-align: center; 
+            border-bottom: 4px solid #ff69b4; 
+        }
         
-        /* The Canvas is the "Drawing Board" */
-        #viewer { flex: 1; background: #fdfdfd; border-right: 2px solid #ffc0cb; position: relative; cursor: ns-resize; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        
-        #measurements { 
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: white; padding: 10px 20px; border-radius: 20px;
-            border: 3px solid #ff69b4; color: #d02090; font-weight: bold; font-size: 14px;
-            display: flex; gap: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        #header h1 { margin: 0; color: #d02090; font-size: 28px; }
+
+        #main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
         }
 
-        #controls-panel { width: 350px; background: white; padding: 20px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; overflow-y: auto; }
-        .instruction { font-size: 13px; margin-bottom: 15px; background: #fff0f5; padding: 12px; border-radius: 10px; border-left: 5px solid #ff1493; }
+        /* Left Side: The "Shape" and Controls */
+        #left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #fdfdfd;
+            border-right: 2px solid #ffc0cb;
+            padding: 20px;
+        }
+
+        #shape-container {
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        /* The Yarn Sphere */
+        #yarn-ball {
+            background: #ff69b4;
+            border: 5px solid #d02090;
+            border-radius: 50%;
+            width: 150px;
+            height: 150px;
+            box-shadow: inset -15px -15px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stats-bubble {
+            background: white;
+            padding: 10px 25px;
+            border-radius: 30px;
+            border: 2px solid #ffc0cb;
+            font-weight: bold;
+            color: #d02090;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        /* Right Side: The Pattern */
+        #right-panel {
+            width: 400px;
+            background: white;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #ff69b4;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover { background: #ff1493; }
         
-        button { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; box-shadow: 0 4px 0 #b01060; }
-        button:active { transform: translateY(2px); box-shadow: 0 2px 0 #b01060; }
+        .gen-btn {
+            background: #d02090;
+            margin-top: 10px;
+            font-size: 18px;
+            padding: 15px;
+        }
+
+        #pattern-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff9fb;
+            border: 1px dashed #ffc0cb;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            font-size: 13px;
+            line-height: 1.6;
+        }
         
-        #pattern-output { margin-top: 20px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 14px; color: #333; background: #fff9fb; padding: 15px; border: 1px solid #ffc0cb; border-radius: 8px; }
-        .
+        .stuff-note { color: #ff1493; font-weight: bold; background: #ffe4e1; padding: 2px 4px; }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <h1>✨ Build-A-Crochet ✨</h1>
+    <div style="font-size: 12px; color: #ff69b4; font-weight: bold;">VERSION 3.5.7</div>
+</div>
+
+<div id="main-layout">
+    <div id="left-panel">
+        <div class="stats-bubble">
+            <span>W: <span id="valW">10</span>cm</span>
+            <span>H: <span id="valH">10</span>cm</span>
+            <span>L: <span id="valL">10</span>cm</span>
+        </div>
+
+        <div id="shape-container">
+            <div id="yarn-ball"></div>
+        </div>
+
+        <div style="width: 100%; max-width: 300px;">
+            <p style="text-align:center; font-weight:bold; color:#666;">Adjust Size:</p>
+            <div class="control-row">
+                <button onclick="changeSize('w', 1)">+ Width</button>
+                <button onclick="changeSize('w', -1)">- Width</button>
+            </div>
+            <div class="control-row">
+                <button onclick="changeSize('h', 1)">+ Height</button>
+                <button onclick="changeSize('h', -1)">- Height</button>
