@@ -2,27 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.1</title>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+    <title>Build-A-Crochet v3.5.2</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; }
         #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
         #header { background: white; padding: 12px; text-align: center; border-bottom: 4px solid #ff69b4; }
         #header h1 { margin: 0; color: #d02090; font-size: 24px; text-transform: uppercase; }
         #main-container { display: flex; height: calc(100vh - 65px); }
-        #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; position: relative; }
+        #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; position: relative; touch-action: none; cursor: s-resize; }
         #controls-panel { width: 350px; background: white; padding: 20px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; }
         .instruction { font-size: 13px; color: #666; margin-bottom: 15px; background: #fff0f5; padding: 10px; border-radius: 8px; border-left: 4px solid #ff69b4; }
-        button { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.2s; }
-        button:hover { background: #ff69b4; }
-        #pattern-output { flex: 1; overflow-y: auto; margin-top: 20px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; border-top: 1px solid #eee; padding-top: 15px; }
+        button { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.2s; box-shadow: 0 4px 10px rgba(255, 20, 147, 0.2); }
+        button:hover { background: #ff69b4; transform: scale(1.02); }
+        #pattern-output { flex: 1; overflow-y: auto; margin-top: 20px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; border-top: 1px solid #eee; padding-top: 15px; color: #444; }
         .stuff-here { color: #ff1493; font-weight: bold; background: #ffe4e1; padding: 2px 6px; border-radius: 8px; }
     </style>
 </head>
 <body>
 
-<div id="version-tag">🧸 TOUCH & PULL v3.5.1 🧸</div>
+<div id="version-tag">🧸 DIRECT PULL v3.5.2 🧸</div>
 
 <div id="header">
     <h1>✨ Build-A-Crochet ✨</h1>
@@ -32,58 +31,131 @@
     <div id="viewer"></div>
     <div id="controls-panel">
         <div class="instruction">
-            🖱️ <b>Click the sphere</b> to see the pull tools.<br>
-            ↔️ <b>Drag the arrows</b> to stretch the shape!<br>
-            🖱️ <b>Right-Click + Drag</b> to rotate camera.
+            🖱️ <b>Click and Drag UP/DOWN</b> to stretch height.<br>
+            ↔️ <b>Click and Drag LEFT/RIGHT</b> to stretch width!
         </div>
-        <button onclick="makePattern()">✨ Update Pattern</button>
-        <div id="pattern-output">Stretch the sphere then click update!</div>
+        <button onclick="makePattern()">✨ Generate Pattern</button>
+        <div id="pattern-output">Stretch the shape then click generate!</div>
     </div>
 </div>
 
 <script>
-    // 1. Setup Scene
+    // 1. Scene Setup
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xfdfdfd);
     const viewer = document.getElementById('viewer');
-    const camera = new THREE.PerspectiveCamera(60, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(50, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(viewer.clientWidth, viewer.clientHeight);
     viewer.appendChild(renderer.domElement);
 
-    // 2. Add Sphere
+    // 2. Add Sphere (with "Points" wireframe)
     const geometry = new THREE.SphereGeometry(2, 32, 32);
     const material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 40 });
     const sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
 
-    // 3. Add Lights
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(5, 5, 5);
+    // Add faint wireframe so you see the "stitching points"
+    const wire = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xff1493, wireframe: true, transparent: true, opacity: 0.1 }));
+    sphere.add(wire);
+
+    // 3. Lights
+    const light = new THREE.DirectionalLight(0xffffff, 1.2);
+    light.position.set(5, 10, 7);
     scene.add(light);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 
-    camera.position.set(0, 2, 12);
+    camera.position.z = 15;
 
-    // 4. Transform Controls (The "Pull" Tool)
-    const tControls = new THREE.TransformControls(camera, renderer.domElement);
-    tControls.setMode("scale"); // Set to "scale" so you can pull/stretch
-    tControls.attach(sphere);
-    scene.add(tControls);
+    // 4. Direct Drag stretching
+    let isDragging = false;
+    let lastY = 0;
+    let lastX = 0;
 
-    // Prevent camera from moving while pulling sphere
-    tControls.addEventListener('dragging-changed', function (event) {
-        // Here we could disable camera controls if we had them
-    });
+    viewer.onmousedown = (e) => { 
+        isDragging = true; 
+        lastY = e.clientY; 
+        lastX = e.clientX; 
+    };
+    window.onmouseup = () => { isDragging = false; };
+    
+    window.onmousemove = (e) => {
+        if (!isDragging) return;
+
+        const deltaY = lastY - e.clientY; // How much mouse moved up/down
+        const deltaX = e.clientX - lastX; // How much mouse moved left/right
+
+        // Change height (Y)
+        sphere.scale.y += deltaY * 0.01;
+        // Change width (X and Z together so it stays a round circle)
+        sphere.scale.x += deltaX * 0.01;
+        sphere.scale.z += deltaX * 0.01;
+
+        // Don't let it get TOO small or it disappears!
+        sphere.scale.y = Math.max(0.2, sphere.scale.y);
+        sphere.scale.x = Math.max(0.2, sphere.scale.x);
+        sphere.scale.z = Math.max(0.2, sphere.scale.z);
+
+        lastY = e.clientY;
+        lastX = e.clientX;
+    };
 
     function animate() {
         requestAnimationFrame(animate);
+        if(!isDragging) sphere.rotation.y += 0.005; // Gentle spin when not pulling
         renderer.render(scene, camera);
     }
     animate();
 
-    // 5. Smart Pattern Logic
+    // 5. Pattern Logic
     function makePattern() {
-        // Calculate the "Pull" factor
         const hMod = sphere.scale.y; 
-        const wMod =
+        const wMod = sphere.scale.x;
+        
+        // Base size is 10cm. 
+        const d = Math.round(10 * wMod);
+        const radius = d / 2;
+        const incRounds = Math.max(3, Math.floor(radius * 1.5));
+        
+        // Middle rows change based on how much you "pulled" the height
+        const middleRows = Math.max(2, Math.floor(incRounds * 0.8 * (hMod/wMod)));
+
+        let output = "<b>🧶 BUILD-A-CROCHET PATTERN</b>\n";
+        output += "---------------------------\n";
+        output += "R1: Magic Ring 6\n";
+        output += "R2: (inc) x 6\n";
+        
+        let sts = 12;
+        let roundCount = 2;
+        for (let i = 1; i < incRounds; i++) {
+            sts += 6; roundCount++;
+            output += "R" + roundCount + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
+        }
+        
+        output += "\n✨ MIDDLE (" + middleRows + " rows)\n";
+        for (let m = 1; m <= middleRows; m++) {
+            roundCount++;
+            output += "R" + roundCount + ": sc in each stitch [" + sts + "]\n";
+        }
+        
+        output += "\n✨ DECREASES\n";
+        for (let k = incRounds - 1; k >= 1; k--) {
+            sts -= 6; roundCount++;
+            output += "R" + roundCount + ": (sc " + k + ", dec) x 6 [" + sts + "]";
+            if (k === 1) output += " <span class='stuff-here'>Stuff here</span>";
+            output += "\n";
+        }
+        roundCount++;
+        output += "R" + roundCount + ": (dec) x 6\n\nFinish: Sew closed!";
+        
+        document.getElementById('pattern-output').innerHTML = output;
+    }
+
+    window.onresize = () => {
+        renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+        camera.aspect = viewer.clientWidth / viewer.clientHeight;
+        camera.updateProjectionMatrix();
+    };
+</script>
+</body>
+</html>
