@@ -3,41 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>McKayla's Crochet Lab v3.4.1</title>
+    <title>McKayla's Crochet Lab v3.4.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; color: #333; overflow: hidden; }
-        #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        #header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid #ff69b4; z-index: 10; position: relative; }
+        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #fff0f5; color: #333; overflow: hidden; }
+        #version-tag { position: absolute; top: 10px; left: 10px; background: rgba(255, 20, 147, 0.9); color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
+        
+        #header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid #ff69b4; position: relative; }
+        #header h1 { margin: 0; color: #d02090; font-size: 24px; }
+        #header p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.8; }
+
         #main-container { display: flex; height: calc(100vh - 75px); }
-        #viewer { flex: 1; background: radial-gradient(#ffffff, #ffe4e1); position: relative; }
-        #controls-panel { width: 380px; background: white; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; }
-        #controls-top { padding: 20px; border-bottom: 1px solid #eee; }
-        #pattern-area { flex: 1; padding: 20px; overflow-y: auto; background: #fffafb; }
+        
+        /* Left side: 3D Viewer */
+        #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; position: relative; }
+        
+        /* Right side: Controls & Pattern */
+        #controls-panel { width: 400px; background: white; display: flex; flex-direction: column; }
+        #controls-top { padding: 25px; border-bottom: 1px solid #eee; }
+        #pattern-area { flex: 1; padding: 25px; overflow-y: auto; background: #fff9fb; }
+
         .input-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #d02090; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #d02090; font-size: 16px; }
         input[type=range] { width: 100%; cursor: pointer; accent-color: #ff69b4; }
-        input[type=color] { width: 100%; height: 35px; border: none; cursor: pointer; background: none; }
-        button { background: #ff69b4; color: white; border: none; padding: 15px; width: 100%; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 16px; box-shadow: 0 4px 10px rgba(255, 105, 180, 0.3); }
-        button:hover { background: #ff1493; }
-        #pattern-output { white-space: pre-wrap; font-family: 'Courier New', monospace; line-height: 1.6; font-size: 14px; }
-        .stuff-here { color: white; background: #ff1493; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 12px; }
+        input[type=color] { width: 100%; height: 40px; border: none; cursor: pointer; background: none; margin-top: 5px; }
+        
+        button { background: #ff69b4; color: white; border: none; padding: 15px; width: 100%; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 18px; transition: 0.3s; box-shadow: 0 4px 10px rgba(255, 105, 180, 0.3); }
+        button:hover { background: #ff1493; transform: scale(1.02); }
+
+        #pattern-output { white-space: pre-wrap; font-family: 'Courier New', monospace; line-height: 1.7; font-size: 14px; color: #444; }
+        .pattern-title { color: #ff1493; font-weight: bold; font-size: 16px; margin-bottom: 15px; display: block; text-align: center;}
+        
+        /* Style for the 'Stuff' note */
+        .stuff-here { color: #ff1493; font-weight: bold; background: #ffe4e1; padding: 2px 5px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
-<div id="version-tag">🧸 MCKAYLA'S LAB v3.4.1 🧸</div>
+<div id="version-tag">🧸 MCKAYLA'S LAB v3.4.0 🧸</div>
 
 <div id="header">
     <h1>🧶 Smart Amigurumi Lab</h1>
+    <p>Design, Visualize, and Crochet!</p>
 </div>
 
 <div id="main-container">
     <div id="viewer"></div>
+    
     <div id="controls-panel">
         <div id="controls-top">
             <div class="input-group">
-                <label>Size: <span id="r-val">10</span>cm Wide</label>
+                <label>Sphere Size: <span id="r-val">10</span>cm Wide</label>
                 <input type="range" id="r-slider" min="2" max="30" value="10">
             </div>
             <div class="input-group">
@@ -46,65 +62,136 @@
             </div>
             <button onclick="makePattern()">✨ Generate Pattern</button>
         </div>
+        
         <div id="pattern-area">
-            <div id="pattern-output">Adjust the slider to design your ball!</div>
+            <div id="pattern-output">Your custom pattern will appear here...</div>
         </div>
     </div>
 </div>
 
 <script>
-    // --- 3D Setup ---
+    // --- 3D Scene Setup (Three.js) ---
     var scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xfafafb);
+    
     var viewer = document.getElementById('viewer');
-    var camera = new THREE.PerspectiveCamera(50, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
+    var camera = new THREE.PerspectiveCamera(75, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
     var renderer = new THREE.WebGLRenderer({ antialias: true });
+    
     renderer.setSize(viewer.clientWidth, viewer.clientHeight);
     viewer.appendChild(renderer.domElement);
 
-    var geometry = new THREE.SphereGeometry(1, 64, 64);
-    var material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 50 });
+    // Create the Yarn Ball (Sphere)
+    var geometry = new THREE.SphereGeometry(1, 32, 32);
+    // PhongMaterial makes it look glossy and react to light
+    var material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 70 });
     var sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
 
-    var light1 = new THREE.PointLight(0xffffff, 1, 100);
-    light1.position.set(10, 10, 10);
-    scene.add(light1);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    // Lights
+    var mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    mainLight.position.set(5, 10, 7);
+    scene.add(mainLight);
+    scene.add(new THREE.AmbientLight(0x404040, 1.3)); // Soft overall light
 
-    // Initial Camera
-    camera.position.z = 15;
+    // Initial Camera Position
+    camera.position.z = 6;
+    camera.position.y = 1;
+    camera.lookAt(0,0,0);
 
+    // Animation Loop
     function animate() {
         requestAnimationFrame(animate);
-        sphere.rotation.y += 0.005;
+        sphere.rotation.y += 0.005; // Slow spin
         renderer.render(scene, camera);
     }
     animate();
 
-    // --- Controls ---
+    // --- Controls Logic ---
     var slider = document.getElementById('r-slider');
     var rText = document.getElementById('r-val');
     var colorPicker = document.getElementById('color-picker');
 
+    // This makes the 3D sphere grow when you move the slider!
     slider.oninput = function() {
-        var d = this.value;
-        rText.innerText = d;
-        
-        // Sphere grows
-        var scale = d / 2; 
-        sphere.scale.set(scale, scale, scale);
-        
-        // CAMERA AUTO-ZOOM: Move camera back as sphere gets bigger
-        // We move the camera to be a little further than the diameter
-        camera.position.z = Math.max(10, d * 1.5); 
+        var diameter = this.value;
+        rText.innerText = diameter;
+        // 5cm is our 'base' size (scale=1). So 10cm is scale=2, etc.
+        var scaleFactor = diameter / 5; 
+        sphere.scale.set(scaleFactor, scaleFactor, scaleFactor);
     };
 
+    // Change the color of the 3D ball
     colorPicker.oninput = function() {
         sphere.material.color.set(this.value);
     };
 
+    // --- Pattern Logic (The Rule of 6) ---
     function makePattern() {
-        var d = parseFloat(slider.value);
-        var r = d / 2;
-        var incRounds = Math.max(2, Math.floor(r * 1.5)); 
-        var middleRows = Math.
+        var diameter = parseFloat(slider.value);
+        var radius = diameter / 2;
+        
+        // Dynamic math for standard amigurumi
+        var incRounds = Math.max(2, Math.floor(radius * 1.5)); 
+        var middleRows = Math.max(1, Math.floor(incRounds * 0.8));
+
+        // Start building the text
+        var output = "<span class='pattern-title'>🧶 MCKAYLA'S " + diameter + "cm SPHERE 🧶</span>\n\n";
+
+        // PART 1: INCREASES
+        output += "✨ PART 1: INCREASES\n";
+        output += "R1: Magic Ring 6 [6]\n";
+        output += "R2: (inc) x 6 [12]\n";
+        
+        var currentSts = 12;
+        var totalRounds = 2;
+
+        for (var i = 1; i < incRounds; i++) {
+            currentSts += 6;
+            totalRounds++;
+            output += "R" + totalRounds + ": (sc " + i + ", inc) x 6 [" + currentSts + "]\n";
+        }
+
+        // PART 2: THE MIDDLE
+        output += "\n✨ PART 2: THE MIDDLE (" + middleRows + " rows)\n";
+        for (var m = 1; m <= middleRows; m++) {
+            totalRounds++;
+            output += "R" + totalRounds + ": sc in each stitch [" + currentSts + "]\n";
+        }
+
+        // PART 3: DECREASES
+        output += "\n✨ PART 3: DECREASES\n";
+        for (var k = incRounds - 1; k >= 1; k--) {
+            var nextSts = currentSts - 6;
+            totalRounds++;
+            
+            output += "R" + totalRounds + ": (sc " + k + ", dec) x 6 [" + nextSts + "]\n";
+            
+            // STUFFING ALERT: Trigger when we hit 12 or 18 stitches
+            if (nextSts === 12 || (nextSts === 18 && k === 1)) {
+                // We use a special <span> so we can make this text pink in the CSS!
+                output += "   <span class='stuff-here'>[Stuff here]</span>\n";
+            }
+            
+            currentSts = nextSts;
+        }
+        
+        // Final Round
+        totalRounds++;
+        output += "R" + totalRounds + ": (dec) x 6 [6]\n";
+        output += "\nFinish: Cut yarn, weave through front loops only and pull tight to close.";
+
+        // Put the pattern into the pattern area
+        document.getElementById('pattern-output').innerHTML = output;
+    }
+
+    // Handle Window Resize so the 3D part doesn't stretch
+    window.addEventListener('resize', function() {
+        renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+        camera.aspect = viewer.clientWidth / viewer.clientHeight;
+        camera.updateProjectionMatrix();
+    });
+</script>
+
+</body>
+</html>
