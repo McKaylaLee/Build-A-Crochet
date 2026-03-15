@@ -2,35 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.4.7</title>
+    <title>Build-A-Crochet v3.5.0</title>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <style>
         body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #fff0f5; overflow: hidden; }
         #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
-        
-        /* New Build-A-Crochet Header */
         #header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid #ff69b4; position: relative; }
         #header h1 { margin: 0; color: #d02090; font-size: 28px; letter-spacing: 1px; text-transform: uppercase; }
-        
         #main-container { display: flex; height: calc(100vh - 70px); }
         #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; cursor: move; }
-        #controls-panel { width: 380px; background: white; padding: 25px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; }
-        
-        .input-group { margin-bottom: 20px; }
-        label { font-weight: bold; color: #d02090; display: block; margin-bottom: 10px; font-size: 16px; }
+        #controls-panel { width: 380px; background: white; padding: 25px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; overflow-y: auto; }
+        .input-group { margin-bottom: 15px; padding: 10px; background: #fff9fb; border-radius: 10px; }
+        label { font-weight: bold; color: #d02090; display: block; margin-bottom: 8px; font-size: 14px; }
         input[type=range] { width: 100%; accent-color: #ff69b4; cursor: pointer; }
-        
-        button { background: #ff69b4; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; font-size: 18px; transition: 0.2s; box-shadow: 0 4px 10px rgba(255, 105, 180, 0.3); }
-        button:hover { background: #ff1493; transform: scale(1.02); }
-        
-        #pattern-output { flex: 1; overflow-y: auto; margin-top: 25px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.8; border-top: 2px solid #fff0f5; padding-top: 20px; color: #444; }
-        .stuff-here { color: #ff1493; font-weight: bold; background: #ffe4e1; padding: 2px 8px; border-radius: 10px; border: 1px solid #ffb6c1; }
-        .section-header { color: #ff1493; font-weight: bold; margin-top: 15px; display: block; border-bottom: 1px dashed #ffc0cb; font-size: 15px; }
+        button { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; font-size: 18px; margin-top: 10px; }
+        #pattern-output { margin-top: 20px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: #444; border-top: 2px solid #fff0f5; padding-top: 15px; }
+        .stuff-here { color: #ff1493; font-weight: bold; background: #ffe4e1; padding: 2px 8px; border-radius: 10px; }
     </style>
 </head>
 <body>
 
-<div id="version-tag">🧸 v3.4.7 🧸</div>
+<div id="version-tag">🧸 SCULPT MODE v3.5.0 🧸</div>
 
 <div id="header">
     <h1>✨ Build-A-Crochet ✨</h1>
@@ -39,17 +31,28 @@
 <div id="main-container">
     <div id="viewer"></div>
     <div id="controls-panel">
+        
         <div class="input-group">
-            <label>Sphere Diameter: <span id="r-val">10</span>cm</label>
+            <label>Overall Size: <span id="r-val">10</span>cm</label>
             <input type="range" id="r-slider" min="4" max="30" value="10">
         </div>
-        <button onclick="makePattern()">✨ Generate Pro Pattern</button>
-        <div id="pattern-output">Welcome to Build-A-Crochet! Adjust the size to start.</div>
+
+        <div class="input-group" style="border: 2px solid #ffc0cb;">
+            <label>🎨 SCULPT: Pull Height (Egg/Pill)</label>
+            <input type="range" id="height-slider" min="0.5" max="3" step="0.1" value="1">
+        </div>
+
+        <div class="input-group" style="border: 2px solid #ffc0cb;">
+            <label>🎨 SCULPT: Pull Width (Flat/Wide)</label>
+            <input type="range" id="width-slider" min="0.5" max="2" step="0.1" value="1">
+        </div>
+
+        <button onclick="makePattern()">✨ Update Pattern</button>
+        <div id="pattern-output">Sculpt your shape and generate!</div>
     </div>
 </div>
 
 <script>
-    // --- 3D Scene ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xfdfdfd);
     const viewer = document.getElementById('viewer');
@@ -58,19 +61,29 @@
     renderer.setSize(viewer.clientWidth, viewer.clientHeight);
     viewer.appendChild(renderer.domElement);
 
-    const geometry = new THREE.SphereGeometry(1, 64, 64);
-    const material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 40 });
+    // Create the sphere with "Points" (Vertices)
+    const geometry = new THREE.SphereGeometry(1, 32, 32);
+    const material = new THREE.MeshPhongMaterial({ 
+        color: 0xff69b4, 
+        wireframe: false,
+        flatShading: false 
+    });
     const sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
+
+    // Add a second "Wireframe" sphere over it so you can see the "Points"
+    const wireMaterial = new THREE.MeshBasicMaterial({ color: 0xff1493, wireframe: true, transparent: true, opacity: 0.1 });
+    const wireSphere = new THREE.Mesh(geometry, wireMaterial);
+    sphere.add(wireSphere);
 
     const light = new THREE.DirectionalLight(0xffffff, 1);
     light.position.set(5, 5, 5);
     scene.add(light);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 
-    camera.position.z = 12;
+    camera.position.z = 15;
 
-    // --- Interaction Logic ---
+    // Interaction
     let isDown = false;
     viewer.onmousedown = () => isDown = true;
     window.onmouseup = () => isDown = false;
@@ -83,7 +96,6 @@
     viewer.onwheel = (e) => {
         e.preventDefault();
         camera.position.z += e.deltaY * 0.02;
-        camera.position.z = Math.min(Math.max(camera.position.z, 2), 60);
     }, { passive: false };
 
     function animate() {
@@ -93,73 +105,25 @@
     }
     animate();
 
-    // --- Controls & Pattern Math ---
-    const slider = document.getElementById('r-slider');
+    // Sculpting Logic
+    const rSlider = document.getElementById('r-slider');
+    const hSlider = document.getElementById('height-slider');
+    const wSlider = document.getElementById('width-slider');
     const rText = document.getElementById('r-val');
-    
-    slider.oninput = function() {
-        rText.innerText = this.value;
-        const s = this.value / 5;
-        sphere.scale.set(s, s, s);
-    };
 
-    function makePattern() {
-        const d = parseInt(slider.value);
-        const radius = d / 2;
-        const incRounds = Math.max(3, Math.floor(radius * 1.5));
-        const middleRows = Math.max(2, Math.floor(incRounds * 0.8));
+    function updateShape() {
+        const size = rSlider.value / 5;
+        const hScale = hSlider.value;
+        const wScale = wSlider.value;
         
-        let output = "<b>🧶 BUILD-A-CROCHET: " + d + "cm SPHERE</b>\n";
-        output += "---------------------------\n";
-        
-        // 1. INCREASES
-        output += "<span class='section-header'>PART 1: INCREASES</span>\n";
-        output += "R1: Magic Ring 6 [6]\n";
-        output += "R2: (inc) in each stitch [12]\n";
-        
-        let sts = 12;
-        let roundCount = 2;
-
-        for (let i = 1; i < incRounds; i++) {
-            sts += 6;
-            roundCount++;
-            output += "R" + roundCount + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
-        }
-        
-        // 2. MIDDLE
-        output += "\n<span class='section-header'>PART 2: MIDDLE</span>\n";
-        for (let m = 1; m <= middleRows; m++) {
-            roundCount++;
-            output += "R" + roundCount + ": sc in each stitch [" + sts + "]\n";
-        }
-        
-        // 3. DECREASES
-        output += "\n<span class='section-header'>PART 3: DECREASES</span>\n";
-        
-        for (let k = incRounds - 1; k >= 1; k--) {
-            sts -= 6;
-            roundCount++;
-            output += "R" + roundCount + ": (sc " + k + ", dec) x 6 [" + sts + "]";
-            
-            // Stuff here on the second to last row
-            if (k === 1) {
-                output += " <span class='stuff-here'>Stuff here</span>";
-            }
-            output += "\n";
-        }
-        
-        roundCount++;
-        output += "R" + roundCount + ": (dec) x 6 [6]\n";
-        output += "\nFinish: Close and weave in ends.";
-        
-        document.getElementById('pattern-output').innerHTML = output;
+        rText.innerText = rSlider.value;
+        // This is where we "pull" the points!
+        sphere.scale.set(size * wScale, size * hScale, size * wScale);
     }
 
-    window.onresize = () => {
-        renderer.setSize(viewer.clientWidth, viewer.clientHeight);
-        camera.aspect = viewer.clientWidth / viewer.clientHeight;
-        camera.updateProjectionMatrix();
-    };
-</script>
-</body>
-</html>
+    rSlider.oninput = updateShape;
+    hSlider.oninput = updateShape;
+    wSlider.oninput = updateShape;
+
+    function makePattern() {
+        const
