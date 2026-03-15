@@ -2,21 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.33</title>
+    <title>Build-A-Crochet v3.5.34</title>
     <style>
         body { margin: 0; font-family: sans-serif; background: #fff0f5; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
+        #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; z-index: 10; }
         #header h1 { margin: 0; color: #d02090; font-size: 22px; text-transform: uppercase; }
 
         #app-body { display: flex; flex: 1; overflow: hidden; }
 
         /* Viewer */
-        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; }
+        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; perspective: 1000px; }
         
-        /* ViewCube Remote */
-        #cube-container { position: absolute; top: 20px; left: 20px; z-index: 100; }
-        #viewcube { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transform: rotateX(-20deg) rotateY(-20deg); cursor: pointer; transition: 0.3s; }
-        .face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; }
+        /* THE VIEWCUBE */
+        #cube-container { position: absolute; top: 20px; left: 20px; width: 80px; height: 80px; perspective: 400px; z-index: 100; }
+        #viewcube { width: 60px; height: 60px; position: relative; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform: rotateX(-20deg) rotateY(-20deg); cursor: pointer; }
+        .face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #ff69b4; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #d02090; user-select: none; }
         .f { transform: translateZ(30px); }
         .bk { transform: rotateY(180deg) translateZ(30px); }
         .t { transform: rotateX(90deg) translateZ(30px); }
@@ -24,7 +24,8 @@
         .r { transform: rotateY(90deg) translateZ(30px); }
         .l { transform: rotateY(-90deg) translateZ(30px); }
 
-        /* The Ball */
+        /* THE BALL (3D Container) */
+        #ball-pivot { transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; justify-content: center; }
         #ball { 
             width: 150px; height: 150px; 
             background: radial-gradient(circle at 35% 35%, #ffb6c1, #ff69b4 60%, #c71585 100%);
@@ -32,13 +33,12 @@
             border: 3px solid #d02090;
             cursor: move;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            transition: background 0.4s;
         }
 
         #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; }
 
         /* Side Panel */
-        #panel { width: 350px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; }
+        #panel { width: 350px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; z-index: 10; }
         #make-btn { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 4px 0 #b01060; margin-bottom: 15px; }
         #output { flex: 1; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 10px; padding: 15px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; color: #333; }
     </style>
@@ -46,19 +46,19 @@
 <body>
 
 <div id="header">
-    <h1>✨ Build-A-Crochet v3.5.33 ✨</h1>
+    <h1>✨ Build-A-Crochet v3.5.34 ✨</h1>
 </div>
 
 <div id="app-body">
     <div id="viewer">
         <div id="cube-container">
             <div id="viewcube">
-                <div class="face f" onclick="changeView('FRONT', '35% 35%')">FRONT</div>
-                <div class="face bk" onclick="changeView('BACK', '65% 65%')">BACK</div>
-                <div class="face t" onclick="changeView('TOP', '50% 10%')">TOP</div>
-                <div class="face bt" onclick="changeView('BOT', '50% 90%')">BOT</div>
-                <div class="face r" onclick="changeView('RIGHT', '90% 50%')">RIGHT</div>
-                <div class="face l" onclick="changeView('LEFT', '10% 50%')">LEFT</div>
+                <div class="face f" onclick="snapView(0, 0)">FRONT</div>
+                <div class="face bk" onclick="snapView(0, 180)">BACK</div>
+                <div class="face t" onclick="snapView(90, 0)">TOP</div>
+                <div class="face bt" onclick="snapView(-90, 0)">BOT</div>
+                <div class="face r" onclick="snapView(0, 90)">RIGHT</div>
+                <div class="face l" onclick="snapView(0, -90)">LEFT</div>
             </div>
         </div>
 
@@ -67,12 +67,14 @@
             <span>H: <span id="h-cm">10.0</span>cm</span>
         </div>
 
-        <div id="ball" onmousedown="startStretch(event)"></div>
+        <div id="ball-pivot">
+            <div id="ball" onmousedown="startStretch(event)"></div>
+        </div>
     </div>
 
     <div id="panel">
         <button id="make-btn" onclick="generatePattern()">🧶 MAKE PATTERN</button>
-        <div id="output">Grab and pull the ball to stretch! Click Cube to change view!</div>
+        <div id="output">Grab the ball to stretch! Click the Cube to spin the view!</div>
     </div>
 </div>
 
@@ -82,80 +84,4 @@
     let startX, startY;
 
     const ball = document.getElementById('ball');
-
-    // 1. STRETCHING LOGIC
-    function startStretch(e) {
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        
-        window.onmousemove = function(ev) {
-            if (!isDragging) return;
-            let dx = (ev.clientX - startX);
-            let dy = (startY - ev.clientY);
-            
-            w = Math.max(50, w + dx);
-            h = Math.max(50, h + dy);
-            
-            ball.style.width = w + "px";
-            ball.style.height = h + "px";
-            
-            document.getElementById('w-cm').innerText = (w / 15).toFixed(1);
-            document.getElementById('h-cm').innerText = (h / 15).toFixed(1);
-            
-            startX = ev.clientX;
-            startY = ev.clientY;
-        };
-
-        window.onmouseup = function() {
-            isDragging = false;
-            window.onmousemove = null;
-        };
-    }
-
-    // 2. VIEWCUBE LOGIC
-    function changeView(side, gradientPos) {
-        ball.style.background = `radial-gradient(circle at ${gradientPos}, #ffb6c1, #ff69b4 60%, #c71585 100%)`;
-        document.getElementById('output').innerText = "Switched to " + side + " view.\n\nNow stretch the ball or generate the pattern!";
-    }
-
-    // 3. PATTERN GENERATOR
-    function generatePattern() {
-        const curW = parseFloat(document.getElementById('w-cm').innerText);
-        const curH = parseFloat(document.getElementById('h-cm').innerText);
-        
-        let inc = Math.max(3, Math.floor((curW/2) * 1.5));
-        let mid = Math.max(1, Math.floor(inc * (curH/curW)));
-        let sts = 6;
-
-        let p = "<b>🧶 FULL CROCHET PATTERN</b>\n";
-        p += curW + "cm x " + curH + "cm\n";
-        p += "------------------------------\n";
-        p += "R1: Magic Ring 6 [6]\n";
-        
-        for (let i = 1; i < inc; i++) {
-            sts += 6;
-            p += "R" + (i+1) + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
-        }
-
-        p += "\n🧶 MIDDLE ROUNDS:\n";
-        for (let m = 1; m <= mid; m++) {
-            p += "R" + (inc + m) + ": sc in each st [" + sts + "]\n";
-        }
-
-        p += "\n🧶 DECREASING:\n";
-        let r = inc + mid + 1;
-        let d = inc - 1;
-        while (sts > 6) {
-            sts -= 6;
-            p += "R" + r + ": (sc " + d + ", dec) x 6 [" + sts + "]\n";
-            d--; r++;
-            if (sts === 12) p += "<b>-> STUFF FIRMLY! <-</b>\n";
-        }
-        p += "R" + r + ": dec x 6 [6]\nFinish: Sew closed.";
-        
-        document.getElementById('output').innerHTML = p;
-    }
-</script>
-</body>
-</html>
+    const pivot = document.getElementById('ball-pivot');
