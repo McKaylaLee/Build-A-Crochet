@@ -2,147 +2,70 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.16</title>
+    <title>Build-A-Crochet v3.5.17</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; color: #333; }
-        #header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid #ff69b4; }
-        #header h1 { margin: 0; color: #d02090; font-size: 26px; text-transform: uppercase; letter-spacing: 2px; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; }
+        #version-tag { position: absolute; top: 10px; right: 400px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
         
-        #main-container { display: flex; height: calc(100vh - 70px); }
+        #header { background: white; padding: 12px; text-align: center; border-bottom: 4px solid #ff69b4; z-index: 10; position: relative; }
+        #header h1 { margin: 0; color: #d02090; font-size: 24px; text-transform: uppercase; }
+
+        #main-container { display: flex; height: calc(100vh - 65px); width: 100vw; }
+
+        /* Left Side: 3D Scene */
+        #viewer { flex: 1; background: #eeeeee; position: relative; }
         
-        /* The Stretching Zone */
-        #viewer { flex: 1; background: #fdfdfd; border-right: 2px solid #ffc0cb; position: relative; cursor: move; display: flex; align-items: center; justify-content: center; touch-action: none; }
+        /* ViewCube Style (Tinkercad Style) */
+        #view-cube-container {
+            position: absolute; top: 20px; left: 20px;
+            width: 100px; height: 100px; z-index: 100;
+            perspective: 400px;
+        }
+        #view-cube {
+            width: 60px; height: 60px; position: relative;
+            transform-style: preserve-3d; transform: rotateX(-20deg) rotateY(-20deg);
+            transition: transform 0.5s; cursor: grab; margin: 20px;
+        }
+        .cube-face {
+            position: absolute; width: 60px; height: 60px;
+            background: rgba(255, 255, 255, 0.9); border: 2px solid #ff69b4;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: bold; color: #d02090;
+            backface-visibility: visible; user-select: none;
+        }
+        .front  { transform: translateZ(30px); }
+        .back   { transform: rotateY(180deg) translateZ(30px); }
+        .top    { transform: rotateX(90deg) translateZ(30px); }
+        .bottom { transform: rotateX(-90deg) translateZ(30px); }
+        .right  { transform: rotateY(90deg) translateZ(30px); }
+        .left   { transform: rotateY(-90deg) translateZ(30px); }
+
+        /* Right Side: Pattern */
+        #controls-panel { width: 380px; background: white; padding: 20px; border-left: 4px solid #ffc0cb; z-index: 20; display: flex; flex-direction: column; }
         
         #measurements { 
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: white; padding: 12px 25px; border-radius: 25px;
-            border: 3px solid #ff69b4; color: #d02090; font-weight: bold; font-size: 16px;
-            display: flex; gap: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            pointer-events: none;
+            background: white; padding: 8px 20px; border-radius: 20px;
+            border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 15px; z-index: 30;
         }
 
-        #controls-panel { width: 380px; background: white; padding: 25px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; overflow-y: auto; }
-        
-        button { background: #ff1493; color: white; border: none; padding: 20px; border-radius: 40px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 5px 0 #b01060; transition: 0.1s; }
-        button:active { transform: translateY(3px); box-shadow: 0 2px 0 #b01060; }
-        
-        #pattern-output { margin-top: 25px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 14px; color: #333; background: #fff9fb; padding: 20px; border: 1px solid #ffc0cb; border-radius: 12px; min-height: 200px; }
-        .size-box { text-align: center; }
-        .size-label { font-size: 11px; text-transform: uppercase; color: #ff69b4; display: block; }
-        
-        /* The Pink Yarn Sphere */
-        #yarn-sphere { 
-            background: #ff69b4; 
-            border: 5px solid #d02090; 
-            border-radius: 50%; 
-            width: 150px; 
-            height: 150px;
-            box-shadow: inset -15px -15px 30px rgba(0,0,0,0.15), 0 10px 25px rgba(0,0,0,0.1);
-            display: flex; align-items: center; justify-content: center;
-        }
+        .mode-toggle { background: #eee; padding: 10px; border-radius: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        button { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; }
+        #pattern-output { flex: 1; overflow-y: auto; margin-top: 20px; background: #fff9fb; border: 1px solid #ffc0cb; padding: 15px; font-family: monospace; border-radius: 10px; }
     </style>
 </head>
 <body>
 
+<div id="version-tag">🎨 3D DESIGNER v3.5.17</div>
+
 <div id="header">
-    <h1>✨ Build-A-Crochet v3.5.16 ✨</h1>
+    <h1>✨ Build-A-Crochet ✨</h1>
 </div>
 
 <div id="main-container">
-    <div id="viewer" onmousedown="startDrag(event)">
-        <div id="measurements">
-            <div class="size-box"><span class="size-label">Width</span><span id="m-width">10.0</span>cm</div>
-            <div class="size-box"><span class="size-label">Height</span><span id="m-height">10.0</span>cm</div>
-            <div class="size-box"><span class="size-label">Length</span><span id="m-length">10.0</span>cm</div>
-        </div>
-        <div id="yarn-sphere"></div>
-    </div>
-    
-    <div id="controls-panel">
-        <p style="text-align:center; font-weight:bold; color:#ff1493;">🖱️ Drag the sphere to stretch it!</p>
-        <button onclick="makePattern()">🧶 MAKE PATTERN</button>
-        <div id="pattern-output">Your crochet steps will appear here...</div>
-    </div>
-</div>
-
-<script>
-    let wCm = 10;
-    let hCm = 10;
-    let isDragging = false;
-    let lastX, lastY;
-
-    const sphere = document.getElementById('yarn-sphere');
-    const dH = document.getElementById('m-height');
-    const dW = document.getElementById('m-width');
-    const dL = document.getElementById('m-length');
-
-    function startDrag(e) {
-        isDragging = true;
-        lastX = e.clientX;
-        lastY = e.clientY;
-        window.addEventListener('mousemove', doDrag);
-        window.addEventListener('mouseup', stopDrag);
-    }
-
-    function stopDrag() {
-        isDragging = false;
-        window.removeEventListener('mousemove', doDrag);
-        window.removeEventListener('mouseup', stopDrag);
-    }
-
-    function doDrag(e) {
-        if (!isDragging) return;
-
-        const deltaX = (e.clientX - lastX) * 0.1;
-        const deltaY = (lastY - e.clientY) * 0.1;
-
-        wCm = Math.max(4, wCm + deltaX);
-        hCm = Math.max(4, hCm + deltaY);
-
-        // Update Visuals
-        sphere.style.width = (wCm * 15) + 'px';
-        sphere.style.height = (hCm * 15) + 'px';
-
-        // Update Labels
-        dW.innerText = wCm.toFixed(1);
-        dL.innerText = wCm.toFixed(1); 
-        dH.innerText = hCm.toFixed(1);
-
-        lastX = e.clientX;
-        lastY = e.clientY;
-    }
-
-    function makePattern() {
-        const width = parseFloat(dW.innerText);
-        const height = parseFloat(dH.innerText);
-        
-        const radius = width / 2;
-        const incRounds = Math.max(3, Math.floor(radius * 1.5));
-        const middleRows = Math.max(1, Math.floor(incRounds * (height / width)));
-
-        let p = "<b>🧶 CROCHET PATTERN</b>\n";
-        p += "Dimensions: " + width.toFixed(1) + "cm x " + height.toFixed(1) + "cm\n";
-        p += "---------------------------\n";
-        p += "R1: Magic Ring 6 [6]\n";
-        
-        let sts = 6;
-        for (let i = 1; i < incRounds; i++) {
-            sts += 6;
-            p += "R" + (i+1) + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
-        }
-        
-        p += "\n✨ MIDDLE SECTION (" + middleRows + " rounds)\n";
-        for (let m = 0; m < middleRows; m++) {
-            p += "R" + (incRounds + 1 + m) + ": sc around [" + sts + "]\n";
-        }
-
-        p += "\n✨ CLOSING\n";
-        p += "R" + (incRounds + middleRows + 1) + ": (sc " + (incRounds - 1) + ", dec) x 6\n";
-        p += "...Decrease until 6 sts remain.\n";
-        p += "<b>STUFF FIRMLY!</b>\n\nFinish: Sew closed.";
-
-        document.getElementById('pattern-output').innerHTML = p;
-    }
-</script>
-</body>
-</html>
+    <div id="viewer">
+        <div id="view-cube-container">
+            <div id="view-cube">
+                <div class="cube-face front" onclick="snapView(0, 0)">FRONT</div>
+                <div class="cube-
