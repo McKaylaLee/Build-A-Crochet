@@ -1,58 +1,97 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>McKayla's Crochet Lab v3.3.5</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>McKayla's Crochet Lab v3.3.6</title>
     <style>
-        body { margin: 0; font-family: sans-serif; background-color: #fff0f5; }
-        #header { background: #ff69b4; color: white; padding: 10px; text-align: center; }
-        #version { position: absolute; top: 5px; left: 5px; color: #ff69b4; font-weight: bold; font-size: 12px; }
-        #container { display: flex; height: 100vh; }
-        #viewer { flex: 1; background: white; }
-        #controls { width: 300px; padding: 20px; background: white; border-left: 2px solid #ffc0cb; overflow-y: auto; }
-        .box { background: #fff5f8; padding: 10px; margin-bottom: 15px; border-radius: 8px; }
-        button { width: 100%; padding: 10px; background: #ff69b4; color: white; border: none; border-radius: 20px; cursor: pointer; }
-        #pattern-output { margin-top: 15px; white-space: pre-wrap; font-family: monospace; font-size: 12px; }
+        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #fff0f5; color: #333; }
+        #version-tag { background: #ff69b4; color: white; padding: 5px 15px; font-weight: bold; text-align: center; font-size: 14px; }
+        #header { background: white; padding: 20px; text-align: center; border-bottom: 3px solid #ff69b4; }
+        .container { max-width: 600px; margin: 20px auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 10px; color: #d02090; }
+        input[type=range] { width: 100%; cursor: pointer; accent-color: #ff69b4; }
+        button { background: #ff69b4; color: white; border: none; padding: 15px; width: 100%; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 18px; transition: 0.3s; }
+        button:hover { background: #ff1493; transform: translateY(-2px); }
+        #pattern-output { margin-top: 25px; white-space: pre-wrap; background: #fdfdfd; padding: 20px; border-radius: 15px; border: 2px dashed #ffc0cb; font-family: 'Courier New', monospace; line-height: 1.6; }
+        .round-line { border-bottom: 1px solid #eee; padding: 5px 0; }
     </style>
 </head>
 <body>
 
-<div id="version">v3.3.5</div>
+<div id="version-tag">McKayla's Crochet Lab - Version 3.3.6</div>
 
 <div id="header">
-    <h1>McKayla's Crochet Lab</h1>
+    <h1>🧶 Crochet Pattern Maker</h1>
+    <p>By McKayla & Elliot</p>
 </div>
 
-<div id="container">
-    <div id="viewer"></div>
-    <div id="controls">
-        <div class="box">
-            <label>Size (cm): <span id="r-text">5</span></label><br>
-            <input type="range" id="r-slider" min="1" max="15" value="5" style="width:100%">
-        </div>
-        <div class="box">
-            <label>Color:</label><br>
-            <input type="color" id="c-picker" value="#ff69b4" style="width:100%">
-        </div>
-        <button onclick="runPattern()">Generate Pattern</button>
-        <div id="pattern-output">Pattern will appear here.</div>
+<div class="container">
+    <div class="input-group">
+        <label>How big is your sphere? (Radius: <span id="r-val">5</span>cm)</label>
+        <input type="range" id="r-slider" min="1" max="15" value="5">
     </div>
+
+    <button onclick="makePattern()">✨ Create My Pattern</button>
+
+    <div id="pattern-output">Your custom pattern will appear here!</div>
 </div>
 
 <script>
-    // --- Basic 3D Setup ---
-    var scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xffffff);
-    var viewer = document.getElementById('viewer');
-    var camera = new THREE.PerspectiveCamera(75, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
-    var renderer = new THREE.WebGLRenderer();
-    renderer.setSize(viewer.clientWidth, viewer.clientHeight);
-    viewer.appendChild(renderer.domElement);
+    const slider = document.getElementById('r-slider');
+    const rText = document.getElementById('r-val');
 
-    var geometry = new THREE.SphereGeometry(1, 32, 32);
-    var material = new THREE.MeshPhongMaterial({ color: 0xff69b4 });
-    var sphere = new THREE.Mesh(geometry, material);
-    scene.add(sphere);
+    slider.oninput = function() {
+        rText.innerText = this.value;
+    };
 
-    var light = new THREE.PointLight(0xffffff, 1,
+    function makePattern() {
+        const r = parseFloat(slider.value);
+        let output = "🌟 MCKAYLA'S SPHERE PATTERN 🌟\n";
+        output += "Size: " + (r * 2) + "cm Wide\n";
+        output += "--------------------------------\n\n";
+
+        // Logic for a standard Amigurumi Sphere
+        // We calculate how many rounds based on the radius
+        const rowsToMiddle = Math.round(r * 2); 
+        
+        // 1. INCREASING SECTION
+        output += "--- START (Increases) ---\n";
+        output += "R1: Magic Ring 6 [6]\n";
+        output += "R2: (inc) x 6 [12]\n";
+        
+        let currentSts = 12;
+        let roundsIncr = 2;
+
+        for (let i = 1; i <= rowsToMiddle - 2; i++) {
+            currentSts += 6;
+            roundsIncr++;
+            output += "R" + roundsIncr + ": (sc " + i + ", inc) x 6 [" + currentSts + "]\n";
+        }
+
+        // 2. MIDDLE SECTION (Even rounds)
+        output += "\n--- MIDDLE (No Changes) ---\n";
+        for (let j = 1; j <= 3; j++) {
+            roundsIncr++;
+            output += "R" + roundsIncr + ": sc in each stitch [" + currentSts + "]\n";
+        }
+
+        // 3. DECREASING SECTION
+        output += "\n--- END (Decreases) ---\n";
+        for (let k = rowsToMiddle - 2; k >= 1; k--) {
+            let nextSts = currentSts - 6;
+            roundsIncr++;
+            output += "R" + roundsIncr + ": (sc " + k + ", dec) x 6 [" + nextSts + "]\n";
+            currentSts = nextSts;
+        }
+        
+        roundsIncr++;
+        output += "R" + roundsIncr + ": (dec) x 6 [6]\n";
+        output += "\nFinish: Fasten off and weave in ends!";
+
+        document.getElementById('pattern-output').innerText = output;
+    }
+</script>
+
+</body>
+</html>
