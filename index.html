@@ -2,27 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.0</title>
+    <title>Build-A-Crochet v3.5.1</title>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #fff0f5; overflow: hidden; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; }
         #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
-        #header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid #ff69b4; position: relative; }
-        #header h1 { margin: 0; color: #d02090; font-size: 28px; letter-spacing: 1px; text-transform: uppercase; }
-        #main-container { display: flex; height: calc(100vh - 70px); }
-        #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; cursor: move; }
-        #controls-panel { width: 380px; background: white; padding: 25px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; overflow-y: auto; }
-        .input-group { margin-bottom: 15px; padding: 10px; background: #fff9fb; border-radius: 10px; }
-        label { font-weight: bold; color: #d02090; display: block; margin-bottom: 8px; font-size: 14px; }
-        input[type=range] { width: 100%; accent-color: #ff69b4; cursor: pointer; }
-        button { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; font-size: 18px; margin-top: 10px; }
-        #pattern-output { margin-top: 20px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: #444; border-top: 2px solid #fff0f5; padding-top: 15px; }
-        .stuff-here { color: #ff1493; font-weight: bold; background: #ffe4e1; padding: 2px 8px; border-radius: 10px; }
+        #header { background: white; padding: 12px; text-align: center; border-bottom: 4px solid #ff69b4; }
+        #header h1 { margin: 0; color: #d02090; font-size: 24px; text-transform: uppercase; }
+        #main-container { display: flex; height: calc(100vh - 65px); }
+        #viewer { flex: 1; background: #fafafa; border-right: 2px solid #ffc0cb; position: relative; }
+        #controls-panel { width: 350px; background: white; padding: 20px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; }
+        .instruction { font-size: 13px; color: #666; margin-bottom: 15px; background: #fff0f5; padding: 10px; border-radius: 8px; border-left: 4px solid #ff69b4; }
+        button { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; transition: 0.2s; }
+        button:hover { background: #ff69b4; }
+        #pattern-output { flex: 1; overflow-y: auto; margin-top: 20px; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; border-top: 1px solid #eee; padding-top: 15px; }
+        .stuff-here { color: #ff1493; font-weight: bold; background: #ffe4e1; padding: 2px 6px; border-radius: 8px; }
     </style>
 </head>
 <body>
 
-<div id="version-tag">🧸 SCULPT MODE v3.5.0 🧸</div>
+<div id="version-tag">🧸 TOUCH & PULL v3.5.1 🧸</div>
 
 <div id="header">
     <h1>✨ Build-A-Crochet ✨</h1>
@@ -31,28 +31,18 @@
 <div id="main-container">
     <div id="viewer"></div>
     <div id="controls-panel">
-        
-        <div class="input-group">
-            <label>Overall Size: <span id="r-val">10</span>cm</label>
-            <input type="range" id="r-slider" min="4" max="30" value="10">
+        <div class="instruction">
+            🖱️ <b>Click the sphere</b> to see the pull tools.<br>
+            ↔️ <b>Drag the arrows</b> to stretch the shape!<br>
+            🖱️ <b>Right-Click + Drag</b> to rotate camera.
         </div>
-
-        <div class="input-group" style="border: 2px solid #ffc0cb;">
-            <label>🎨 SCULPT: Pull Height (Egg/Pill)</label>
-            <input type="range" id="height-slider" min="0.5" max="3" step="0.1" value="1">
-        </div>
-
-        <div class="input-group" style="border: 2px solid #ffc0cb;">
-            <label>🎨 SCULPT: Pull Width (Flat/Wide)</label>
-            <input type="range" id="width-slider" min="0.5" max="2" step="0.1" value="1">
-        </div>
-
         <button onclick="makePattern()">✨ Update Pattern</button>
-        <div id="pattern-output">Sculpt your shape and generate!</div>
+        <div id="pattern-output">Stretch the sphere then click update!</div>
     </div>
 </div>
 
 <script>
+    // 1. Setup Scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xfdfdfd);
     const viewer = document.getElementById('viewer');
@@ -61,69 +51,39 @@
     renderer.setSize(viewer.clientWidth, viewer.clientHeight);
     viewer.appendChild(renderer.domElement);
 
-    // Create the sphere with "Points" (Vertices)
-    const geometry = new THREE.SphereGeometry(1, 32, 32);
-    const material = new THREE.MeshPhongMaterial({ 
-        color: 0xff69b4, 
-        wireframe: false,
-        flatShading: false 
-    });
+    // 2. Add Sphere
+    const geometry = new THREE.SphereGeometry(2, 32, 32);
+    const material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 40 });
     const sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
 
-    // Add a second "Wireframe" sphere over it so you can see the "Points"
-    const wireMaterial = new THREE.MeshBasicMaterial({ color: 0xff1493, wireframe: true, transparent: true, opacity: 0.1 });
-    const wireSphere = new THREE.Mesh(geometry, wireMaterial);
-    sphere.add(wireSphere);
-
+    // 3. Add Lights
     const light = new THREE.DirectionalLight(0xffffff, 1);
     light.position.set(5, 5, 5);
     scene.add(light);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
-    camera.position.z = 15;
+    camera.position.set(0, 2, 12);
 
-    // Interaction
-    let isDown = false;
-    viewer.onmousedown = () => isDown = true;
-    window.onmouseup = () => isDown = false;
-    viewer.onmousemove = (e) => {
-        if(isDown) {
-            sphere.rotation.y += e.movementX * 0.01;
-            sphere.rotation.x += e.movementY * 0.01;
-        }
-    };
-    viewer.onwheel = (e) => {
-        e.preventDefault();
-        camera.position.z += e.deltaY * 0.02;
-    }, { passive: false };
+    // 4. Transform Controls (The "Pull" Tool)
+    const tControls = new THREE.TransformControls(camera, renderer.domElement);
+    tControls.setMode("scale"); // Set to "scale" so you can pull/stretch
+    tControls.attach(sphere);
+    scene.add(tControls);
+
+    // Prevent camera from moving while pulling sphere
+    tControls.addEventListener('dragging-changed', function (event) {
+        // Here we could disable camera controls if we had them
+    });
 
     function animate() {
         requestAnimationFrame(animate);
-        if(!isDown) sphere.rotation.y += 0.005;
         renderer.render(scene, camera);
     }
     animate();
 
-    // Sculpting Logic
-    const rSlider = document.getElementById('r-slider');
-    const hSlider = document.getElementById('height-slider');
-    const wSlider = document.getElementById('width-slider');
-    const rText = document.getElementById('r-val');
-
-    function updateShape() {
-        const size = rSlider.value / 5;
-        const hScale = hSlider.value;
-        const wScale = wSlider.value;
-        
-        rText.innerText = rSlider.value;
-        // This is where we "pull" the points!
-        sphere.scale.set(size * wScale, size * hScale, size * wScale);
-    }
-
-    rSlider.oninput = updateShape;
-    hSlider.oninput = updateShape;
-    wSlider.oninput = updateShape;
-
+    // 5. Smart Pattern Logic
     function makePattern() {
-        const
+        // Calculate the "Pull" factor
+        const hMod = sphere.scale.y; 
+        const wMod =
