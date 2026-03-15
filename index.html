@@ -1,1 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>McKayla's 3D Crochet Lab</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fff0f5; color: #333; }
+        #header { background: #ff69b4; color: white; padding: 20px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        #main { display: flex; flex-direction: row; height: calc(100vh - 80px); }
+        #viewer { flex: 1; background: #ffffff; cursor: move; }
+        #controls { width: 350px; background: white; padding: 25px; border-left: 2px solid #ffc0cb; overflow-y: auto; box-shadow: -2px 0 10px rgba(0,0,0,0.05); }
+        h2 { color: #ff1493; margin-top: 0; }
+        .input-group { margin-bottom: 25px; background: #fff5f8; padding: 15px; border-radius: 10px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #d02090; }
+        input[type=range] { width: 100%; accent-color: #ff69b4; }
+        input[type=color] { width: 100%; height: 40px; border: none; border-radius: 5px; cursor: pointer; }
+        button { background: #ff69b4; color: white; border: none; padding: 15px; width: 100%; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
+        button:hover { background: #ff1493; transform: scale(1.02); }
+        #pattern-output { margin-top: 20px; white-space: pre-wrap; background: #fafafa; padding: 15px; border-radius: 10px; border: 1px dashed #ff69b4; font-family: 'Courier New', Courier, monospace; font-size: 14px; color: #444; }
+    </style>
+</head>
+<body>
 
+<div id="header">
+    <h1>🧶 McKayla's Crochet Lab 🧶</h1>
+    <p>Design your own patterns in 3D!</p>
+</div>
+
+<div id="main">
+    <div id="viewer"></div>
+    <div id="controls">
+        <h2>Settings</h2>
+        
+        <div class="input-group">
+            <label>Sphere Size: <span id="radius-val">5</span> cm</label>
+            <input type="range" id="radius-slider" min="1" max="15" value="5" step="0.5">
+        </div>
+
+        <div class="input-group">
+            <label>Yarn Color:</label>
+            <input type="color" id="color-picker" value="#ff69b4">
+        </div>
+
+        <button onclick="generatePattern()">✨ Generate Pattern</button>
+        
+        <div id="pattern-output">Your magic pattern will appear here...</div>
+    </div>
+</div>
+
+<script>
+    // --- 3D Scene Setup ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xfdfdfd);
+    
+    const viewer = document.getElementById('viewer');
+    const camera = new THREE.PerspectiveCamera(75, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    
+    renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+    viewer.appendChild(renderer.domElement);
+
+    // Create the Yarn Ball (Sphere)
+    const geometry = new THREE.SphereGeometry(1, 32, 32);
+    const material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 80 });
+    const sphere = new THREE.Mesh(geometry, material);
+    scene.add(sphere);
+
+    // Lights to make it look 3D
+    const mainLight = new THREE.DirectionalLight(0xffffff, 1);
+    mainLight.position.set(5, 5, 5);
+    scene.add(mainLight);
+    scene.add(new THREE.AmbientLight(0x404040, 1.5));
+
+    camera.position.z = 5;
+
+    function animate() {
+        requestAnimationFrame(animate);
+        sphere.rotation.y += 0.005; // Make it spin slowly
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // --- Interaction Logic ---
+    const slider = document.getElementById('radius-slider');
+    const radiusVal = document.getElementById('radius-val');
+    const colorPicker = document.getElementById('color-picker');
+
+    slider.oninput = function() {
+        const r = parseFloat(this.value);
+        radiusVal.innerText = r;
+        sphere.scale.set(r/5, r/5, r/5);
+    };
+
+    colorPicker.oninput = function() {
+        sphere.material.color.set(this.value);
+    };
+
+    function generatePattern() {
+        const r = parseFloat(slider.value);
+        const stitchGauge = 2.5; 
+        const rowGauge = 2.0;
+        const totalRows = Math.round(r * 2 * rowGauge);
+        
+        let output = `[ McKayla's Pattern ]\nShape: Sphere | Size: \${r}cm\n----------------------\n`;
+        let lastSts = 0;
+
+        for (let i = 0; i <= totalRows; i++) {
+            let z = -r + (i / rowGauge);
+            let rowRadius = Math.sqrt(Math.pow(r, 2) - Math.pow(z, 2));
+            if (isNaN(rowRadius)) rowRadius = 0;
+
+            let currentSts = Math.round(2 * Math.PI * rowRadius * stitchGauge);
+            if (currentSts < 6 && (i === 0 || i === totalRows)) currentSts = 6;
+
+            let line = `R\${i + 1}: `;
+            if (i === 0) {
+                line += `Magic Ring 6 (6)`;
+            } else {
+                let diff = currentSts - lastSts;
+                if (diff > 0) line += `\${lastSts} sc, \${diff} inc (\${currentSts})`;
+                else if (diff < 0) line += `\${currentSts} sc, \${Math.abs(diff)} dec (\${currentSts})`;
+                else line += `sc in each (\${currentSts})`;
+            }
+            output += line + "\\n";
+            lastSts = currentSts;
+        }
+        document.getElementById('pattern-output').innerText = output;
+    }
+
+    // Handle Window Resize
+    window.addEventListener('resize', () => {
+        renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+        camera.aspect = viewer.clientWidth / viewer.clientHeight;
+        camera.updateProjectionMatrix();
+    });
+</script>
+</body>
+</html>
