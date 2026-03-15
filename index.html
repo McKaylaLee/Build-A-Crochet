@@ -2,39 +2,39 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>McKayla's Crochet Lab v3.3.7</title>
+    <title>McKayla's Crochet Lab v3.3.8</title>
     <style>
         body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #fff0f5; color: #333; }
-        #version-tag { background: #ff1493; color: white; padding: 8px; font-weight: bold; text-align: center; font-size: 14px; letter-spacing: 1px; }
+        #version-tag { background: #ff1493; color: white; padding: 8px; font-weight: bold; text-align: center; font-size: 14px; }
         #header { background: white; padding: 20px; text-align: center; border-bottom: 4px solid #ff69b4; }
         .container { max-width: 600px; margin: 20px auto; background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
         .input-group { margin-bottom: 25px; padding: 15px; background: #fff9fb; border-radius: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 10px; color: #d02090; font-size: 18px; }
         input[type=range] { width: 100%; cursor: pointer; accent-color: #ff69b4; }
-        button { background: #ff69b4; color: white; border: none; padding: 18px; width: 100%; border-radius: 40px; cursor: pointer; font-weight: bold; font-size: 20px; transition: 0.3s; box-shadow: 0 4px 15px rgba(255, 105, 180, 0.4); }
+        button { background: #ff69b4; color: white; border: none; padding: 18px; width: 100%; border-radius: 40px; cursor: pointer; font-weight: bold; font-size: 20px; transition: 0.3s; }
         button:hover { background: #ff1493; transform: scale(1.02); }
         #pattern-output { margin-top: 30px; white-space: pre-wrap; background: #fafafa; padding: 25px; border-radius: 15px; border: 2px dashed #ffc0cb; font-family: 'Courier New', monospace; line-height: 1.7; font-size: 15px; }
-        .highlight { color: #ff1493; font-weight: bold; }
+        .stuffing-note { color: #ff1493; font-weight: bold; text-decoration: underline; }
     </style>
 </head>
 <body>
 
-<div id="version-tag">✨ MCKAYLA'S LAB - VERSION 3.3.7 ✨</div>
+<div id="version-tag">🧸 MCKAYLA'S LAB - VERSION 3.3.8 🧸</div>
 
 <div id="header">
-    <h1>🧶 Smart Sphere Designer</h1>
-    <p>Patterns that grow with your yarn!</p>
+    <h1>🧶 Pro Amigurumi Designer</h1>
+    <p>Smart patterns with stuffing reminders!</p>
 </div>
 
 <div class="container">
     <div class="input-group">
-        <label>Set Diameter: <span id="r-val">10</span>cm</label>
+        <label>Sphere Diameter: <span id="r-val">10</span>cm</label>
         <input type="range" id="r-slider" min="2" max="30" value="10">
     </div>
 
-    <button onclick="makePattern()">✨ Generate Pro Pattern</button>
+    <button onclick="makePattern()">✨ Generate Pattern</button>
 
-    <div id="pattern-output">Adjust the slider and click the button!</div>
+    <div id="pattern-output">Click generate to see the stuffing alert!</div>
 </div>
 
 <script>
@@ -48,19 +48,13 @@
     function makePattern() {
         const diameter = parseFloat(slider.value);
         const radius = diameter / 2;
-        
-        // This is the "Magic Formula" for amigurumi
-        // Number of increase rounds depends on the size
         const incRounds = Math.max(2, Math.floor(radius * 1.5)); 
-        
-        // Dynamic Middle: Bigger sphere = more middle rows!
         const middleRows = Math.max(1, Math.floor(incRounds * 0.8));
 
-        let output = "🧶 MCKAYLA'S SMART PATTERN 🧶\n";
-        output += "Size: " + diameter + "cm Sphere\n";
+        let output = "🧶 MCKAYLA'S PRO PATTERN 🧶\n";
+        output += "Diameter: " + diameter + "cm\n";
         output += "--------------------------------\n\n";
 
-        // 1. INCREASES
         output += "✨ PART 1: INCREASES\n";
         output += "R1: Magic Ring 6 [6]\n";
         output += "R2: (inc) x 6 [12]\n";
@@ -74,25 +68,30 @@
             output += "R" + totalRounds + ": (sc " + i + ", inc) x 6 [" + currentSts + "]\n";
         }
 
-        // 2. DYNAMIC MIDDLE
-        output += "\n✨ PART 2: THE MIDDLE (" + middleRows + " rows)\n";
+        output += "\n✨ PART 2: THE MIDDLE\n";
         for (let m = 1; m <= middleRows; m++) {
             totalRounds++;
             output += "R" + totalRounds + ": sc in each stitch [" + currentSts + "]\n";
         }
 
-        // 3. DECREASES
         output += "\n✨ PART 3: DECREASES\n";
         for (let k = incRounds - 1; k >= 1; k--) {
             let nextSts = currentSts - 6;
             totalRounds++;
+            
             output += "R" + totalRounds + ": (sc " + k + ", dec) x 6 [" + nextSts + "]\n";
+            
+            // STUFFING ALERT: Trigger when we hit 12 or 18 stitches
+            if (nextSts === 12 || (nextSts === 18 && k === 1)) {
+                output += ">> 🧸 [STUFFING ALERT]: Add your poly-fill now before it closes! <<\n";
+            }
+            
             currentSts = nextSts;
         }
         
         totalRounds++;
         output += "R" + totalRounds + ": (dec) x 6 [6]\n";
-        output += "\nFinish: Stuff firmly and sew closed!";
+        output += "\nFinish: Cut yarn and weave through last 6 sts to close.";
 
         document.getElementById('pattern-output').innerText = output;
     }
