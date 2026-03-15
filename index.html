@@ -1,54 +1,41 @@
-\<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.13</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>Build-A-Crochet v3.5.14</title>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; }
-        #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 12px; z-index: 100; font-weight: bold; }
-        #header { background: white; padding: 12px; text-align: center; border-bottom: 4px solid #ff69b4; position: relative; z-index: 10; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #fff0f5; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
+        #header { background: white; padding: 15px; text-align: center; border-bottom: 4px solid #ff69b4; z-index: 10; }
         #header h1 { margin: 0; color: #d02090; font-size: 24px; text-transform: uppercase; }
-
-        #main-container { display: flex; height: calc(100vh - 65px); width: 100vw; }
-
-        /* Left Side: The Sphere */
-        #viewer { flex: 1; background: #fafafa; position: relative; touch-action: none; cursor: s-resize; }
+        #version-tag { position: absolute; top: 10px; left: 10px; background: #ff1493; color: white; padding: 5px 15px; border-radius: 15px; font-size: 11px; font-weight: bold; }
         
-        /* Right Side: The Pattern */
-        #controls-panel { 
-            width: 380px; 
-            background: white; 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            border-left: 4px solid #ffc0cb; 
-            z-index: 20;
-        }
-
-        #measurements { 
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            background: white; padding: 10px 20px; border-radius: 20px;
-            border: 2px solid #ff69b4; color: #d02090; font-weight: bold; font-size: 14px;
-            display: flex; gap: 20px; z-index: 30; pointer-events: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-
-        .instruction { font-size: 13px; color: #666; margin-bottom: 15px; background: #fff0f5; padding: 10px; border-radius: 8px; border-left: 4px solid #ff69b4; }
+        #main-container { display: flex; flex: 1; }
         
-        button { 
-            background: #ff1493; color: white; border: none; padding: 18px; border-radius: 35px; 
-            font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; 
-            box-shadow: 0 4px 0 #b01060;
-        }
+        /* The Canvas Area - SVG is bulletproof */
+        #viewer { flex: 1; background: #fdfdfd; border-right: 2px solid #ffc0cb; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; }
+        
+        #controls-panel { width: 380px; background: white; padding: 25px; display: flex; flex-direction: column; border-left: 2px solid #ffc0cb; overflow-y: auto; }
+        
+        button { background: #ff1493; color: white; border: none; padding: 18px; border-radius: 35px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; box-shadow: 0 4px 0 #b01060; }
         button:active { transform: translateY(2px); box-shadow: 0 2px 0 #b01060; }
 
-        #pattern-output { 
-            flex: 1; 
-            overflow-y: auto; 
-            margin-top: 20px; 
-            white-space: pre-wrap; 
-            font-family: 'Courier New', monospace; 
-            font-size: 14px; 
-            line-height: 1.6; 
-            background: #fff9fb
+        #pattern-box { margin-top: 20px; padding: 15px; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+        
+        /* The Yarn Sphere Styles */
+        .yarn-ball { fill: #ff69b4; stroke: #d02090; stroke-width: 4; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1)); }
+        .measure-text { font-weight: bold; font-size: 16px; fill: #d02090; font-family: sans-serif; pointer-events: none; }
+        .handle { cursor: pointer; fill: white; stroke: #ff1493; stroke-width: 3; }
+    </style>
+</head>
+<body>
+
+<div id="version-tag">🧸 v3.5.14 🧸</div>
+
+<div id="header">
+    <h1>✨ Build-A-Crochet ✨</h1>
+</div>
+
+<div id="main-container">
+    <div id="viewer">
+        <svg id="canvas" width="600" height="600" viewBox="0 0 600 600">
+            <ellipse id="ball" class="yarn-ball" cx="300" cy="3
