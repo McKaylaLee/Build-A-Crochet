@@ -1,149 +1,122 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v3.5.43</title>
+    <title>Build-A-Crochet PRO v4.1.1</title>
     <style>
-        body { margin: 0; font-family: sans-serif; background: #fff0f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        #header { background: white; padding: 10px; text-align: center; border-bottom: 4px solid #ff69b4; }
-        
-        #app-area { display: flex; flex: 1; }
-
-        /* Left Side: The Ball View */
-        #viewer { flex: 1; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; }
-        
-        /* The View Remote (Buttons) */
-        #remote { position: absolute; top: 20px; left: 20px; background: white; border: 3px solid #ff69b4; padding: 12px; border-radius: 10px; z-index: 100; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .view-btn { background: #ff69b4; color: white; border: none; padding: 10px; margin: 4px; border-radius: 5px; cursor: pointer; font-size: 11px; width: 75px; font-weight: bold; display: block; }
-        .view-btn:hover { background: #ff1493; }
-
-        #measurements { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 10px 20px; border-radius: 20px; border: 2px solid #ff69b4; color: #d02090; font-weight: bold; display: flex; gap: 20px; z-index: 100; }
-
-        /* THE 3D BALL */
-        #yarn-ball { 
-            width: 150px; height: 150px; 
-            /* Start with Front Lighting */
-            background: radial-gradient(circle at 35% 35%, #ffb6c1, #ff69b4 50%, #8b1050 100%);
-            border-radius: 50%; 
-            border: 3px solid #d02090;
-            cursor: move;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.2);
-            user-select: none;
-            transition: background 0.4s ease; /* Makes the "turn" look smooth */
-        }
-
-        /* Right Side: Pattern */
-        #panel { width: 350px; background: white; border-left: 2px solid #ffc0cb; padding: 20px; display: flex; flex-direction: column; }
-        #make-btn { background: #ff1493; color: white; border: none; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; font-size: 18px; box-shadow: 0 4px 0 #b01060; margin-bottom: 15px; }
-        #output { flex: 1; background: #fff9fb; border: 1px solid #ffc0cb; border-radius: 10px; padding: 15px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 13px; color: #333; }
+        body { margin: 0; font-family: 'Pretendard', sans-serif; overflow: hidden; background: #222; color: #eee; }
+        #ui-panel { position: absolute; top: 20px; left: 20px; width: 280px; background: rgba(40, 40, 40, 0.9); padding: 20px; border-radius: 12px; border: 1px solid #444; z-index: 100; pointer-events: auto; }
+        #canvas-container { width: 100vw; height: 100vh; outline: none; }
+        .control-group { margin-bottom: 20px; }
+        label { display: block; font-size: 12px; color: #aaa; margin-bottom: 8px; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        #status { font-size: 11px; color: #888; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div id="header">
-    <h1 style="margin:0; color:#d02090;">✨ Build-A-Crochet v3.5.43 ✨</h1>
-</div>
-
-<div id="app-area">
-    <div id="viewer">
-        <div id="remote">
-            <div style="font-size: 10px; color: #ff1493; margin-bottom: 8px; font-weight: bold;">VIEW REMOTE</div>
-            <button class="view-btn" onclick="changeView('50% 15%', 'TOP')">TOP</button>
-            <button class="view-btn" onclick="changeView('35% 35%', 'FRONT')">FRONT</button>
-            <button class="view-btn" onclick="changeView('75% 50%', 'SIDE')">SIDE</button>
-            <button class="view-btn" onclick="changeView('50% 85%', 'BOTTOM')">BOTTOM</button>
-        </div>
-
-        <div id="measurements">
-            <span>W: <span id="w-txt">10.0</span>cm</span>
-            <span>H: <span id="h-txt">10.0</span>cm</span>
-        </div>
-
-        <div id="yarn-ball" onmousedown="startStretch(event)"></div>
+<div id="ui-panel">
+    <h2 style="margin:0 0 15px 0; color:#ec4899;">🔬 Lab v4.1.1</h2>
+    
+    <div class="control-group">
+        <label>가로 폭 (Width): <span id="val-w">10.0</span>cm</label>
+        <input type="range" id="input-w" min="5" max="30" step="0.5" value="10">
     </div>
 
-    <div id="panel">
-        <button id="make-btn" onclick="generate()">🧶 MAKE PATTERN</button>
-        <div id="output">Grab the ball to stretch it!\nClick Remote to rotate the 3D view!</div>
+    <div class="control-group">
+        <label>세로 높이 (Height): <span id="val-h">10.0</span>cm</label>
+        <input type="range" id="input-h" min="5" max="30" step="0.5" value="10">
     </div>
+    
+    <div id="status">> 마우스로 드래그하여 회전하세요. 축이 함께 돕니다.</div>
 </div>
 
-<script>
-    let w = 150; let h = 150;
-    let dragging = false;
-    let oldX, oldY;
+<div id="canvas-container"></div>
 
-    const ball = document.getElementById('yarn-ball');
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+</script>
 
-    // 1. GRAB & STRETCH
-    function startStretch(e) {
-        dragging = true;
-        oldX = e.clientX;
-        oldY = e.clientY;
-        e.preventDefault();
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    let scene, camera, renderer, controls, sphere;
+
+    function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111111);
+
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 30;
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0xffffff, 1);
+        pointLight.position.set(10, 10, 10);
+        scene.add(pointLight);
+
+        // Grid Helper
+        const grid = new THREE.GridHelper(50, 50, 0x444444, 0x222222);
+        grid.rotation.x = Math.PI / 2;
+        scene.add(grid);
+
+        // 1. Axes Helper (회전축 추가: R:X, G:Y, B:Z)
+        const axesHelper = new THREE.AxesHelper(15);
+        scene.add(axesHelper);
+
+        // 2. The Sphere Geometry (선 밀도 증가: 32x32 -> 64x64)
+        const geometry = new THREE.SphereGeometry(1, 64, 64);
+        const material = new THREE.MeshPhongMaterial({ 
+            color: 0xec4899, 
+            wireframe: true,
+            transparent: true,
+            opacity: 0.6 // 투명도를 낮춰서 내부 축이 보이게
+        });
+        sphere = new THREE.Mesh(geometry, material);
+        scene.add(sphere);
+
+        // Controls
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        window.addEventListener('resize', onWindowResize);
+        animate();
     }
 
-    window.addEventListener('mousemove', function(e) {
-        if (!dragging) return;
-        
-        let dx = e.clientX - oldX;
-        let dy = oldY - e.clientY;
-        
-        w = Math.max(60, w + dx);
-        h = Math.max(60, h + dy);
-        
-        ball.style.width = w + "px";
-        ball.style.height = h + "px";
-        
-        document.getElementById('w-txt').innerText = (w / 15).toFixed(1);
-        document.getElementById('h-txt').innerText = (h / 15).toFixed(1);
-        
-        oldX = e.clientX;
-        oldY = e.clientY;
-    });
-
-    window.addEventListener('mouseup', function() {
-        dragging = false;
-    });
-
-    // 2. REAL 3D VIEW (Moves the light/shadow)
-    function changeView(lightPos, viewName) {
-        ball.style.background = `radial-gradient(circle at ${lightPos}, #ffb6c1, #ff69b4 50%, #8b1050 100%)`;
-        document.getElementById('output').innerText = "Viewing: " + viewName;
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    // 3. PATTERN GENERATOR
-    function generate() {
-        const cw = parseFloat(document.getElementById('w-txt').innerText);
-        const ch = parseFloat(document.getElementById('h-txt').innerText);
+    function animate() {
+        requestAnimationFrame(animate);
         
-        let inc = Math.max(3, Math.floor((cw/2) * 1.5));
-        let mid = Math.max(1, Math.floor(inc * (ch/cw)));
-        let sts = 6;
+        // Update scale based on inputs
+        const w = document.getElementById('input-w').value;
+        const h = document.getElementById('input-h').value;
+        
+        // Scale the mesh (X, Y, Z)
+        sphere.scale.set(w/2, h/2, w/2);
+        
+        document.getElementById('val-w').innerText = w;
+        document.getElementById('val-h').innerText = h;
 
-        let p = "<b>🧶 CROCHET PATTERN</b>\nSize: " + cw + "cm x " + ch + "cm\n------------------\n";
-        p += "R1: Magic Ring 6\n";
-        for (let i = 1; i < inc; i++) {
-            sts += 6;
-            p += "R" + (i+1) + ": (sc " + i + ", inc) x 6 [" + sts + "]\n";
-        }
-        p += "\n🧶 MIDDLE (The Body):\n";
-        for (let m = 1; m <= mid; m++) {
-            p += "R" + (inc + m) + ": sc around [" + sts + "]\n";
-        }
-        p += "\n🧶 CLOSING:\n";
-        let r = inc + mid + 1;
-        let d = inc - 1;
-        while (sts > 6) {
-            sts -= 6;
-            p += "R" + r + ": (sc " + d + ", dec) x 6 [" + sts + "]\n";
-            d--; r++;
-            if (sts === 12) p += "<b>-> STUFF FIRMLY! <-</b>\n";
-        }
-        p += "R" + r + ": dec x 6\nFinish: Sew closed.";
-        
-        document.getElementById('output').innerHTML = p;
+        controls.update();
+        renderer.render(scene, camera);
     }
+
+    init();
 </script>
 </body>
 </html>
