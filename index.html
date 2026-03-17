@@ -3,46 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Build-A-Crochet Workshop v5.0.0</title>
+    <title>Build-A-Crochet v5.0.1</title>
     <style>
         body { margin: 0; font-family: sans-serif; overflow: hidden; background: #ffffff; touch-action: none; }
-        
-        /* 콤팩트 대시보드 */
         #top-bar { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 90px;
-            background: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column;
-            justify-content: center; border-bottom: 2px solid #ff69b4; z-index: 999;
+            position: absolute; top: 0; left: 0; width: 100%; height: 75px;
+            background: rgba(255, 255, 255, 0.9); display: flex; align-items: center; 
+            justify-content: space-around; border-bottom: 2px solid #ff69b4; z-index: 999;
+            padding: 0 5px; box-sizing: border-box;
         }
-        
-        .row { display: flex; justify-content: space-around; align-items: center; width: 100%; margin: 2px 0; }
-        .item { display: flex; align-items: center; gap: 5px; }
-        label { font-size: 10px; color: #ff69b4; font-weight: bold; min-width: 40px; }
-        
-        select, input { font-size: 11px; padding: 2px; border: 1px solid #ccc; border-radius: 4px; }
-        .btn-s { background: #f0f0f0; border: 1px solid #ccc; width: 22px; height: 22px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-
+        .item { display: flex; flex-direction: column; align-items: center; scale: 0.85; }
+        label { font-size: 10px; color: #ff69b4; font-weight: bold; margin-bottom: 2px; }
+        select, input { background: #fff; border: 1px solid #ccc; font-size: 11px; border-radius: 4px; padding: 2px; }
+        .ctrl { display: flex; align-items: center; gap: 2px; }
+        .btn-s { background: #eee; border: 1px solid #ccc; width: 22px; height: 22px; border-radius: 4px; font-weight: bold; cursor: pointer; }
         #canvas-container { width: 100vw; height: 100vh; }
-        
         button#gen-btn { 
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: #ff69b4; color: white; border: none; padding: 12px 25px; 
-            border-radius: 30px; font-weight: bold; cursor: pointer; z-index: 999;
+            border-radius: 30px; font-weight: bold; cursor: pointer; z-index: 150;
         }
-        #v-tag { position: absolute; bottom: 8px; right: 10px; font-size: 9px; color: #ddd; }
+        #v-info { position: absolute; bottom: 10px; right: 10px; font-size: 9px; color: #ccc; }
     </style>
 </head>
 <body>
 
 <div id="top-bar">
-    <div class="row">
-        <div class="item">
-            <label>PART</label>
-            <select id="part-sel" onchange="syncUI()">
-                <option value="body">Body (Main)</option>
-                <option value="eyeL">Left Eye</option>
-                <option value="eyeR">Right Eye</option>
-            </select>
+    <div class="item">
+        <label>PART</label>
+        <select id="part-sel" onchange="syncUI()" style="width:75px;">
+            <option value="body">Body</option>
+            <option value="eyeL">Eye L</option>
+            <option value="eyeR">Eye R</option>
+        </select>
+    </div>
+    <div class="item">
+        <label>SIZE</label>
+        <div class="ctrl">
+            <button class="btn-s" onclick="adjust('size',-0.5)">-</button>
+            <input id="in-size" value="13.5" style="width:30px; text-align:center;" readonly>
+            <button class="btn-s" onclick="adjust('size',0.5)">+</button>
         </div>
-        <div class="item">
-            <label>YARN</label>
-            <select id="yarn-sel">
+    </div>
+    <div class="item">
+        <label>POS X</label>
+        <div class="ctrl">
+            <button class="btn-s" onclick="adjust('x',-0.5)">-</button>
+            <input id="in-x" value="0.0" style="width:30px; text-align:center;" readonly>
+            <button class="btn-s" onclick="adjust('x',0.5)">+</button>
+        </div>
+    </div>
+</div>
+
+<button id="gen-btn" onclick="alert('Part patterns integration coming soon!')">GENERATE</button>
+<div id="v-info">v5.0.1</div>
+<div id="canvas-container"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+    let scene, camera, renderer, controls;
+    let parts = {
+        body: { mesh: null, size: 13.5, h: 26.0, x: 0, y: 0, z: 0, color: 0xff69b4, type: 'lathe' },
+        eyeL: { mesh: null, size: 2.0, x: -3, y: 5, z: 6, color: 0x333333, type: 'sphere' },
+        eyeR: { mesh: null, size: 2.0, x: 3, y: 5, z: 6, color: 0x333333, type: 'sphere' }
+    };
+
+    function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xffffff);
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+        camera.position.set(20, 20, 50);
+        
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        let light = new THREE.PointLight(0xffffff, 1);
+        light.position.set(20, 30, 20);
+        scene.add(light);
+        scene.add(new
