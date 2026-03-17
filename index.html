@@ -3,37 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Build-A-Crochet PRO v4.3.3</title>
+    <title>Build-A-Crochet PRO v4.3.4</title>
     <style>
-        body { margin: 0; font-family: -apple-system, sans-serif; overflow: hidden; background: #111; color: #fff; touch-action: none; }
+        body { margin: 0; font-family: -apple-system, sans-serif; overflow: hidden; background: #ffffff; color: #333; touch-action: none; }
         
         #top-bar { 
             position: absolute; top: 0; left: 0; width: 100%; height: 75px;
-            background: rgba(20, 20, 20, 0.95); display: flex; align-items: center; 
+            background: rgba(255, 255, 255, 0.9); display: flex; align-items: center; 
             justify-content: space-around; padding: 0 5px; box-sizing: border-box;
             border-bottom: 2px solid #ff69b4; z-index: 200;
         }
         
         .item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        label { font-size: 9px; color: #ff69b4; font-weight: bold; letter-spacing: 1px; }
-        select { background: #222; border: 1px solid #444; color: #fff; border-radius: 4px; padding: 5px; font-size: 11px; width: 95px; }
+        label { font-size: 9px; color: #ff69b4; font-weight: bold; }
+        select { background: #fff; border: 1px solid #ddd; color: #333; border-radius: 4px; padding: 5px; font-size: 11px; width: 95px; }
         
-        /* Mobile Precision Controls */
-        .stepper { display: flex; align-items: center; background: #222; border-radius: 4px; border: 1px solid #444; }
-        .stepper button { background: #333; color: #fff; border: none; width: 28px; height: 28px; font-weight: bold; cursor: pointer; }
-        .stepper input { background: transparent; border: none; color: #fff; width: 45px; text-align: center; font-size: 13px; -moz-appearance: textfield; }
-        .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .stepper { display: flex; align-items: center; background: #f9f9f9; border-radius: 4px; border: 1px solid #ddd; }
+        .stepper button { background: #eee; color: #333; border: none; width: 28px; height: 28px; font-weight: bold; cursor: pointer; }
+        .stepper input { background: transparent; border: none; color: #333; width: 45px; text-align: center; font-size: 13px; }
         
-        #canvas-container { width: 100vw; height: 100vh; }
-        
+        #canvas-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        canvas { touch-action: none; }
+
         button#gen-btn { 
             position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%);
             background: #ff69b4; color: white; border: none; padding: 15px 35px; 
             border-radius: 35px; font-weight: bold; cursor: pointer; z-index: 150;
-            box-shadow: 0 5px 20px rgba(255, 105, 180, 0.4); font-size: 15px;
+            box-shadow: 0 5px 15px rgba(255, 105, 180, 0.3); font-size: 15px;
         }
-        
-        #version-tag { position: absolute; bottom: 10px; right: 15px; font-size: 10px; color: #555; pointer-events: none; }
+        #version-tag { position: absolute; bottom: 10px; right: 15px; font-size: 10px; color: #bbb; }
     </style>
 </head>
 <body>
@@ -42,138 +40,115 @@
     <div class="item">
         <label>YARN WEIGHT</label>
         <select id="yarn-selector">
-            <option value="0">0: Lace</option>
-            <option value="1">1: Super Fine</option>
-            <option value="2">2: Fine</option>
-            <option value="3">3: Light</option>
-            <option value="4" selected>4: Worsted</option>
-            <option value="5">5: Bulky</option>
-            <option value="6">6: Super Bulky</option>
-            <option value="7">7: Jumbo</option>
+            <option value="0">0: Lace</option><option value="1">1: Super Fine</option>
+            <option value="2">2: Fine</option><option value="3">3: Light</option>
+            <option value="4" selected>4: Worsted</option><option value="5">5: Bulky</option>
+            <option value="6">6: Super Bulky</option><option value="7">7: Jumbo</option>
         </select>
     </div>
-    
-    <div class="item">
-        <label>WIDTH (CM)</label>
-        <div class="stepper">
-            <button onclick="step('in-w', -0.5)">-</button>
-            <input type="number" id="in-w" value="13.5" step="0.5">
-            <button onclick="step('in-w', 0.5)">+</button>
-        </div>
+    <div class="item"><label>WIDTH (CM)</label>
+        <div class="stepper"><button onclick="step('in-w', -0.5)">-</button><input type="number" id="in-w" value="13.5"><button onclick="step('in-w', 0.5)">+</button></div>
     </div>
-
-    <div class="item">
-        <label>HEIGHT (CM)</label>
-        <div class="stepper">
-            <button onclick="step('in-h', -0.5)">-</button>
-            <input type="number" id="in-h" value="26.0" step="0.5">
-            <button onclick="step('in-h', 0.5)">+</button>
-        </div>
+    <div class="item"><label>HEIGHT (CM)</label>
+        <div class="stepper"><button onclick="step('in-h', -0.5)">-</button><input type="number" id="in-h" value="26.0"><button onclick="step('in-h', 0.5)">+</button></div>
     </div>
 </div>
 
 <button id="gen-btn" onclick="generatePattern()">GENERATE PATTERN</button>
-<div id="version-tag">Build-A-Crochet PRO v4.3.3</div>
-
-<div id="canvas-container"></div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<div id="version-tag">Build-A-Crochet PRO v4.3.4</div>
+<div id="canvas-container"><canvas id="renderCanvas"></canvas></div>
 
 <script>
-    let scene, camera, renderer, controls, egg;
-
-    const yarnData = {
-        "0": { gh: 9.0, gv: 11.0 }, "1": { gh: 7.5, gv: 9.0 }, "2": { gh: 6.5, gv: 7.5 },
-        "3": { gh: 5.5, gv: 6.5 }, "4": { gh: 4.5, gv: 5.0 }, "5": { gh: 3.5, gv: 4.0 },
-        "6": { gh: 2.5, gv: 3.0 }, "7": { gh: 1.5, gv: 1.8 }
-    };
+    const canvas = document.getElementById('renderCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let rotationX = 0.5, rotationY = 0.5;
+    
+    const yarnData = { "0": { gh: 9.0, gv: 11.0 }, "1": { gh: 7.5, gv: 9.0 }, "2": { gh: 6.5, gv: 7.5 }, "3": { gh: 5.5, gv: 6.5 }, "4": { gh: 4.5, gv: 5.0 }, "5": { gh: 3.5, gv: 4.0 }, "6": { gh: 2.5, gv: 3.0 }, "7": { gh: 1.5, gv: 1.8 } };
 
     function step(id, val) {
         const input = document.getElementById(id);
         input.value = (parseFloat(input.value) + val).toFixed(1);
     }
 
-    function init() {
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x111111);
-        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(20, 20, 50);
+    function resize() {
+        width = window.innerWidth; height = window.innerHeight;
+        canvas.width = width; canvas.height = height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
 
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-        scene.add(new THREE.PointLight(0xffffff, 1).set(20, 30, 20));
-        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-        scene.add(new THREE.GridHelper(100, 20, 0x333333, 0x222222));
-
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-
-        animate();
+    function project(x, y, z) {
+        let radX = rotationX, radY = rotationY;
+        let y1 = y * Math.cos(radX) - z * Math.sin(radX);
+        let z1 = y * Math.sin(radX) + z * Math.cos(radX);
+        let x2 = x * Math.cos(radY) + z1 * Math.sin(radY);
+        let z2 = -x * Math.sin(radY) + z1 * Math.cos(radY);
+        let factor = 600 / (600 + z2);
+        return { x: x2 * factor + width / 2, y: y1 * factor + height / 2 };
     }
 
-    function createEgg() {
-        if(egg) scene.remove(egg);
-        const w = parseFloat(document.getElementById('in-w').value) || 10;
-        const h = parseFloat(document.getElementById('in-h').value) || 10;
-        const points = [];
-        for (let i = 0; i <= 30; i++) {
-            const t = i / 30;
-            const y = (t - 0.5) * h;
-            const r = (w / 2) * Math.sqrt(Math.max(0, 1 - Math.pow(y / (h / 2), 2)));
-            points.push(new THREE.Vector2(Math.max(0.01, r), y));
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+        const w = parseFloat(document.getElementById('in-w').value) * 10;
+        const h = parseFloat(document.getElementById('in-h').value) * 10;
+        
+        ctx.strokeStyle = '#ff69b4'; ctx.lineWidth = 1;
+        // Draw Lathe-like Wireframe
+        for(let j=0; j<12; j++){
+            ctx.beginPath();
+            let lon = (j/12) * Math.PI * 2;
+            for(let i=0; i<=20; i++){
+                let t = i/20;
+                let latY = (t - 0.5) * h;
+                let radius = (w/2) * Math.sqrt(Math.max(0, 1 - Math.pow(latY/(h/2), 2)));
+                let p = project(radius * Math.cos(lon), latY, radius * Math.sin(lon));
+                if(i==0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+            }
+            ctx.stroke();
         }
-        const geometry = new THREE.LatheGeometry(points, 32);
-        const material = new THREE.MeshPhongMaterial({ color: 0xff69b4, wireframe: true });
-        egg = new THREE.Mesh(geometry, material);
-        scene.add(egg);
+        // Draw Horizontal Rings
+        for(let i=1; i<10; i++){
+            ctx.beginPath();
+            let t = i/10;
+            let latY = (t - 0.5) * h;
+            let radius = (w/2) * Math.sqrt(Math.max(0, 1 - Math.pow(latY/(h/2), 2)));
+            for(let j=0; j<=32; j++){
+                let lon = (j/32) * Math.PI * 2;
+                let p = project(radius * Math.cos(lon), latY, radius * Math.sin(lon));
+                if(j==0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+            }
+            ctx.stroke();
+        }
+        requestAnimationFrame(draw);
     }
 
-    function animate() {
-        requestAnimationFrame(animate);
-        createEgg();
-        controls.update();
-        renderer.render(scene, camera);
-    }
+    let isDragging = false, lastX, lastY;
+    canvas.addEventListener('pointerdown', e => { isDragging = true; lastX = e.clientX; lastY = e.clientY; });
+    window.addEventListener('pointermove', e => {
+        if(!isDragging) return;
+        rotationY += (e.clientX - lastX) * 0.01;
+        rotationX += (e.clientY - lastY) * 0.01;
+        lastX = e.clientX; lastY = e.clientY;
+    });
+    window.addEventListener('pointerup', () => isDragging = false);
 
     window.generatePattern = function() {
-        const w = document.getElementById('in-w').value;
-        const h = document.getElementById('in-h').value;
-        const yK = document.getElementById('yarn-selector').value;
-        const yName = document.getElementById('yarn-selector').options[document.getElementById('yarn-selector').selectedIndex].text;
-        const g = yarnData[yK];
+        const w = document.getElementById('in-w').value, h = document.getElementById('in-h').value, yK = document.getElementById('yarn-selector').value, g = yarnData[yK];
         const rows = Math.round(h * g.gv);
-        
-        let log = `<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>
-            body { font-family: sans-serif; padding: 20px; line-height: 1.6; background: #fff; color: #000; }
-            h2 { color: #ff69b4; border-bottom: 2px solid #ff69b4; padding-bottom: 5px; }
-            .meta { background: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 20px; font-size: 14px; }
-            pre { font-size: 16px; background: #fafafa; padding: 10px; border: 1px solid #ddd; }
-        </style></head><body>`;
-        log += `<h2>Crochet Pattern Report</h2>`;
-        log += `<div class="meta"><b>Size:</b> ${w} x ${h} cm<br><b>Yarn:</b> ${yName}<br><b>Rows:</b> ${rows}</div><pre>`;
-        
+        let log = `<html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>body{font-family:sans-serif;padding:20px;}h2{color:#ff69b4;}pre{font-size:16px;background:#f4f4f4;padding:10px;}</style></head><body><h2>Pattern Report</h2><b>Size:</b> ${w}x${h}cm<br><b>Rows:</b> ${rows}<hr><pre>`;
         let prevSts = 0;
         for(let i=1; i<=rows; i++) {
             let y = ((i/g.gv) - (h/2));
             let r = (w/2) * Math.sqrt(Math.max(0, 1 - Math.pow(y/(h/2), 2)));
             let sts = Math.max(6, Math.round(2 * Math.PI * r * g.gh));
             let diff = i > 1 ? sts - prevSts : 0;
-            let note = i > 1 ? (diff >= 0 ? ` (+${diff})` : ` (${diff})`) : "";
-            log += `Row ${i}: ${sts} sts${note}\n`;
+            log += `Row ${i}: ${sts} sts${i>1?` (${diff>=0?'+'+diff:diff})`:''}\n`;
             prevSts = sts;
         }
-        log += `</pre></body></html>`;
-        
-        const win = window.open("", "_blank");
-        win.document.write(log);
-        win.document.close();
+        const win = window.open("", "_blank"); win.document.write(log + "</pre></body></html>");
     }
-
-    window.onload = init;
+    draw();
 </script>
 </body>
 </html>
