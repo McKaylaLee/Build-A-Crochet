@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Build-A-Crochet v5.0.2</title>
+    <title>Build-A-Crochet v5.0.3</title>
     <style>
         body { margin: 0; font-family: sans-serif; overflow: hidden; background: #ffffff; touch-action: none; }
         #top-bar { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 75px;
+            position: absolute; top: 0; left: 0; width: 100%; height: 85px;
             background: rgba(255, 255, 255, 0.9); display: flex; align-items: center; 
             justify-content: space-around; border-bottom: 2px solid #ff69b4; z-index: 999;
+            padding: 0 5px; box-sizing: border-box;
         }
-        .item { display: flex; flex-direction: column; align-items: center; scale: 0.85; }
+        .item { display: flex; flex-direction: column; align-items: center; scale: 0.8; }
         label { font-size: 10px; color: #ff69b4; font-weight: bold; margin-bottom: 2px; }
-        select, input { background: #fff; border: 1px solid #ccc; font-size: 11px; border-radius: 4px; padding: 2px; }
+        select, input { background: #fff; border: 1px solid #ccc; font-size: 11px; border-radius: 4px; padding: 2px; text-align: center; }
         .ctrl { display: flex; align-items: center; gap: 2px; }
-        .btn-s { background: #eee; border: 1px solid #ccc; width: 24px; height: 24px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 10; }
+        .btn-s { background: #eee; border: 1px solid #ccc; width: 26px; height: 26px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; }
         button#gen-btn { 
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
             background: #ff69b4; color: white; border: none; padding: 12px 25px; 
@@ -30,7 +31,7 @@
 <div id="top-bar">
     <div class="item">
         <label>PART</label>
-        <select id="part-sel" onchange="syncUI()" style="width:75px;">
+        <select id="part-sel" onchange="syncUI()" style="width:70px;">
             <option value="body">Body</option>
             <option value="eyeL">Eye L</option>
             <option value="eyeR">Eye R</option>
@@ -40,7 +41,7 @@
         <label>SIZE</label>
         <div class="ctrl">
             <button class="btn-s" onclick="adjust('size',-0.5)">-</button>
-            <input id="in-size" value="13.5" style="width:30px; text-align:center;" readonly>
+            <input id="in-size" value="13.5" style="width:30px;" readonly>
             <button class="btn-s" onclick="adjust('size',0.5)">+</button>
         </div>
     </div>
@@ -48,14 +49,22 @@
         <label>POS X</label>
         <div class="ctrl">
             <button class="btn-s" onclick="adjust('x',-0.5)">-</button>
-            <input id="in-x" value="0.0" style="width:30px; text-align:center;" readonly>
+            <input id="in-x" value="0.0" style="width:30px;" readonly>
             <button class="btn-s" onclick="adjust('x',0.5)">+</button>
+        </div>
+    </div>
+    <div class="item">
+        <label>POS Y</label>
+        <div class="ctrl">
+            <button class="btn-s" onclick="adjust('y',-0.5)">-</button>
+            <input id="in-y" value="0.0" style="width:30px;" readonly>
+            <button class="btn-s" onclick="adjust('y',0.5)">+</button>
         </div>
     </div>
 </div>
 
-<button id="gen-btn" onclick="alert('Part patterns integration coming soon!')">GENERATE</button>
-<div id="v-info">v5.0.2</div>
+<button id="gen-btn" onclick="generateBodyPattern()">GENERATE PATTERN</button>
+<div id="v-info">v5.0.3</div>
 <div id="canvas-container"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -70,43 +79,29 @@
     };
 
     function init() {
-        // Three.js가 로드되었는지 최종 확인
-        if (typeof THREE === 'undefined') {
-            setTimeout(init, 100);
-            return;
-        }
-
+        if (typeof THREE === 'undefined') { setTimeout(init, 100); return; }
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0xffffff);
-        
-        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
         camera.position.set(30, 30, 60);
-        
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.getElementById('canvas-container').appendChild(renderer.domElement);
-        
         scene.add(new THREE.AmbientLight(0xffffff, 0.7));
         let pLight = new THREE.PointLight(0xffffff, 0.8);
         pLight.position.set(20, 30, 20);
         scene.add(pLight);
-        
         scene.add(new THREE.GridHelper(100, 20, 0xeeeeee, 0xf5f5f5));
-
-        if (THREE.OrbitControls) {
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-        }
-        
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
         updateMeshes();
         animate();
     }
 
     function adjust(prop, val) {
         let p = document.getElementById('part-sel').value;
-        if(prop === 'size') parts[p].size += val;
-        if(prop === 'x') parts[p].x += val;
+        parts[p][prop] += val;
         syncUI();
         updateMeshes();
     }
@@ -115,13 +110,13 @@
         let p = document.getElementById('part-sel').value;
         document.getElementById('in-size').value = parts[p].size.toFixed(1);
         document.getElementById('in-x').value = parts[p].x.toFixed(1);
+        document.getElementById('in-y').value = parts[p].y.toFixed(1);
     }
 
     function updateMeshes() {
         Object.keys(parts).forEach(key => {
             let d = parts[key];
             if(d.mesh) scene.remove(d.mesh);
-            
             let geo;
             if(d.type === 'lathe') {
                 const pts = [];
@@ -135,11 +130,27 @@
             } else {
                 geo = new THREE.SphereGeometry(d.size/2, 24, 24);
             }
-            
             d.mesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: d.color, wireframe: d.type==='lathe' }));
             d.mesh.position.set(d.x, d.y, d.z);
             scene.add(d.mesh);
         });
+    }
+
+    function generateBodyPattern() {
+        const d = parts.body;
+        const yarnW = 0.4; // Worsted 기준 고정
+        let rows = Math.round(d.h / yarnW);
+        let log = `<h2>[BODY PATTERN]</h2>Size: ${d.size}cm x ${d.h}cm<br><br>`;
+        log += "R1: Magic Ring 6 sc (6)<br>";
+        for(let i=2; i<=rows; i++) {
+            let t = i/rows;
+            let y = (t-0.5)*d.h;
+            let r = (d.size/2)*Math.sqrt(Math.max(0, 1-Math.pow(y/(d.h/2), 2)));
+            let sts = Math.round((2 * Math.PI * r) / yarnW);
+            log += `R${i}: ${sts} sc<br>`;
+        }
+        const win = window.open("", "_blank");
+        win.document.write(log);
     }
 
     function animate() {
@@ -147,8 +158,6 @@
         if(controls) controls.update();
         renderer.render(scene, camera);
     }
-
-    // 모든 리소스가 로드된 후 실행되도록 보장
     window.addEventListener('load', init);
 </script>
 </body>
