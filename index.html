@@ -3,140 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Build-A-Crochet PRO v4.4.4</title>
+    <title>Build-A-Crochet Workshop v5.0.0</title>
     <style>
         body { margin: 0; font-family: sans-serif; overflow: hidden; background: #ffffff; touch-action: none; }
+        
+        /* 콤팩트 대시보드 */
         #top-bar { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 75px;
-            background: rgba(255, 255, 255, 0.95); display: flex; align-items: center; 
-            justify-content: space-around; border-bottom: 2px solid #ff69b4; z-index: 999;
+            position: absolute; top: 0; left: 0; width: 100%; height: 90px;
+            background: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column;
+            justify-content: center; border-bottom: 2px solid #ff69b4; z-index: 999;
         }
-        .item { display: flex; flex-direction: column; align-items: center; min-width: 80px; }
-        label { font-size: 9px; color: #ff69b4; font-weight: bold; margin-bottom: 3px; }
-        select { font-size: 11px; width: 85px; padding: 2px; }
-        .ctrl { display: flex; align-items: center; gap: 2px; }
-        .btn-s { background: #f0f0f0; border: 1px solid #ccc; width: 24px; height: 24px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        input { width: 35px; text-align: center; border: 1px solid #ccc; font-size: 12px; border-radius: 4px; height: 20px; }
+        
+        .row { display: flex; justify-content: space-around; align-items: center; width: 100%; margin: 2px 0; }
+        .item { display: flex; align-items: center; gap: 5px; }
+        label { font-size: 10px; color: #ff69b4; font-weight: bold; min-width: 40px; }
+        
+        select, input { font-size: 11px; padding: 2px; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-s { background: #f0f0f0; border: 1px solid #ccc; width: 22px; height: 22px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+
         #canvas-container { width: 100vw; height: 100vh; }
+        
         button#gen-btn { 
-            position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%);
-            background: #ff69b4; color: white; border: none; padding: 12px 28px; 
-            border-radius: 30px; font-weight: bold; cursor: pointer; z-index: 999; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #ff69b4; color: white; border: none; padding: 12px 25px; 
+            border-radius: 30px; font-weight: bold; cursor: pointer; z-index: 999;
         }
-        #v-info { position: absolute; bottom: 10px; right: 10px; font-size: 9px; color: #ddd; }
+        #v-tag { position: absolute; bottom: 8px; right: 10px; font-size: 9px; color: #ddd; }
     </style>
 </head>
 <body>
 
 <div id="top-bar">
-    <div class="item">
-        <label>YARN</label>
-        <select id="yarn-sel">
-            <option value="0">0: Lace</option><option value="1">1: Super Fine</option>
-            <option value="2">2: Fine</option><option value="3">3: Light</option>
-            <option value="4" selected>4: Worsted</option><option value="5">5: Bulky</option>
-            <option value="6">6: Super Bulky</option><option value="7">7: Jumbo</option>
-        </select>
-    </div>
-    <div class="item">
-        <label>WIDTH(cm)</label>
-        <div class="ctrl">
-            <button class="btn-s" onclick="chg('w',-0.5)">-</button>
-            <input id="in-w" value="13.5" readonly>
-            <button class="btn-s" onclick="chg('w',0.5)">+</button>
+    <div class="row">
+        <div class="item">
+            <label>PART</label>
+            <select id="part-sel" onchange="syncUI()">
+                <option value="body">Body (Main)</option>
+                <option value="eyeL">Left Eye</option>
+                <option value="eyeR">Right Eye</option>
+            </select>
         </div>
-    </div>
-    <div class="item">
-        <label>HEIGHT(cm)</label>
-        <div class="ctrl">
-            <button class="btn-s" onclick="chg('h',-0.5)">-</button>
-            <input id="in-h" value="26.0" readonly>
-            <button class="btn-s" onclick="chg('h',0.5)">+</button>
-        </div>
-    </div>
-</div>
-
-<button id="gen-btn" onclick="generatePattern()">GENERATE PATTERN</button>
-<div id="v-info">v4.4.4</div>
-<div id="canvas-container"></div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
-<script>
-    let scene, camera, renderer, controls, egg;
-    const yarnData = {"0":{gh:9,gv:11},"1":{gh:7.5,gv:9},"2":{gh:6.5,gv:7.5},"3":{gh:5.5,gv:6.5},"4":{gh:4.5,gv:5},"5":{gh:3.5,gv:4},"6":{gh:2.5,gv:3},"7":{gh:1.5,gv:1.8}};
-
-    function chg(t, v) {
-        const el = document.getElementById(t==='w'?'in-w':'in-h');
-        el.value = (parseFloat(el.value) + v).toFixed(1);
-    }
-
-    function init() {
-        if (!window.THREE) return; 
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xffffff);
-        
-        camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
-        camera.position.set(20, 20, 50);
-        
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
-        
-        const light = new THREE.PointLight(0xffffff, 1);
-        light.position.set(20, 30, 20);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-        scene.add(new THREE.GridHelper(100, 20, 0xeeeeee, 0xf5f5f5));
-        
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        animate();
-    }
-
-    function createEgg() {
-        if(egg) scene.remove(egg);
-        const w = parseFloat(document.getElementById('in-w').value);
-        const h = parseFloat(document.getElementById('in-h').value);
-        const points = [];
-        for (let i = 0; i <= 20; i++) {
-            const t = i / 20;
-            const y = (t - 0.5) * h;
-            const r = (w / 2) * Math.sqrt(Math.max(0, 1 - Math.pow(y / (h / 2), 2)));
-            points.push(new THREE.Vector2(Math.max(0.1, r), y));
-        }
-        egg = new THREE.Mesh(new THREE.LatheGeometry(points, 32), new THREE.MeshPhongMaterial({ color: 0xff69b4, wireframe: true }));
-        scene.add(egg);
-    }
-
-    function animate() {
-        requestAnimationFrame(animate);
-        createEgg();
-        controls.update();
-        renderer.render(scene, camera);
-    }
-
-    window.generatePattern = function() {
-        const w = document.getElementById('in-w').value;
-        const h = document.getElementById('in-h').value;
-        const g = yarnData[document.getElementById('yarn-sel').value];
-        const rows = Math.round(h * g.gv);
-        let log = `<h2>Pattern (${w}x${h}cm)</h2><pre>`;
-        let prevSts = 0;
-        for(let i=1; i<=rows; i++) {
-            let y = ((i/g.gv) - (h/2));
-            let r = (w/2) * Math.sqrt(Math.max(0, 1-Math.pow(y/(h/2), 2)));
-            let sts = Math.max(6, Math.round(2 * Math.PI * r * g.gh));
-            log += `Row ${i}: ${sts} sts (${i>1?sts-prevSts:0})\n`;
-            prevSts = sts;
-        }
-        const win = window.open("", "_blank");
-        win.document.write(log + "</pre>");
-    }
-
-    window.onload = init;
-</script>
-</body>
-</html>
+        <div class="item">
+            <label>YARN</label>
+            <select id="yarn-sel">
