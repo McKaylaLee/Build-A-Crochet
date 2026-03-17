@@ -3,32 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Build-A-Crochet PRO v4.4.1</title>
+    <title>Build-A-Crochet PRO v4.4.2</title>
     <style>
         body { margin: 0; font-family: sans-serif; overflow: hidden; background: #ffffff; color: #333; touch-action: none; }
         
-        /* v4.3.9 기반에서 높이와 폰트만 축소 */
+        /* v4.3.9의 구조를 유지하되 내부 여백만 축소 */
         #top-bar { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 60px;
+            position: absolute; top: 0; left: 0; width: 100%; height: 70px;
             background: rgba(255, 255, 255, 0.9); display: flex; align-items: center; 
             justify-content: space-around; padding: 0 5px; box-sizing: border-box;
-            border-bottom: 1.5px solid #ff69b4; z-index: 200;
+            border-bottom: 2px solid #ff69b4; z-index: 200;
         }
         
-        .item { display: flex; flex-direction: column; align-items: center; }
-        label { font-size: 8px; color: #ff69b4; font-weight: bold; margin-bottom: 1px; }
-        select, input { background: #fff; border: 1px solid #ccc; color: #333; border-radius: 3px; padding: 2px; font-size: 11px; }
+        .item { display: flex; flex-direction: column; align-items: center; transform: scale(0.85); }
+        label { font-size: 10px; color: #ff69b4; font-weight: bold; margin-bottom: 2px; }
+        select, input { background: #fff; border: 1px solid #ccc; color: #333; border-radius: 4px; padding: 4px; font-size: 12px; }
         
-        .btn-s { background: #eee; border: 1px solid #ccc; padding: 1px 6px; margin: 0 1px; border-radius: 3px; font-weight: bold; font-size: 10px; cursor: pointer; }
+        .btn-s { background: #eee; border: 1px solid #ccc; padding: 2px 8px; margin: 0 2px; border-radius: 4px; font-weight: bold; cursor: pointer; }
         
         #canvas-container { width: 100vw; height: 100vh; }
         
         button#gen-btn { 
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: #ff69b4; color: white; border: none; padding: 12px 25px; 
-            border-radius: 30px; font-weight: bold; cursor: pointer; z-index: 150; font-size: 13px;
+            background: #ff69b4; color: white; border: none; padding: 15px 30px; 
+            border-radius: 30px; font-weight: bold; cursor: pointer; z-index: 150;
         }
-        #v-info { position: absolute; bottom: 8px; right: 10px; font-size: 9px; color: #ccc; pointer-events: none; }
+        #v-info { position: absolute; bottom: 10px; right: 10px; font-size: 9px; color: #ccc; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -47,7 +47,7 @@
         <label>WIDTH(cm)</label>
         <div style="display: flex; align-items: center;">
             <button class="btn-s" onclick="document.getElementById('in-w').value=(parseFloat(document.getElementById('in-w').value)-0.5).toFixed(1)">-</button>
-            <input type="number" id="in-w" value="13.5" style="width:32px; text-align:center;" readonly>
+            <input type="number" id="in-w" value="13.5" style="width:35px; text-align:center;" readonly>
             <button class="btn-s" onclick="document.getElementById('in-w').value=(parseFloat(document.getElementById('in-w').value)+0.5).toFixed(1)">+</button>
         </div>
     </div>
@@ -55,14 +55,14 @@
         <label>HEIGHT(cm)</label>
         <div style="display: flex; align-items: center;">
             <button class="btn-s" onclick="document.getElementById('in-h').value=(parseFloat(document.getElementById('in-h').value)-0.5).toFixed(1)">-</button>
-            <input type="number" id="in-h" value="26.0" style="width:32px; text-align:center;" readonly>
+            <input type="number" id="in-h" value="26.0" style="width:35px; text-align:center;" readonly>
             <button class="btn-s" onclick="document.getElementById('in-h').value=(parseFloat(document.getElementById('in-h').value)+0.5).toFixed(1)">+</button>
         </div>
     </div>
 </div>
 
 <button id="gen-btn" onclick="generatePattern()">GENERATE PATTERN</button>
-<div id="v-info">Build-A-Crochet PRO v4.4.1</div>
+<div id="v-info">Build-A-Crochet PRO v4.4.2</div>
 <div id="canvas-container"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -85,4 +85,17 @@
         const light = new THREE.PointLight(0xffffff, 1);
         light.position.set(20, 30, 20);
         scene.add(light);
-        scene.add(new THREE.AmbientLight(
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        scene.add(new THREE.GridHelper(100, 20, 0xeeeeee, 0xf5f5f5));
+        
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        animate();
+    }
+
+    function createEgg() {
+        if(egg) scene.remove(egg);
+        const w = parseFloat(document.getElementById('in-w').value) || 10;
+        const h = parseFloat(document.getElementById('in-h').value) || 10;
+        const points = [];
+        for (let i = 0; i <=
