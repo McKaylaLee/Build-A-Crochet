@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -43,6 +43,7 @@
     let undoStack = [], redoStack = [];
     let currentSelection = [], isBoxSelecting = false, boxStart = new THREE.Vector2();
     let startGroupData = [], startMouseAngle = 0;
+    let dragStartPoint = null, startPositions = [];
     
     const BASE_H = 20, BASE_R = 7;
 
@@ -59,7 +60,6 @@
         document.body.appendChild(renderer.domElement);
         renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
         
-        // --- REINFORCED VISIBLE GRID ---
         const grid = new THREE.GridHelper(1000, 50, 0x666666, 0xcccccc);
         grid.position.y = -0.2; 
         scene.add(grid);
@@ -205,7 +205,20 @@
         if (eggHits.length > 0) { 
             dragTarget = eggHits[0].object; isDragging = true; mouseButton = e.button; controls.enabled = false; 
             if (!e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([dragTarget]); 
-            else if (e.ctrlKey) updateSelectionVisuals([...currentSelection, dragTarget]); 
+            else if (e.ctrlKey) updateSelectionVisuals([...currentSelection, dragTarget]);
+
+            const dragPlane = new THREE.Plane(
+                camera.getWorldDirection(new THREE.Vector3()).negate(),
+                -dragTarget.position.dot(camera.getWorldDirection(new THREE.Vector3()).negate())
+            );
+            const intersection = new THREE.Vector3();
+            if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
+                dragStartPoint = intersection.clone();
+                startPositions = currentSelection.map(obj => obj.position.clone());
+            } else {
+                dragStartPoint = null;
+                startPositions = [];
+            }
         } else {
             if (isPlacementMode && e.button === 0) spawnEgg(new THREE.Vector3(0, 0, 0));
             else if (e.button === 2) { isBoxSelecting = true; boxStart.set(e.clientX, e.clientY); document.getElementById('select-box').style.display = 'block'; updateSelectionVisuals([]); controls.enabled = false; }
@@ -216,16 +229,24 @@
     function onMove(e) {
         if (isBoxSelecting) { const el = document.getElementById('select-box'), x = Math.min(boxStart.x, e.clientX), y = Math.min(boxStart.y, e.clientY), w = Math.abs(e.clientX - boxStart.x), h = Math.abs(e.clientY - boxStart.y); el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.width = w + 'px'; el.style.height = h + 'px'; return; }
         if (!isDragging || !dragTarget) return;
+        if (dragTarget.userData.isEgg && dragStartPoint === null) return;
+
         const mouse = new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
         const raycaster = new THREE.Raycaster(); raycaster.setFromCamera(mouse, camera);
         const plane = new THREE.Plane(camera.getWorldDirection(new THREE.Vector3()).negate(), -dragTarget.position.dot(camera.getWorldDirection(new THREE.Vector3()).negate()));
         let intersect = new THREE.Vector3();
+
         if (raycaster.ray.intersectPlane(plane, intersect)) {
             if (dragTarget.userData.isEgg) { 
-                const box = new THREE.Box3(); currentSelection.forEach(e => { e.geometry.computeBoundingBox(); box.union(e.geometry.boundingBox.clone().applyMatrix4(e.matrixWorld)); });
-                const groupCenter = box.getCenter(new THREE.Vector3());
-                const offset = intersect.clone().sub(groupCenter);
-                currentSelection.forEach(e => e.position.add(offset));
+                const delta = intersect.clone().sub(dragStartPoint);
+                currentSelection.forEach((obj, i) => {
+                    const startPos = startPositions[i];
+                    obj.position.set(
+                        startPos.x + delta.x,
+                        startPos.y + delta.y,
+                        startPos.z + delta.z
+                    );
+                });
                 updateGroupGizmoVisuals(); 
             } else if (dragTarget.userData.isGroupHandle) {
                 const box = new THREE.Box3(); currentSelection.forEach(e => { e.geometry.computeBoundingBox(); box.union(e.geometry.boundingBox.clone().applyMatrix4(e.matrixWorld)); });
@@ -256,7 +277,12 @@
 
     function onUp(e) { 
         if (isBoxSelecting) { isBoxSelecting = false; document.getElementById('select-box').style.display = 'none'; const minX = Math.min(boxStart.x, e.clientX), minY = Math.min(boxStart.y, e.clientY), maxX = Math.max(boxStart.x, e.clientX), maxY = Math.max(boxStart.y, e.clientY); if(Math.abs(maxX-minX) > 5) { const selected = scene.children.filter(o => o.userData.isEgg).filter(egg => { const sp = egg.position.clone().project(camera); const x = (sp.x + 1) * window.innerWidth / 2, y = (1 - sp.y) * window.innerHeight / 2; return (x >= minX && x <= maxX && y >= minY && y <= maxY); }); updateSelectionVisuals(selected); } }
-        if (isDragging) captureState(); isDragging = false; dragTarget = null; controls.enabled = true; 
+        if (isDragging) captureState();
+        isDragging = false;
+        dragTarget = null;
+        dragStartPoint = null;
+        startPositions = [];
+        controls.enabled = true; 
     }
 
     function captureState() {
