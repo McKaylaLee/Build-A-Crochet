@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.30.0 - Tool Modes</title>
+    <title>Build-A-Crochet v5.31.0 - Tool Modes</title>
     <style>
         body { margin: 0; background-color: #ffffff; color: #111; overflow: hidden; display: flex; font-family: monospace; touch-action: none; user-select: none; }
-        #panel { width: 92px; height: 100vh; background: #f0f0f0; border-right: 1px solid #ccc; display: flex; flex-direction: column; align-items: center; padding-top: 16px; gap: 8px; z-index: 1000; position: absolute; left: 0; top: 0; }
+        #panel { width: 92px; height: 100vh; background: #f0f0f0; border-right: 1px solid #ccc; display: flex; flex-direction: column; align-items: center; padding-top: 16px; gap: 8px; z-index: 1000; position: absolute; left: 0; top: 0; overflow-y: auto; }
         .btn { width: 56px; min-height: 50px; cursor: pointer; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; border-radius: 8px; background: #ddd; text-align: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); padding: 4px; }
         .tool-label { font-size: 9px; line-height: 1.1; }
         .tool-icon { font-size: 18px; line-height: 1; margin-bottom: 2px; }
@@ -36,6 +36,14 @@
         <div class="tool-icon">⤢</div>
         <div class="tool-label">SIZE</div>
     </div>
+    <div class="btn tool-btn" id="stretch-tool-btn" onclick="setToolMode('stretch')">
+        <div class="tool-icon">⇱</div>
+        <div class="tool-label">STRETCH</div>
+    </div>
+    <div class="btn tool-btn" id="sculpt-tool-btn" onclick="setToolMode('sculpt')">
+        <div class="tool-icon">◔</div>
+        <div class="tool-label">SCULPT</div>
+    </div>
 
     <div class="tool-divider"></div>
 
@@ -44,7 +52,7 @@
     <div id="egg-spawn-btn" class="btn egg-btn" onclick="togglePlacementMode()"></div>
 </div>
 
-<div id="v-tag">Build-A-Crochet v5.30.0</div>
+<div id="v-tag">Build-A-Crochet v5.31.0</div>
 <div id="select-box"></div>
 <div id="palette">
     <div class="color-dot" style="background: #ff69b4;" onclick="updateColor('#ff69b4')"></div>
@@ -56,56 +64,62 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
 <script>
-    let scene, camera, renderer, controls, currentEgg, ghostEgg;
+    let scene, camera, renderer, controls, ghostEgg;
     let isPlacementMode = false, dragTarget = null, isDragging = false;
     let groupHandles = [], groupRotHandles = [], groupGizmo;
-    let startScale, mouseButton, startHandleDist = 1;
+    let startHandleDist = 1;
     let undoStack = [], redoStack = [];
     let currentSelection = [], isBoxSelecting = false, boxStart = new THREE.Vector2();
     let startGroupData = [], startMouseAngle = 0;
     let dragStartPoint = null, startPositions = [];
     let currentTool = 'pointer';
+    let deformSession = null;
     
     const BASE_H = 96, BASE_R = 36;
+    const STRETCH_RADIUS = 42;
+    const SCULPT_RADIUS = 30;
+    const tmpVecA = new THREE.Vector3();
+    const tmpVecB = new THREE.Vector3();
+    const tmpVecC = new THREE.Vector3();
 
     function init() {
-        scene = new THREE.Scene(); 
+        scene = new THREE.Scene();
         scene.background = new THREE.Color(0xffffff);
-        
+
         camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
         camera.position.set(260, 220, 260);
-        
+
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
         renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
-        
+
         const grid = new THREE.GridHelper(1000, 50, 0x666666, 0xcccccc);
-        grid.position.y = -0.2; 
+        grid.position.y = -0.2;
         scene.add(grid);
-        
+
         scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6); 
-        dirLight.position.set(100, 200, 100); 
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        dirLight.position.set(100, 200, 100);
         scene.add(dirLight);
-        
+
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: null };
         controls.target.set(0, BASE_H * 0.5, 0);
         controls.update();
-        
+
         createGroupGizmo();
         createGhost();
         setToolMode('pointer');
-        
+
         window.addEventListener('pointerdown', onDown);
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
         window.addEventListener('keydown', onKey);
         window.addEventListener('resize', onResize);
-        
-        captureState(); 
+
+        captureState();
         animate();
     }
 
@@ -119,9 +133,11 @@
         if (e.key === "Delete" || e.key === "Backspace") {
             const targets = [...currentSelection];
             if (targets.length > 0) {
-                targets.forEach(o => { 
+                targets.forEach(o => {
                     if (o.userData.outline) scene.remove(o.userData.outline);
-                    o.geometry.dispose(); o.material.dispose(); scene.remove(o); 
+                    o.geometry.dispose();
+                    o.material.dispose();
+                    scene.remove(o);
                 });
                 updateSelectionVisuals([]);
                 captureState();
@@ -140,11 +156,14 @@
         const geo = new THREE.LatheGeometry(points, 32);
         geo.translate(0, -BASE_H / 2, 0);
         geo.userData.origPos = geo.attributes.position.clone();
+        geo.userData.deformOffsets = new Float32Array(geo.attributes.position.count * 3);
+
         const mat = new THREE.MeshPhongMaterial({ color, wireframe: true, transparent: true, opacity: isGhost ? 0.3 : 0.8 });
         const egg = new THREE.Mesh(geo, mat);
+
         if (!isGhost) {
             egg.userData.isEgg = true;
-            egg.userData.data = { scale: new THREE.Vector3(1, 1, 1), offsets: Array.from({ length: 6 }, () => new THREE.Vector3()) };
+            egg.userData.data = { scale: new THREE.Vector3(1, 1, 1) };
             const outline = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide }));
             outline.scale.set(1.02, 1.02, 1.02);
             egg.add(outline);
@@ -157,13 +176,24 @@
         if (!egg) return;
         const pos = egg.geometry.attributes.position;
         const orig = egg.geometry.userData.origPos;
-        const { scale } = egg.userData.data;
+        const offsets = egg.geometry.userData.deformOffsets;
+        const scale = egg.userData.data.scale;
+
         for (let i = 0; i < orig.count; i++) {
-            const v = new THREE.Vector3(orig.getX(i), orig.getY(i), orig.getZ(i));
-            pos.setXYZ(i, v.x * scale.x, v.y * scale.y, v.z * scale.z);
+            const idx = i * 3;
+            pos.setXYZ(
+                i,
+                orig.getX(i) * scale.x + offsets[idx],
+                orig.getY(i) * scale.y + offsets[idx + 1],
+                orig.getZ(i) * scale.z + offsets[idx + 2]
+            );
         }
         pos.needsUpdate = true;
+        pos.computeBoundingBox();
+        pos.computeBoundingSphere();
+        egg.geometry.computeVertexNormals();
         egg.userData.outline.geometry.attributes.position.copy(pos).needsUpdate = true;
+        egg.userData.outline.geometry.computeVertexNormals();
     }
 
     function createGroupGizmo() {
@@ -202,6 +232,8 @@
         document.getElementById('pointer-tool-btn').classList.toggle('active', mode === 'pointer');
         document.getElementById('rotate-tool-btn').classList.toggle('active', mode === 'rotate');
         document.getElementById('scale-tool-btn').classList.toggle('active', mode === 'scale');
+        document.getElementById('stretch-tool-btn').classList.toggle('active', mode === 'stretch');
+        document.getElementById('sculpt-tool-btn').classList.toggle('active', mode === 'sculpt');
         updateSelectionVisuals(currentSelection);
     }
 
@@ -218,7 +250,7 @@
         selected.forEach(e => e.userData.outline.scale.set(1.1, 1.1, 1.1));
         document.getElementById('palette').style.display = 'grid';
 
-        if (currentTool !== 'pointer') {
+        if (currentTool === 'scale' || currentTool === 'rotate') {
             groupGizmo.visible = true;
         }
         if (currentTool === 'scale') {
@@ -267,23 +299,109 @@
         });
     }
 
-    function onDown(e) {
-        if (e.target.tagName !== 'CANVAS') return;
-
+    function getPointerRay(e) {
         const mouse = new THREE.Vector2(
             (e.clientX / window.innerWidth) * 2 - 1,
             -(e.clientY / window.innerHeight) * 2 + 1
         );
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, camera);
+        return raycaster;
+    }
 
+    function beginStretchSession(hit, e) {
+        const worldPoint = hit.point.clone();
+        const localPoint = dragTarget.worldToLocal(worldPoint.clone());
+        const localCenter = new THREE.Vector3(0, 0, 0);
+        const localDirection = localPoint.clone().sub(localCenter).normalize();
+        if (localDirection.lengthSq() === 0) localDirection.set(0, 1, 0);
+
+        deformSession = {
+            mode: 'stretch',
+            object: dragTarget,
+            startY: e.clientY,
+            localPoint,
+            localDirection,
+            baseOffsets: dragTarget.geometry.userData.deformOffsets.slice()
+        };
+    }
+
+    function beginSculptSession(hit) {
+        const worldPoint = hit.point.clone();
+        const localPoint = dragTarget.worldToLocal(worldPoint.clone());
+        const worldNormal = hit.face.normal.clone().transformDirection(dragTarget.matrixWorld).normalize();
+        const localDirection = dragTarget.worldToLocal(hit.point.clone().add(worldNormal)).sub(localPoint).normalize();
+
+        deformSession = {
+            mode: 'sculpt',
+            object: dragTarget,
+            localPoint,
+            localDirection,
+            baseOffsets: dragTarget.geometry.userData.deformOffsets.slice()
+        };
+
+        applySculpt(hit.object, deformSession.localPoint, deformSession.localDirection, deformSession.baseOffsets);
+    }
+
+    function applyStretch(object, dragDeltaY, session) {
+        const offsets = object.geometry.userData.deformOffsets;
+        offsets.set(session.baseOffsets);
+
+        const orig = object.geometry.userData.origPos;
+        const amount = -dragDeltaY * 0.35;
+        for (let i = 0; i < orig.count; i++) {
+            const idx = i * 3;
+            const vertex = tmpVecA.set(
+                orig.getX(i) * object.userData.data.scale.x,
+                orig.getY(i) * object.userData.data.scale.y,
+                orig.getZ(i) * object.userData.data.scale.z
+            );
+            const dist = vertex.distanceTo(session.localPoint);
+            if (dist > STRETCH_RADIUS) continue;
+
+            const falloff = 1 - dist / STRETCH_RADIUS;
+            const push = amount * falloff * falloff;
+            offsets[idx] += session.localDirection.x * push;
+            offsets[idx + 1] += session.localDirection.y * push;
+            offsets[idx + 2] += session.localDirection.z * push;
+        }
+        updateMesh(object);
+    }
+
+    function applySculpt(object, localPoint, localDirection, baseOffsets) {
+        const offsets = object.geometry.userData.deformOffsets;
+        offsets.set(baseOffsets);
+
+        const orig = object.geometry.userData.origPos;
+        for (let i = 0; i < orig.count; i++) {
+            const idx = i * 3;
+            const vertex = tmpVecA.set(
+                orig.getX(i) * object.userData.data.scale.x,
+                orig.getY(i) * object.userData.data.scale.y,
+                orig.getZ(i) * object.userData.data.scale.z
+            );
+            const dist = vertex.distanceTo(localPoint);
+            if (dist > SCULPT_RADIUS) continue;
+
+            const falloff = 1 - dist / SCULPT_RADIUS;
+            const push = -10 * falloff * falloff;
+            offsets[idx] += localDirection.x * push;
+            offsets[idx + 1] += localDirection.y * push;
+            offsets[idx + 2] += localDirection.z * push;
+        }
+        updateMesh(object);
+    }
+
+    function onDown(e) {
+        if (e.target.tagName !== 'CANVAS') return;
+
+        const raycaster = getPointerRay(e);
         const activeGizmos = currentTool === 'scale' ? groupHandles : currentTool === 'rotate' ? groupRotHandles : [];
         const gizmoHits = raycaster.intersectObjects(activeGizmos);
 
         if (gizmoHits.length > 0) {
             dragTarget = gizmoHits[0].object;
             isDragging = true;
-            mouseButton = e.button;
             controls.enabled = false;
 
             const plane = new THREE.Plane(
@@ -317,14 +435,14 @@
 
         const eggHits = raycaster.intersectObjects(scene.children.filter(o => o.userData.isEgg));
         if (eggHits.length > 0) {
-            dragTarget = eggHits[0].object;
+            const hit = eggHits[0];
+            dragTarget = hit.object;
 
             if (!e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([dragTarget]);
             else if (e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([...currentSelection, dragTarget]);
 
             if (currentTool === 'pointer') {
                 isDragging = true;
-                mouseButton = e.button;
                 controls.enabled = false;
 
                 const dragPlane = new THREE.Plane(
@@ -339,9 +457,18 @@
                     dragStartPoint = null;
                     startPositions = [];
                 }
+            } else if (currentTool === 'stretch') {
+                isDragging = true;
+                controls.enabled = false;
+                beginStretchSession(hit, e);
+            } else if (currentTool === 'sculpt') {
+                isDragging = true;
+                controls.enabled = false;
+                beginSculptSession(hit);
             }
         } else {
             dragTarget = null;
+            deformSession = null;
             if (isPlacementMode && e.button === 0) {
                 spawnEgg(new THREE.Vector3(0, 0, 0));
             } else if (currentTool === 'pointer' && e.button === 2) {
@@ -371,35 +498,25 @@
         }
 
         if (!isDragging || !dragTarget) return;
-        if (dragTarget.userData.isEgg && dragStartPoint === null) return;
+        if (dragTarget.userData.isEgg && dragStartPoint === null && currentTool === 'pointer') return;
 
-        const mouse = new THREE.Vector2(
-            (e.clientX / window.innerWidth) * 2 - 1,
-            -(e.clientY / window.innerHeight) * 2 + 1
-        );
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, camera);
-
+        const raycaster = getPointerRay(e);
         const plane = new THREE.Plane(
             camera.getWorldDirection(new THREE.Vector3()).negate(),
             -dragTarget.position.dot(camera.getWorldDirection(new THREE.Vector3()).negate())
         );
         const intersect = new THREE.Vector3();
 
-        if (!raycaster.ray.intersectPlane(plane, intersect)) return;
-
         if (dragTarget.userData.isEgg && currentTool === 'pointer') {
+            if (!raycaster.ray.intersectPlane(plane, intersect)) return;
             const delta = intersect.clone().sub(dragStartPoint);
             currentSelection.forEach((obj, i) => {
                 const startPos = startPositions[i];
-                obj.position.set(
-                    startPos.x + delta.x,
-                    startPos.y + delta.y,
-                    startPos.z + delta.z
-                );
+                obj.position.set(startPos.x + delta.x, startPos.y + delta.y, startPos.z + delta.z);
             });
             updateGroupGizmoVisuals();
         } else if (dragTarget.userData.isGroupHandle && currentTool === 'scale') {
+            if (!raycaster.ray.intersectPlane(plane, intersect)) return;
             const box = new THREE.Box3();
             currentSelection.forEach(obj => {
                 obj.geometry.computeBoundingBox();
@@ -416,6 +533,7 @@
             });
             updateGroupGizmoVisuals();
         } else if (dragTarget.userData.isGroupRotationHandle && currentTool === 'rotate') {
+            if (!raycaster.ray.intersectPlane(plane, intersect)) return;
             const box = new THREE.Box3();
             currentSelection.forEach(obj => {
                 obj.geometry.computeBoundingBox();
@@ -440,10 +558,13 @@
                 obj.quaternion.multiplyQuaternions(rotQ, sd.rot);
             });
             updateGroupGizmoVisuals();
+        } else if (currentTool === 'stretch' && deformSession && deformSession.mode === 'stretch') {
+            applyStretch(deformSession.object, e.clientY - deformSession.startY, deformSession);
+            updateGroupGizmoVisuals();
         }
     }
 
-    function onUp(e) { 
+    function onUp(e) {
         if (isBoxSelecting) {
             isBoxSelecting = false;
             document.getElementById('select-box').style.display = 'none';
@@ -471,7 +592,8 @@
         dragTarget = null;
         dragStartPoint = null;
         startPositions = [];
-        controls.enabled = true; 
+        deformSession = null;
+        controls.enabled = true;
     }
 
     function captureState() {
@@ -485,11 +607,12 @@
                     y: obj.userData.data.scale.y,
                     z: obj.userData.data.scale.z
                 },
-                col: obj.material.color.getHex()
+                col: obj.material.color.getHex(),
+                deformOffsets: Array.from(obj.geometry.userData.deformOffsets)
             }));
         undoStack.push(JSON.stringify(state));
         if (undoStack.length > 50) undoStack.shift();
-        redoStack = []; 
+        redoStack = [];
     }
 
     window.executeUndo = function() {
@@ -519,6 +642,7 @@
             egg.position.set(d.pos.x, d.pos.y, d.pos.z);
             egg.quaternion.set(d.rot.x, d.rot.y, d.rot.z, d.rot.w);
             egg.userData.data.scale.set(d.scale.x, d.scale.y, d.scale.z);
+            if (d.deformOffsets) egg.geometry.userData.deformOffsets.set(d.deformOffsets);
             updateMesh(egg);
             scene.add(egg);
         });
@@ -548,7 +672,7 @@
         document.getElementById('egg-spawn-btn').classList.remove('active');
         updateSelectionVisuals([egg]);
     }
-    
+
     function animate() {
         requestAnimationFrame(animate);
         renderer.render(scene, camera);
