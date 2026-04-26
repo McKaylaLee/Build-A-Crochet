@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.33.0 - Tool Modes</title>
+    <title>Build-A-Crochet v5.34.0 - Tool Modes</title>
     <style>
         body { margin: 0; background-color: #ffffff; color: #111; overflow: hidden; display: flex; font-family: monospace; touch-action: none; user-select: none; }
         #panel { width: 92px; height: 100vh; background: #f0f0f0; border-right: 1px solid #ccc; display: flex; flex-direction: column; align-items: center; padding-top: 16px; gap: 8px; z-index: 1000; position: absolute; left: 0; top: 0; overflow-y: auto; }
@@ -12,8 +12,8 @@
         .tool-btn { flex-direction: column; }
         .tool-btn.active { background: #ff69b4; color: #fff; border-color: #ff9ccc; }
         .tool-divider { width: 64px; height: 1px; background: #cfcfcf; margin: 2px 0; }
-        .egg-btn { background: #ff69b4; border-radius: 50%; width: 44px; height: 56px; margin-top: 2px; }
-        .egg-btn.active { background: #28a745; box-shadow: 0 0 15px rgba(40,167,69,0.5); }
+        .shape-btn { width: 56px; min-height: 44px; font-size: 9px; line-height: 1.1; }
+        .shape-btn.active { background: #28a745; color: #fff; border-color: #7ad58d; }
         .history-btn { background: #333; color: white; }
         #v-tag { position: absolute; bottom: 20px; right: 20px; color: #444; font-size: 12px; font-weight: bold; pointer-events: none; z-index: 50; background: rgba(255,255,255,0.8); padding: 4px; border-radius: 4px; }
         #palette { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 12px; display: none; grid-template-columns: repeat(2, 1fr); gap: 5px; border: 1px solid #ccc; z-index: 200; }
@@ -45,10 +45,13 @@
 
     <div class="btn history-btn" onclick="executeUndo()">UNDO</div>
     <div class="btn history-btn" onclick="executeRedo()">REDO</div>
-    <div id="egg-spawn-btn" class="btn egg-btn" onclick="togglePlacementMode()"></div>
+
+    <div class="btn shape-btn active" id="egg-shape-btn" onclick="setPlacementShape('egg')">OVAL</div>
+    <div class="btn shape-btn" id="paraboloid-shape-btn" onclick="setPlacementShape('paraboloid')">PARA</div>
+    <div class="btn shape-btn" id="spawn-btn" onclick="togglePlacementMode()">PLACE</div>
 </div>
 
-<div id="v-tag">Build-A-Crochet v5.33.0</div>
+<div id="v-tag">Build-A-Crochet v5.34.0</div>
 <div id="select-box"></div>
 <div id="palette">
     <div class="color-dot" style="background: #ff69b4;" onclick="updateColor('#ff69b4')"></div>
@@ -60,7 +63,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
 <script>
-    let scene, camera, renderer, controls, ghostEgg;
+    let scene, camera, renderer, controls, ghostShape;
     let isPlacementMode = false, dragTarget = null, isDragging = false;
     let groupHandles = [], stretchHandles = [], groupRotHandles = [], groupGizmo;
     let startHandleDist = 1;
@@ -70,6 +73,7 @@
     let dragStartPoint = null, startPositions = [];
     let currentTool = 'pointer';
     let deformSession = null;
+    let placementShape = 'egg';
 
     const BASE_H = 96, BASE_R = 36;
     const STRETCH_RADIUS = 44;
@@ -107,6 +111,7 @@
         createGroupGizmo();
         createGhost();
         setToolMode('pointer');
+        setPlacementShape('egg');
 
         window.addEventListener('pointerdown', onDown);
         window.addEventListener('pointermove', onMove);
@@ -141,45 +146,56 @@
         }
     }
 
-    function createEgg(color, isGhost = false) {
+    function createProfile(shapeType) {
         const points = [];
-        for (let i = 0; i <= 20; i++) {
-            const t = i / 20;
+        for (let i = 0; i <= 24; i++) {
+            const t = i / 24;
             const y = t * BASE_H;
-            const r = BASE_R * Math.sqrt(Math.max(0, 1 - Math.pow((y - BASE_H / 2) / (BASE_H / 2), 2)));
+            let r;
+            if (shapeType === 'paraboloid') {
+                r = BASE_R * Math.pow(t, 0.65);
+            } else {
+                r = BASE_R * Math.sqrt(Math.max(0, 1 - Math.pow((y - BASE_H / 2) / (BASE_H / 2), 2)));
+            }
             points.push(new THREE.Vector2(Math.max(0.1, r), y));
         }
+        return points;
+    }
 
+    function createShapeMesh(shapeType, color, isGhost = false) {
+        const points = createProfile(shapeType);
         const geo = new THREE.LatheGeometry(points, 32);
         geo.translate(0, -BASE_H / 2, 0);
         geo.userData.origPos = geo.attributes.position.clone();
         geo.userData.deformOffsets = new Float32Array(geo.attributes.position.count * 3);
 
         const mat = new THREE.MeshPhongMaterial({ color, wireframe: true, transparent: true, opacity: isGhost ? 0.3 : 0.8 });
-        const egg = new THREE.Mesh(geo, mat);
+        const mesh = new THREE.Mesh(geo, mat);
 
         if (!isGhost) {
-            egg.userData.isEgg = true;
-            egg.userData.data = { scale: new THREE.Vector3(1, 1, 1) };
+            mesh.userData.isEgg = true;
+            mesh.userData.shapeType = shapeType;
+            mesh.userData.data = { scale: new THREE.Vector3(1, 1, 1) };
+
             const outline = new THREE.Mesh(
                 geo.clone(),
                 new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide })
             );
             outline.scale.set(1.02, 1.02, 1.02);
-            egg.add(outline);
-            egg.userData.outline = outline;
+            mesh.add(outline);
+            mesh.userData.outline = outline;
         }
 
-        return egg;
+        return mesh;
     }
 
-    function updateMesh(egg) {
-        if (!egg) return;
+    function updateMesh(mesh) {
+        if (!mesh) return;
 
-        const pos = egg.geometry.attributes.position;
-        const orig = egg.geometry.userData.origPos;
-        const offsets = egg.geometry.userData.deformOffsets;
-        const scale = egg.userData.data.scale;
+        const pos = mesh.geometry.attributes.position;
+        const orig = mesh.geometry.userData.origPos;
+        const offsets = mesh.geometry.userData.deformOffsets;
+        const scale = mesh.userData.data.scale;
 
         for (let i = 0; i < orig.count; i++) {
             const idx = i * 3;
@@ -192,16 +208,16 @@
         }
 
         pos.needsUpdate = true;
-        egg.geometry.computeBoundingBox();
-        egg.geometry.computeBoundingSphere();
-        egg.geometry.computeVertexNormals();
+        mesh.geometry.computeBoundingBox();
+        mesh.geometry.computeBoundingSphere();
+        mesh.geometry.computeVertexNormals();
 
-        const outlinePos = egg.userData.outline.geometry.attributes.position;
+        const outlinePos = mesh.userData.outline.geometry.attributes.position;
         outlinePos.copy(pos);
         outlinePos.needsUpdate = true;
-        egg.userData.outline.geometry.computeBoundingBox();
-        egg.userData.outline.geometry.computeBoundingSphere();
-        egg.userData.outline.geometry.computeVertexNormals();
+        mesh.userData.outline.geometry.computeBoundingBox();
+        mesh.userData.outline.geometry.computeBoundingSphere();
+        mesh.userData.outline.geometry.computeVertexNormals();
     }
 
     function createHandle(color, userData) {
@@ -223,7 +239,7 @@
 
         for (let i = 0; i < 10; i++) {
             groupHandles.push(createHandle(0xffd84d, { isGroupHandle: true, id: i }));
-            stretchHandles.push(createHandle(0xffd84d, { isStretchHandle: true, id: i, direction: new THREE.Vector3() }));
+            stretchHandles.push(createHandle(0xffd84d, { isStretchHandle: true, id: i, worldDirection: new THREE.Vector3() }));
         }
 
         const makeR = (col, axis) => {
@@ -248,6 +264,21 @@
         document.getElementById('scale-tool-btn').classList.toggle('active', mode === 'scale');
         document.getElementById('stretch-tool-btn').classList.toggle('active', mode === 'stretch');
         updateSelectionVisuals(currentSelection);
+    }
+
+    function setPlacementShape(shapeType) {
+        placementShape = shapeType;
+        document.getElementById('egg-shape-btn').classList.toggle('active', shapeType === 'egg');
+        document.getElementById('paraboloid-shape-btn').classList.toggle('active', shapeType === 'paraboloid');
+        if (ghostShape) {
+            scene.remove(ghostShape);
+            ghostShape.geometry.dispose();
+            ghostShape.material.dispose();
+        }
+        createGhost();
+        if (isPlacementMode) {
+            ghostShape.visible = true;
+        }
     }
 
     function updateSelectionVisuals(selected) {
@@ -305,8 +336,9 @@
 
         stretchHandles.forEach((h, i) => {
             const offset = handlePoints[i].clone().multiply(size);
+            const worldDirection = offset.lengthSq() === 0 ? new THREE.Vector3(0, 1, 0) : offset.clone().normalize();
             h.position.copy(center).add(offset);
-            h.userData.direction.copy(offset.lengthSq() === 0 ? new THREE.Vector3(0, 1, 0) : offset.normalize());
+            h.userData.worldDirection.copy(worldDirection);
         });
 
         groupRotHandles.forEach((r, i) => {
@@ -347,13 +379,14 @@
 
             const toVertex = tmpVec2.copy(vertex).sub(localAnchor);
             const along = toVertex.dot(localDir);
-            if (along < -4) continue;
+            if (along < -6) continue;
 
-            const radial = tmpVec3.copy(toVertex).sub(localDir.clone().multiplyScalar(along)).length();
+            const radialVec = tmpVec3.copy(toVertex).sub(localDir.clone().multiplyScalar(along));
+            const radial = radialVec.length();
             if (radial > STRETCH_RADIUS) continue;
 
             const radialFalloff = 1 - radial / STRETCH_RADIUS;
-            const alongFalloff = Math.max(0, Math.min(1, (along + 8) / 28));
+            const alongFalloff = Math.max(0, Math.min(1, (along + 10) / 34));
             const push = amount * radialFalloff * radialFalloff * alongFalloff;
 
             offsets[idx] = session.baseOffsets[idx] + localDir.x * push;
@@ -376,6 +409,7 @@
                     z: obj.userData.data.scale.z
                 },
                 col: obj.material.color.getHex(),
+                shapeType: obj.userData.shapeType,
                 deformOffsets: Array.from(obj.geometry.userData.deformOffsets)
             }));
 
@@ -401,13 +435,13 @@
             });
 
         state.forEach(d => {
-            const egg = createEgg(new THREE.Color(d.col));
-            egg.position.set(d.pos.x, d.pos.y, d.pos.z);
-            egg.quaternion.set(d.rot.x, d.rot.y, d.rot.z, d.rot.w);
-            egg.userData.data.scale.set(d.scale.x, d.scale.y, d.scale.z);
-            if (d.deformOffsets) egg.geometry.userData.deformOffsets.set(d.deformOffsets);
-            updateMesh(egg);
-            scene.add(egg);
+            const mesh = createShapeMesh(d.shapeType || 'egg', new THREE.Color(d.col));
+            mesh.position.set(d.pos.x, d.pos.y, d.pos.z);
+            mesh.quaternion.set(d.rot.x, d.rot.y, d.rot.z, d.rot.w);
+            mesh.userData.data.scale.set(d.scale.x, d.scale.y, d.scale.z);
+            if (d.deformOffsets) mesh.geometry.userData.deformOffsets.set(d.deformOffsets);
+            updateMesh(mesh);
+            scene.add(mesh);
         });
 
         updateSelectionVisuals([]);
@@ -460,21 +494,25 @@
             startGroupData = currentSelection.map(obj => ({
                 pos: obj.position.clone(),
                 scale: obj.userData.data.scale.clone(),
-                rot: obj.quaternion.clone(),
-                offsets: obj.geometry.userData.deformOffsets.slice()
+                rot: obj.quaternion.clone()
             }));
             startHandleDist = intersect.distanceTo(groupCenter);
 
             if (dragTarget.userData.isStretchHandle && currentSelection.length > 0) {
                 const selected = currentSelection[0];
-                const localDir = selected.worldToLocal(dragTarget.position.clone()).normalize();
-                const localAnchor = selected.worldToLocal(dragTarget.position.clone());
+                const worldDir = dragTarget.userData.worldDirection.clone().normalize();
+                const localOrigin = selected.worldToLocal(selected.position.clone());
+                const localDirPoint = selected.worldToLocal(selected.position.clone().add(worldDir));
+                let localDir = localDirPoint.sub(localOrigin).normalize();
+                if (localDir.lengthSq() === 0) localDir.set(0, 1, 0);
+
                 deformSession = {
                     object: selected,
                     plane,
                     startPoint: intersect.clone(),
-                    localDirection: localDir.lengthSq() === 0 ? new THREE.Vector3(0, 1, 0) : localDir,
-                    localAnchor,
+                    worldDirection: worldDir,
+                    localDirection: localDir,
+                    localAnchor: selected.worldToLocal(dragTarget.position.clone()),
                     baseOffsets: selected.geometry.userData.deformOffsets.slice()
                 };
             }
@@ -487,9 +525,9 @@
             return;
         }
 
-        const eggHits = raycaster.intersectObjects(scene.children.filter(o => o.userData.isEgg));
-        if (eggHits.length > 0) {
-            dragTarget = eggHits[0].object;
+        const shapeHits = raycaster.intersectObjects(scene.children.filter(o => o.userData.isEgg));
+        if (shapeHits.length > 0) {
+            dragTarget = shapeHits[0].object;
 
             if (!e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([dragTarget]);
             else if (e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([...currentSelection, dragTarget]);
@@ -515,7 +553,7 @@
             dragTarget = null;
             deformSession = null;
             if (isPlacementMode && e.button === 0) {
-                spawnEgg(new THREE.Vector3(0, 0, 0));
+                spawnShape(new THREE.Vector3(0, 0, 0));
             } else if (currentTool === 'pointer' && e.button === 2) {
                 isBoxSelecting = true;
                 boxStart.set(e.clientX, e.clientY);
@@ -605,8 +643,8 @@
             updateGroupGizmoVisuals();
         } else if (dragTarget.userData.isStretchHandle && currentTool === 'stretch' && deformSession) {
             if (!raycaster.ray.intersectPlane(deformSession.plane, intersect)) return;
-            const delta = intersect.clone().sub(deformSession.startPoint);
-            const amount = delta.dot(dragTarget.userData.direction) * 1.8;
+            const deltaWorld = intersect.clone().sub(deformSession.startPoint);
+            const amount = deltaWorld.dot(deformSession.worldDirection) * 2.4;
             applyStretch(deformSession.object, deformSession, amount);
             updateGroupGizmoVisuals();
         }
@@ -625,8 +663,8 @@
             if (Math.abs(maxX - minX) > 5) {
                 const selected = scene.children
                     .filter(o => o.userData.isEgg)
-                    .filter(egg => {
-                        const sp = egg.position.clone().project(camera);
+                    .filter(mesh => {
+                        const sp = mesh.position.clone().project(camera);
                         const x = (sp.x + 1) * window.innerWidth / 2;
                         const y = (1 - sp.y) * window.innerHeight / 2;
                         return x >= minX && x <= maxX && y >= minY && y <= maxY;
@@ -645,27 +683,27 @@
     }
 
     function createGhost() {
-        ghostEgg = createEgg(0x28a745, true);
-        ghostEgg.visible = false;
-        scene.add(ghostEgg);
+        ghostShape = createShapeMesh(placementShape, 0x28a745, true);
+        ghostShape.visible = false;
+        scene.add(ghostShape);
     }
 
     function togglePlacementMode() {
         isPlacementMode = !isPlacementMode;
-        ghostEgg.position.set(0, BASE_H / 2, 0);
-        ghostEgg.visible = isPlacementMode;
-        document.getElementById('egg-spawn-btn').classList.toggle('active', isPlacementMode);
+        ghostShape.position.set(0, BASE_H / 2, 0);
+        ghostShape.visible = isPlacementMode;
+        document.getElementById('spawn-btn').classList.toggle('active', isPlacementMode);
     }
 
-    function spawnEgg(pos) {
-        const egg = createEgg(0xff69b4);
-        egg.position.copy(pos).y += BASE_H / 2;
-        scene.add(egg);
+    function spawnShape(pos) {
+        const mesh = createShapeMesh(placementShape, 0xff69b4);
+        mesh.position.copy(pos).y += BASE_H / 2;
+        scene.add(mesh);
         captureState();
         isPlacementMode = false;
-        ghostEgg.visible = false;
-        document.getElementById('egg-spawn-btn').classList.remove('active');
-        updateSelectionVisuals([egg]);
+        ghostShape.visible = false;
+        document.getElementById('spawn-btn').classList.remove('active');
+        updateSelectionVisuals([mesh]);
     }
 
     function animate() {
@@ -681,6 +719,7 @@
         }
     };
     window.setToolMode = setToolMode;
+    window.setPlacementShape = setPlacementShape;
 </script>
 </body>
 </html>
