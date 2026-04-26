@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.36.0 - Builder Mode</title>
+    <title>Build-A-Crochet v5.37.0 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -242,7 +242,7 @@
 
     <main id="canvas-wrap">
         <div id="select-box"></div>
-        <div id="version-tag">v5.36.0</div>
+        <div id="version-tag">v5.37.0</div>
     </main>
 
     <aside id="rightbar">
@@ -370,6 +370,10 @@
         if (e.key === "Delete" || e.key === "Backspace") deleteSelection();
     }
 
+    function syncObjectScale(obj) {
+        obj.scale.copy(obj.userData.data.scale);
+    }
+
     function setToolMode(mode) {
         currentTool = mode;
         document.getElementById('tool-pointer').classList.toggle('active', mode === 'pointer');
@@ -454,6 +458,7 @@
             outline.scale.set(1.02, 1.02, 1.02);
             mesh.add(outline);
             mesh.userData.outline = outline;
+            syncObjectScale(mesh);
         }
 
         return mesh;
@@ -633,6 +638,7 @@
             obj.position.set(d.pos.x, d.pos.y, d.pos.z);
             obj.quaternion.set(d.rot.x, d.rot.y, d.rot.z, d.rot.w);
             obj.userData.data.scale.set(d.scale.x, d.scale.y, d.scale.z);
+            syncObjectScale(obj);
             scene.add(obj);
         });
 
@@ -660,6 +666,7 @@
             clone.position.copy(obj.position).add(new THREE.Vector3(8, 0, 8));
             clone.quaternion.copy(obj.quaternion);
             clone.userData.data.scale.copy(obj.userData.data.scale);
+            syncObjectScale(clone);
             scene.add(clone);
             clones.push(clone);
         });
@@ -690,7 +697,7 @@
     function spawnShape(pos) {
         const obj = createShapeMesh(placementShape, 0xff69b4);
         obj.position.copy(pos);
-        obj.position.y += BASE_H / 2;
+        obj.position.y += BASE_H * 0.5;
         if (snapEnabled) snapVector3(obj.position);
         scene.add(obj);
         updateSelectionVisuals([obj]);
@@ -857,6 +864,7 @@
                     start.scale.y * ratios.y,
                     start.scale.z * ratios.z
                 );
+                syncObjectScale(obj);
 
                 obj.position.set(
                     scaleSession.activeAxes.includes('x') ? scaleSession.anchor.x + (start.pos.x - scaleSession.anchor.x) * ratios.x : start.pos.x,
