@@ -1,8 +1,8 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.32.0 - Tool Modes</title>
+    <title>Build-A-Crochet v5.33.0 - Tool Modes</title>
     <style>
         body { margin: 0; background-color: #ffffff; color: #111; overflow: hidden; display: flex; font-family: monospace; touch-action: none; user-select: none; }
         #panel { width: 92px; height: 100vh; background: #f0f0f0; border-right: 1px solid #ccc; display: flex; flex-direction: column; align-items: center; padding-top: 16px; gap: 8px; z-index: 1000; position: absolute; left: 0; top: 0; overflow-y: auto; }
@@ -15,10 +15,6 @@
         .egg-btn { background: #ff69b4; border-radius: 50%; width: 44px; height: 56px; margin-top: 2px; }
         .egg-btn.active { background: #28a745; box-shadow: 0 0 15px rgba(40,167,69,0.5); }
         .history-btn { background: #333; color: white; }
-        #tool-controls { position: absolute; top: 16px; left: 112px; z-index: 1001; background: rgba(255,255,255,0.95); border: 1px solid #ccc; border-radius: 10px; padding: 10px 12px; display: none; align-items: center; gap: 10px; }
-        #tool-controls label { font-size: 12px; font-weight: bold; color: #333; }
-        #tool-controls input[type="range"] { width: 160px; }
-        #tool-controls-value { min-width: 28px; font-size: 12px; color: #333; text-align: right; }
         #v-tag { position: absolute; bottom: 20px; right: 20px; color: #444; font-size: 12px; font-weight: bold; pointer-events: none; z-index: 50; background: rgba(255,255,255,0.8); padding: 4px; border-radius: 4px; }
         #palette { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 12px; display: none; grid-template-columns: repeat(2, 1fr); gap: 5px; border: 1px solid #ccc; z-index: 200; }
         .color-dot { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); }
@@ -44,10 +40,6 @@
         <div class="tool-icon">⇱</div>
         <div class="tool-label">STRETCH</div>
     </div>
-    <div class="btn tool-btn" id="sculpt-tool-btn" onclick="setToolMode('sculpt')">
-        <div class="tool-icon">◔</div>
-        <div class="tool-label">SCULPT</div>
-    </div>
 
     <div class="tool-divider"></div>
 
@@ -56,13 +48,7 @@
     <div id="egg-spawn-btn" class="btn egg-btn" onclick="togglePlacementMode()"></div>
 </div>
 
-<div id="tool-controls">
-    <label for="sculpt-size-slider">SCULPT SIZE</label>
-    <input id="sculpt-size-slider" type="range" min="8" max="60" value="18" oninput="updateSculptSize(this.value)">
-    <div id="tool-controls-value">18</div>
-</div>
-
-<div id="v-tag">Build-A-Crochet v5.32.0</div>
+<div id="v-tag">Build-A-Crochet v5.33.0</div>
 <div id="select-box"></div>
 <div id="palette">
     <div class="color-dot" style="background: #ff69b4;" onclick="updateColor('#ff69b4')"></div>
@@ -76,7 +62,7 @@
 <script>
     let scene, camera, renderer, controls, ghostEgg;
     let isPlacementMode = false, dragTarget = null, isDragging = false;
-    let groupHandles = [], groupRotHandles = [], groupGizmo;
+    let groupHandles = [], stretchHandles = [], groupRotHandles = [], groupGizmo;
     let startHandleDist = 1;
     let history = [], historyIndex = -1;
     let currentSelection = [], isBoxSelecting = false, boxStart = new THREE.Vector2();
@@ -84,12 +70,12 @@
     let dragStartPoint = null, startPositions = [];
     let currentTool = 'pointer';
     let deformSession = null;
-    let sculptRadius = 18;
-    
+
     const BASE_H = 96, BASE_R = 36;
-    const STRETCH_RADIUS = 46;
+    const STRETCH_RADIUS = 44;
     const tmpVec = new THREE.Vector3();
     const tmpVec2 = new THREE.Vector3();
+    const tmpVec3 = new THREE.Vector3();
 
     function init() {
         scene = new THREE.Scene();
@@ -144,7 +130,9 @@
             if (targets.length > 0) {
                 targets.forEach(o => {
                     o.geometry.dispose();
+                    o.userData.outline.geometry.dispose();
                     o.material.dispose();
+                    o.userData.outline.material.dispose();
                     scene.remove(o);
                 });
                 updateSelectionVisuals([]);
@@ -216,21 +204,26 @@
         egg.userData.outline.geometry.computeVertexNormals();
     }
 
+    function createHandle(color, userData) {
+        const handle = new THREE.Mesh(
+            new THREE.SphereGeometry(2.7, 16, 16),
+            new THREE.MeshBasicMaterial({ color, depthTest: false })
+        );
+        handle.renderOrder = 999;
+        handle.visible = false;
+        handle.userData = userData;
+        scene.add(handle);
+        return handle;
+    }
+
     function createGroupGizmo() {
         groupGizmo = new THREE.BoxHelper(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1)), 0xff69b4);
         groupGizmo.visible = false;
         scene.add(groupGizmo);
 
-        for (let i = 0; i < 8; i++) {
-            const m = new THREE.Mesh(
-                new THREE.SphereGeometry(2.5, 16, 16),
-                new THREE.MeshBasicMaterial({ color: 0xff69b4, depthTest: false })
-            );
-            m.renderOrder = 999;
-            m.visible = false;
-            m.userData = { isGroupHandle: true, id: i };
-            scene.add(m);
-            groupHandles.push(m);
+        for (let i = 0; i < 10; i++) {
+            groupHandles.push(createHandle(0xffd84d, { isGroupHandle: true, id: i }));
+            stretchHandles.push(createHandle(0xffd84d, { isStretchHandle: true, id: i, direction: new THREE.Vector3() }));
         }
 
         const makeR = (col, axis) => {
@@ -254,19 +247,13 @@
         document.getElementById('rotate-tool-btn').classList.toggle('active', mode === 'rotate');
         document.getElementById('scale-tool-btn').classList.toggle('active', mode === 'scale');
         document.getElementById('stretch-tool-btn').classList.toggle('active', mode === 'stretch');
-        document.getElementById('sculpt-tool-btn').classList.toggle('active', mode === 'sculpt');
-        document.getElementById('tool-controls').style.display = mode === 'sculpt' ? 'flex' : 'none';
         updateSelectionVisuals(currentSelection);
-    }
-
-    function updateSculptSize(value) {
-        sculptRadius = Number(value);
-        document.getElementById('tool-controls-value').textContent = value;
     }
 
     function updateSelectionVisuals(selected) {
         scene.children.filter(o => o.userData.isEgg).forEach(e => e.userData.outline.scale.set(1.02, 1.02, 1.02));
         groupHandles.forEach(h => h.visible = false);
+        stretchHandles.forEach(h => h.visible = false);
         groupRotHandles.forEach(h => h.visible = false);
         groupGizmo.visible = false;
         document.getElementById('palette').style.display = 'none';
@@ -277,8 +264,9 @@
         selected.forEach(e => e.userData.outline.scale.set(1.1, 1.1, 1.1));
         document.getElementById('palette').style.display = 'grid';
 
-        if (currentTool === 'scale' || currentTool === 'rotate') groupGizmo.visible = true;
+        if (currentTool === 'scale' || currentTool === 'stretch' || currentTool === 'rotate') groupGizmo.visible = true;
         if (currentTool === 'scale') groupHandles.forEach(h => h.visible = true);
+        if (currentTool === 'stretch') stretchHandles.forEach(h => h.visible = true);
         if (currentTool === 'rotate') groupRotHandles.forEach(h => h.visible = true);
         updateGroupGizmoVisuals();
     }
@@ -298,7 +286,7 @@
         helperBox.position.copy(center);
         groupGizmo.update(helperBox);
 
-        const corners = [
+        const handlePoints = [
             new THREE.Vector3(-0.5, 0.5, 0.5),
             new THREE.Vector3(-0.5, 0.5, -0.5),
             new THREE.Vector3(-0.5, -0.5, 0.5),
@@ -306,9 +294,20 @@
             new THREE.Vector3(0.5, 0.5, 0.5),
             new THREE.Vector3(0.5, 0.5, -0.5),
             new THREE.Vector3(0.5, -0.5, 0.5),
-            new THREE.Vector3(0.5, -0.5, -0.5)
+            new THREE.Vector3(0.5, -0.5, -0.5),
+            new THREE.Vector3(0, 0.5, 0),
+            new THREE.Vector3(0, -0.5, 0)
         ];
-        groupHandles.forEach((h, i) => h.position.copy(center).add(corners[i].clone().multiply(size)));
+
+        groupHandles.forEach((h, i) => {
+            h.position.copy(center).add(handlePoints[i].clone().multiply(size));
+        });
+
+        stretchHandles.forEach((h, i) => {
+            const offset = handlePoints[i].clone().multiply(size);
+            h.position.copy(center).add(offset);
+            h.userData.direction.copy(offset.lengthSq() === 0 ? new THREE.Vector3(0, 1, 0) : offset.normalize());
+        });
 
         groupRotHandles.forEach((r, i) => {
             r.position.copy(center);
@@ -330,53 +329,13 @@
         return raycaster;
     }
 
-    function beginStretchSession(hit, e, raycaster) {
-        const dragPlane = new THREE.Plane(
-            camera.getWorldDirection(new THREE.Vector3()).negate(),
-            -hit.point.dot(camera.getWorldDirection(new THREE.Vector3()).negate())
-        );
-
-        const intersection = new THREE.Vector3();
-        if (!raycaster.ray.intersectPlane(dragPlane, intersection)) return false;
-
-        const localPoint = dragTarget.worldToLocal(hit.point.clone());
-        let localDirection = localPoint.clone().normalize();
-        if (localDirection.lengthSq() === 0) localDirection.set(0, 1, 0);
-
-        deformSession = {
-            mode: 'stretch',
-            object: dragTarget,
-            plane: dragPlane.clone(),
-            localPoint,
-            localDirection,
-            startY: e.clientY,
-            baseOffsets: dragTarget.geometry.userData.deformOffsets.slice()
-        };
-
-        dragStartPoint = intersection.clone();
-        return true;
-    }
-
-    function beginSculptSession(hit) {
-        const localPoint = dragTarget.worldToLocal(hit.point.clone());
-        let localDirection = hit.face.normal.clone();
-        localDirection.normalize();
-
-        deformSession = {
-            mode: 'sculpt',
-            object: dragTarget,
-            localDirection
-        };
-
-        applySculptDab(dragTarget, localPoint, localDirection, -4.5);
-    }
-
-    function applyStretch(object, dragDeltaY, session) {
+    function applyStretch(object, session, amount) {
         const offsets = object.geometry.userData.deformOffsets;
         offsets.set(session.baseOffsets);
 
         const orig = object.geometry.userData.origPos;
-        const amount = -dragDeltaY * 0.8;
+        const localDir = session.localDirection;
+        const localAnchor = session.localAnchor;
 
         for (let i = 0; i < orig.count; i++) {
             const idx = i * 3;
@@ -386,41 +345,20 @@
                 orig.getZ(i) * object.userData.data.scale.z + session.baseOffsets[idx + 2]
             );
 
-            const dist = vertex.distanceTo(session.localPoint);
-            if (dist > STRETCH_RADIUS) continue;
+            const toVertex = tmpVec2.copy(vertex).sub(localAnchor);
+            const along = toVertex.dot(localDir);
+            if (along < -4) continue;
 
-            const falloff = 1 - dist / STRETCH_RADIUS;
-            const push = amount * falloff * falloff;
+            const radial = tmpVec3.copy(toVertex).sub(localDir.clone().multiplyScalar(along)).length();
+            if (radial > STRETCH_RADIUS) continue;
 
-            offsets[idx] = session.baseOffsets[idx] + session.localDirection.x * push;
-            offsets[idx + 1] = session.baseOffsets[idx + 1] + session.localDirection.y * push;
-            offsets[idx + 2] = session.baseOffsets[idx + 2] + session.localDirection.z * push;
-        }
+            const radialFalloff = 1 - radial / STRETCH_RADIUS;
+            const alongFalloff = Math.max(0, Math.min(1, (along + 8) / 28));
+            const push = amount * radialFalloff * radialFalloff * alongFalloff;
 
-        updateMesh(object);
-    }
-
-    function applySculptDab(object, localPoint, localDirection, strength) {
-        const offsets = object.geometry.userData.deformOffsets;
-        const orig = object.geometry.userData.origPos;
-
-        for (let i = 0; i < orig.count; i++) {
-            const idx = i * 3;
-            const vertex = tmpVec.set(
-                orig.getX(i) * object.userData.data.scale.x + offsets[idx],
-                orig.getY(i) * object.userData.data.scale.y + offsets[idx + 1],
-                orig.getZ(i) * object.userData.data.scale.z + offsets[idx + 2]
-            );
-
-            const dist = vertex.distanceTo(localPoint);
-            if (dist > sculptRadius) continue;
-
-            const falloff = 1 - dist / sculptRadius;
-            const push = strength * falloff * falloff;
-
-            offsets[idx] += localDirection.x * push;
-            offsets[idx + 1] += localDirection.y * push;
-            offsets[idx + 2] += localDirection.z * push;
+            offsets[idx] = session.baseOffsets[idx] + localDir.x * push;
+            offsets[idx + 1] = session.baseOffsets[idx + 1] + localDir.y * push;
+            offsets[idx + 2] = session.baseOffsets[idx + 2] + localDir.z * push;
         }
 
         updateMesh(object);
@@ -491,7 +429,13 @@
         if (e.target.tagName !== 'CANVAS') return;
 
         const raycaster = getPointerRay(e);
-        const activeGizmos = currentTool === 'scale' ? groupHandles : currentTool === 'rotate' ? groupRotHandles : [];
+        const activeGizmos = currentTool === 'scale'
+            ? groupHandles
+            : currentTool === 'rotate'
+                ? groupRotHandles
+                : currentTool === 'stretch'
+                    ? stretchHandles
+                    : [];
         const gizmoHits = raycaster.intersectObjects(activeGizmos);
 
         if (gizmoHits.length > 0) {
@@ -516,9 +460,24 @@
             startGroupData = currentSelection.map(obj => ({
                 pos: obj.position.clone(),
                 scale: obj.userData.data.scale.clone(),
-                rot: obj.quaternion.clone()
+                rot: obj.quaternion.clone(),
+                offsets: obj.geometry.userData.deformOffsets.slice()
             }));
             startHandleDist = intersect.distanceTo(groupCenter);
+
+            if (dragTarget.userData.isStretchHandle && currentSelection.length > 0) {
+                const selected = currentSelection[0];
+                const localDir = selected.worldToLocal(dragTarget.position.clone()).normalize();
+                const localAnchor = selected.worldToLocal(dragTarget.position.clone());
+                deformSession = {
+                    object: selected,
+                    plane,
+                    startPoint: intersect.clone(),
+                    localDirection: localDir.lengthSq() === 0 ? new THREE.Vector3(0, 1, 0) : localDir,
+                    localAnchor,
+                    baseOffsets: selected.geometry.userData.deformOffsets.slice()
+                };
+            }
 
             const sPos = dragTarget.position.clone().project(camera);
             startMouseAngle = Math.atan2(
@@ -530,8 +489,7 @@
 
         const eggHits = raycaster.intersectObjects(scene.children.filter(o => o.userData.isEgg));
         if (eggHits.length > 0) {
-            const hit = eggHits[0];
-            dragTarget = hit.object;
+            dragTarget = eggHits[0].object;
 
             if (!e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([dragTarget]);
             else if (e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([...currentSelection, dragTarget]);
@@ -552,15 +510,6 @@
                     dragStartPoint = null;
                     startPositions = [];
                 }
-            } else if (currentTool === 'stretch') {
-                if (beginStretchSession(hit, e, raycaster)) {
-                    isDragging = true;
-                    controls.enabled = false;
-                }
-            } else if (currentTool === 'sculpt') {
-                isDragging = true;
-                controls.enabled = false;
-                beginSculptSession(hit);
             }
         } else {
             dragTarget = null;
@@ -654,16 +603,12 @@
                 obj.quaternion.multiplyQuaternions(rotQ, sd.rot);
             });
             updateGroupGizmoVisuals();
-        } else if (currentTool === 'stretch' && deformSession && deformSession.mode === 'stretch') {
-            applyStretch(deformSession.object, e.clientY - deformSession.startY, deformSession);
+        } else if (dragTarget.userData.isStretchHandle && currentTool === 'stretch' && deformSession) {
+            if (!raycaster.ray.intersectPlane(deformSession.plane, intersect)) return;
+            const delta = intersect.clone().sub(deformSession.startPoint);
+            const amount = delta.dot(dragTarget.userData.direction) * 1.8;
+            applyStretch(deformSession.object, deformSession, amount);
             updateGroupGizmoVisuals();
-        } else if (currentTool === 'sculpt' && deformSession && deformSession.mode === 'sculpt') {
-            const hits = raycaster.intersectObjects([deformSession.object]);
-            if (hits.length > 0) {
-                const localPoint = deformSession.object.worldToLocal(hits[0].point.clone());
-                applySculptDab(deformSession.object, localPoint, deformSession.localDirection, -1.35);
-                updateGroupGizmoVisuals();
-            }
         }
     }
 
@@ -736,7 +681,6 @@
         }
     };
     window.setToolMode = setToolMode;
-    window.updateSculptSize = updateSculptSize;
 </script>
 </body>
 </html>
