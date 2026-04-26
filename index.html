@@ -2,105 +2,348 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.34.0 - Tool Modes</title>
+    <title>Build-A-Crochet v5.35.0 - Builder Mode</title>
     <style>
-        body { margin: 0; background-color: #ffffff; color: #111; overflow: hidden; display: flex; font-family: monospace; touch-action: none; user-select: none; }
-        #panel { width: 92px; height: 100vh; background: #f0f0f0; border-right: 1px solid #ccc; display: flex; flex-direction: column; align-items: center; padding-top: 16px; gap: 8px; z-index: 1000; position: absolute; left: 0; top: 0; overflow-y: auto; }
-        .btn { width: 56px; min-height: 50px; cursor: pointer; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; border-radius: 8px; background: #ddd; text-align: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); padding: 4px; }
-        .tool-label { font-size: 9px; line-height: 1.1; }
-        .tool-icon { font-size: 18px; line-height: 1; margin-bottom: 2px; }
-        .tool-btn { flex-direction: column; }
-        .tool-btn.active { background: #ff69b4; color: #fff; border-color: #ff9ccc; }
-        .tool-divider { width: 64px; height: 1px; background: #cfcfcf; margin: 2px 0; }
-        .shape-btn { width: 56px; min-height: 44px; font-size: 9px; line-height: 1.1; }
-        .shape-btn.active { background: #28a745; color: #fff; border-color: #7ad58d; }
-        .history-btn { background: #333; color: white; }
-        #v-tag { position: absolute; bottom: 20px; right: 20px; color: #444; font-size: 12px; font-weight: bold; pointer-events: none; z-index: 50; background: rgba(255,255,255,0.8); padding: 4px; border-radius: 4px; }
-        #palette { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 12px; display: none; grid-template-columns: repeat(2, 1fr); gap: 5px; border: 1px solid #ccc; z-index: 200; }
-        .color-dot { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); }
-        #select-box { border: 2px dashed #ff69b4; background: rgba(255, 105, 180, 0.05); position: absolute; pointer-events: none; display: none; z-index: 10; }
+        :root {
+            --bg: #f5f5f2;
+            --panel: #ffffff;
+            --line: #d8d8d2;
+            --soft: #ecece6;
+            --text: #1f1f1c;
+            --muted: #66665f;
+            --accent: #ff6ea8;
+            --accent-2: #ffd84d;
+            --green: #2da562;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--text);
+            font-family: monospace;
+            touch-action: none;
+            user-select: none;
+        }
+
+        #app {
+            width: 100vw;
+            height: 100vh;
+            display: grid;
+            grid-template-columns: 96px 1fr 240px;
+            grid-template-rows: 62px 1fr;
+            grid-template-areas:
+                "left top right"
+                "left canvas right";
+        }
+
+        #leftbar, #topbar, #rightbar {
+            background: var(--panel);
+            z-index: 10;
+        }
+
+        #leftbar {
+            grid-area: left;
+            border-right: 1px solid var(--line);
+            padding: 12px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+        }
+
+        #topbar {
+            grid-area: top;
+            border-bottom: 1px solid var(--line);
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        #rightbar {
+            grid-area: right;
+            border-left: 1px solid var(--line);
+            padding: 14px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        #canvas-wrap {
+            grid-area: canvas;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stack { display: flex; flex-direction: column; gap: 8px; }
+        .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .label {
+            font-size: 10px;
+            color: var(--muted);
+            letter-spacing: 0.4px;
+        }
+
+        .btn {
+            border: 1px solid var(--line);
+            background: var(--soft);
+            color: var(--text);
+            border-radius: 8px;
+            padding: 8px 6px;
+            cursor: pointer;
+            font: inherit;
+            font-size: 10px;
+            line-height: 1.1;
+            text-align: center;
+            min-height: 42px;
+        }
+
+        .tool-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            min-height: 54px;
+        }
+
+        .tool-btn .icon {
+            font-size: 17px;
+            line-height: 1;
+        }
+
+        .btn.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: #ff9bc2;
+        }
+
+        .btn.green.active {
+            background: var(--green);
+            border-color: #6ccc95;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--line);
+            margin: 2px 0;
+        }
+
+        .top-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .top-btn {
+            min-height: 36px;
+            min-width: 66px;
+            padding: 8px 10px;
+        }
+
+        .title {
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .subtitle {
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        .panel-card {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 10px;
+            background: #fcfcfa;
+        }
+
+        .value {
+            font-size: 12px;
+            color: var(--text);
+        }
+
+        .mini-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .swatch {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.12);
+            cursor: pointer;
+        }
+
+        #select-box {
+            border: 2px dashed var(--accent);
+            background: rgba(255, 110, 168, 0.08);
+            position: absolute;
+            pointer-events: none;
+            display: none;
+            z-index: 5;
+        }
+
+        #version-tag {
+            position: absolute;
+            right: 14px;
+            bottom: 14px;
+            background: rgba(255,255,255,0.88);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 11px;
+            color: var(--muted);
+            z-index: 6;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
+<div id="app">
+    <aside id="leftbar">
+        <div class="label">TOOLS</div>
+        <button class="btn tool-btn active" id="tool-pointer" onclick="setToolMode('pointer')"><span class="icon">↖</span><span>SELECT</span></button>
+        <button class="btn tool-btn" id="tool-rotate" onclick="setToolMode('rotate')"><span class="icon">↻</span><span>ROTATE</span></button>
+        <button class="btn tool-btn" id="tool-scale" onclick="setToolMode('scale')"><span class="icon">⤢</span><span>SIZE</span></button>
+        <button class="btn tool-btn" id="tool-stretch" onclick="setToolMode('stretch')"><span class="icon">⇱</span><span>STRETCH</span></button>
 
-<div id="panel">
-    <div class="btn tool-btn active" id="pointer-tool-btn" onclick="setToolMode('pointer')">
-        <div class="tool-icon">↖</div>
-        <div class="tool-label">POINTER</div>
-    </div>
-    <div class="btn tool-btn" id="rotate-tool-btn" onclick="setToolMode('rotate')">
-        <div class="tool-icon">↻</div>
-        <div class="tool-label">ROTATE</div>
-    </div>
-    <div class="btn tool-btn" id="scale-tool-btn" onclick="setToolMode('scale')">
-        <div class="tool-icon">⤢</div>
-        <div class="tool-label">SIZE</div>
-    </div>
-    <div class="btn tool-btn" id="stretch-tool-btn" onclick="setToolMode('stretch')">
-        <div class="tool-icon">⇱</div>
-        <div class="tool-label">STRETCH</div>
-    </div>
+        <div class="divider"></div>
 
-    <div class="tool-divider"></div>
+        <div class="label">SHAPES</div>
+        <button class="btn shape-btn active" id="shape-oval" onclick="setPlacementShape('oval')">OVAL</button>
+        <button class="btn shape-btn" id="shape-paraboloid" onclick="setPlacementShape('paraboloid')">PARA</button>
+        <button class="btn shape-btn" id="shape-sphere" onclick="setPlacementShape('sphere')">SPHERE</button>
+        <button class="btn shape-btn" id="shape-cylinder" onclick="setPlacementShape('cylinder')">CYL</button>
+        <button class="btn shape-btn" id="shape-cone" onclick="setPlacementShape('cone')">CONE</button>
+        <button class="btn green" id="place-btn" onclick="togglePlacementMode()">PLACE</button>
+    </aside>
 
-    <div class="btn history-btn" onclick="executeUndo()">UNDO</div>
-    <div class="btn history-btn" onclick="executeRedo()">REDO</div>
+    <header id="topbar">
+        <div class="top-group">
+            <div>
+                <div class="title">Build-A-Crochet</div>
+                <div class="subtitle">Builder-style workspace</div>
+            </div>
+        </div>
 
-    <div class="btn shape-btn active" id="egg-shape-btn" onclick="setPlacementShape('egg')">OVAL</div>
-    <div class="btn shape-btn" id="paraboloid-shape-btn" onclick="setPlacementShape('paraboloid')">PARA</div>
-    <div class="btn shape-btn" id="spawn-btn" onclick="togglePlacementMode()">PLACE</div>
-</div>
+        <div class="top-group">
+            <button class="btn top-btn" onclick="executeUndo()">UNDO</button>
+            <button class="btn top-btn" onclick="executeRedo()">REDO</button>
+            <button class="btn top-btn" onclick="duplicateSelection()">DUP</button>
+            <button class="btn top-btn" onclick="deleteSelection()">DELETE</button>
+            <button class="btn top-btn" id="snap-btn" onclick="toggleSnap()">SNAP ON</button>
+            <button class="btn top-btn" onclick="resetView()">VIEW</button>
+        </div>
+    </header>
 
-<div id="v-tag">Build-A-Crochet v5.34.0</div>
-<div id="select-box"></div>
-<div id="palette">
-    <div class="color-dot" style="background: #ff69b4;" onclick="updateColor('#ff69b4')"></div>
-    <div class="color-dot" style="background: #ffffff;" onclick="updateColor('#ffffff')"></div>
-    <div class="color-dot" style="background: #000000;" onclick="updateColor('#000000')"></div>
+    <main id="canvas-wrap">
+        <div id="select-box"></div>
+        <div id="version-tag">v5.35.0</div>
+    </main>
+
+    <aside id="rightbar">
+        <div class="panel-card stack">
+            <div class="label">SELECTION</div>
+            <div class="value" id="selection-name">Nothing selected</div>
+            <div class="subtitle" id="selection-count">0 objects</div>
+        </div>
+
+        <div class="panel-card stack">
+            <div class="label">POSITION</div>
+            <div class="mini-grid">
+                <div class="value" id="pos-x">X: -</div>
+                <div class="value" id="pos-y">Y: -</div>
+                <div class="value" id="pos-z">Z: -</div>
+            </div>
+        </div>
+
+        <div class="panel-card stack">
+            <div class="label">SIZE</div>
+            <div class="mini-grid">
+                <div class="value" id="scale-x">W: -</div>
+                <div class="value" id="scale-y">H: -</div>
+                <div class="value" id="scale-z">D: -</div>
+            </div>
+        </div>
+
+        <div class="panel-card stack">
+            <div class="label">COLOR</div>
+            <div class="row">
+                <button class="swatch" style="background:#ff69b4" onclick="updateColor('#ff69b4')"></button>
+                <button class="swatch" style="background:#ffffff" onclick="updateColor('#ffffff')"></button>
+                <button class="swatch" style="background:#000000" onclick="updateColor('#000000')"></button>
+                <button class="swatch" style="background:#7ed957" onclick="updateColor('#7ed957')"></button>
+            </div>
+        </div>
+    </aside>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
 <script>
-    let scene, camera, renderer, controls, ghostShape;
-    let isPlacementMode = false, dragTarget = null, isDragging = false;
-    let groupHandles = [], stretchHandles = [], groupRotHandles = [], groupGizmo;
-    let startHandleDist = 1;
-    let history = [], historyIndex = -1;
-    let currentSelection = [], isBoxSelecting = false, boxStart = new THREE.Vector2();
-    let startGroupData = [], startMouseAngle = 0;
-    let dragStartPoint = null, startPositions = [];
+    let scene, camera, renderer, controls, gridHelper, ghostShape;
     let currentTool = 'pointer';
-    let deformSession = null;
-    let placementShape = 'egg';
+    let placementShape = 'oval';
+    let isPlacementMode = false;
+    let isDragging = false;
+    let dragTarget = null;
+    let dragStartPoint = null;
+    let dragPlane = null;
+    let startPositions = [];
+    let startGroupData = [];
+    let startHandleDist = 1;
+    let startMouseAngle = 0;
+    let currentSelection = [];
+    let isBoxSelecting = false;
+    let boxStart = new THREE.Vector2();
+    let snapEnabled = true;
 
-    const BASE_H = 96, BASE_R = 36;
-    const STRETCH_RADIUS = 44;
-    const tmpVec = new THREE.Vector3();
-    const tmpVec2 = new THREE.Vector3();
-    const tmpVec3 = new THREE.Vector3();
+    let groupGizmo;
+    let scaleHandles = [];
+    let stretchHandles = [];
+    let rotateHandles = [];
+
+    let history = [];
+    let historyIndex = -1;
+
+    const BASE_H = 96;
+    const BASE_R = 36;
+    const STRETCH_RADIUS = 46;
+    const SNAP_STEP = 4;
+
+    const tmpA = new THREE.Vector3();
+    const tmpB = new THREE.Vector3();
+    const tmpC = new THREE.Vector3();
 
     function init() {
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xffffff);
+        scene.background = new THREE.Color(0xf5f5f2);
 
-        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
+        const wrap = document.getElementById('canvas-wrap');
+
+        camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 0.1, 5000);
         camera.position.set(260, 220, 260);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(wrap.clientWidth, wrap.clientHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
-        document.body.appendChild(renderer.domElement);
+        wrap.appendChild(renderer.domElement);
+        wrap.insertBefore(renderer.domElement, document.getElementById('select-box'));
         renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
-        const grid = new THREE.GridHelper(1000, 50, 0x666666, 0xcccccc);
-        grid.position.y = -0.2;
-        scene.add(grid);
+        gridHelper = new THREE.GridHelper(1000, 50, 0x8a8a83, 0xd6d6ce);
+        gridHelper.position.y = -0.2;
+        scene.add(gridHelper);
 
         scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-        dirLight.position.set(100, 200, 100);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        dirLight.position.set(120, 220, 100);
         scene.add(dirLight);
 
         controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -108,42 +351,71 @@
         controls.target.set(0, BASE_H * 0.5, 0);
         controls.update();
 
-        createGroupGizmo();
+        createGizmos();
         createGhost();
-        setToolMode('pointer');
-        setPlacementShape('egg');
 
+        window.addEventListener('resize', onResize);
         window.addEventListener('pointerdown', onDown);
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
         window.addEventListener('keydown', onKey);
-        window.addEventListener('resize', onResize);
 
         captureState();
         animate();
+        updateInspector();
     }
 
     function onResize() {
-        camera.aspect = window.innerWidth / window.innerHeight;
+        const wrap = document.getElementById('canvas-wrap');
+        camera.aspect = wrap.clientWidth / wrap.clientHeight;
         camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(wrap.clientWidth, wrap.clientHeight);
     }
 
     function onKey(e) {
-        if (e.key === "Delete" || e.key === "Backspace") {
-            const targets = [...currentSelection];
-            if (targets.length > 0) {
-                targets.forEach(o => {
-                    o.geometry.dispose();
-                    o.userData.outline.geometry.dispose();
-                    o.material.dispose();
-                    o.userData.outline.material.dispose();
-                    scene.remove(o);
-                });
-                updateSelectionVisuals([]);
-                captureState();
-            }
+        if (e.key === "Delete" || e.key === "Backspace") deleteSelection();
+    }
+
+    function setToolMode(mode) {
+        currentTool = mode;
+        document.getElementById('tool-pointer').classList.toggle('active', mode === 'pointer');
+        document.getElementById('tool-rotate').classList.toggle('active', mode === 'rotate');
+        document.getElementById('tool-scale').classList.toggle('active', mode === 'scale');
+        document.getElementById('tool-stretch').classList.toggle('active', mode === 'stretch');
+        updateSelectionVisuals(currentSelection);
+    }
+
+    function setPlacementShape(shape) {
+        placementShape = shape;
+        ['oval', 'paraboloid', 'sphere', 'cylinder', 'cone'].forEach(name => {
+            document.getElementById('shape-' + name).classList.toggle('active', name === shape);
+        });
+        if (ghostShape) {
+            scene.remove(ghostShape);
+            ghostShape.geometry.dispose();
+            ghostShape.material.dispose();
         }
+        createGhost();
+        ghostShape.visible = isPlacementMode;
+    }
+
+    function togglePlacementMode() {
+        isPlacementMode = !isPlacementMode;
+        document.getElementById('place-btn').classList.toggle('active', isPlacementMode);
+        ghostShape.position.set(0, BASE_H * 0.5, 0);
+        ghostShape.visible = isPlacementMode;
+    }
+
+    function toggleSnap() {
+        snapEnabled = !snapEnabled;
+        document.getElementById('snap-btn').textContent = snapEnabled ? 'SNAP ON' : 'SNAP OFF';
+        document.getElementById('snap-btn').classList.toggle('active', snapEnabled);
+    }
+
+    function resetView() {
+        camera.position.set(260, 220, 260);
+        controls.target.set(0, BASE_H * 0.5, 0);
+        controls.update();
     }
 
     function createProfile(shapeType) {
@@ -151,29 +423,36 @@
         for (let i = 0; i <= 24; i++) {
             const t = i / 24;
             const y = t * BASE_H;
-            let r;
-            if (shapeType === 'paraboloid') {
-                r = BASE_R * Math.pow(t, 0.65);
-            } else {
-                r = BASE_R * Math.sqrt(Math.max(0, 1 - Math.pow((y - BASE_H / 2) / (BASE_H / 2), 2)));
-            }
+            let r = BASE_R;
+
+            if (shapeType === 'paraboloid') r = BASE_R * Math.pow(t, 0.62);
+            else if (shapeType === 'sphere') r = BASE_R * Math.sqrt(Math.max(0, 1 - Math.pow((t - 0.5) / 0.5, 2)));
+            else if (shapeType === 'cylinder') r = BASE_R * 0.8;
+            else if (shapeType === 'cone') r = BASE_R * (1 - t);
+            else r = BASE_R * Math.sqrt(Math.max(0, 1 - Math.pow((t - 0.5) / 0.5, 2)));
+
             points.push(new THREE.Vector2(Math.max(0.1, r), y));
         }
         return points;
     }
 
     function createShapeMesh(shapeType, color, isGhost = false) {
-        const points = createProfile(shapeType);
-        const geo = new THREE.LatheGeometry(points, 32);
+        const geo = new THREE.LatheGeometry(createProfile(shapeType), 32);
         geo.translate(0, -BASE_H / 2, 0);
         geo.userData.origPos = geo.attributes.position.clone();
         geo.userData.deformOffsets = new Float32Array(geo.attributes.position.count * 3);
 
-        const mat = new THREE.MeshPhongMaterial({ color, wireframe: true, transparent: true, opacity: isGhost ? 0.3 : 0.8 });
+        const mat = new THREE.MeshPhongMaterial({
+            color,
+            wireframe: true,
+            transparent: true,
+            opacity: isGhost ? 0.28 : 0.82
+        });
+
         const mesh = new THREE.Mesh(geo, mat);
 
         if (!isGhost) {
-            mesh.userData.isEgg = true;
+            mesh.userData.isShape = true;
             mesh.userData.shapeType = shapeType;
             mesh.userData.data = { scale: new THREE.Vector3(1, 1, 1) };
 
@@ -189,9 +468,13 @@
         return mesh;
     }
 
-    function updateMesh(mesh) {
-        if (!mesh) return;
+    function createGhost() {
+        ghostShape = createShapeMesh(placementShape, 0x2da562, true);
+        ghostShape.visible = false;
+        scene.add(ghostShape);
+    }
 
+    function updateMesh(mesh) {
         const pos = mesh.geometry.attributes.position;
         const orig = mesh.geometry.userData.origPos;
         const offsets = mesh.geometry.userData.deformOffsets;
@@ -220,104 +503,87 @@
         mesh.userData.outline.geometry.computeVertexNormals();
     }
 
-    function createHandle(color, userData) {
-        const handle = new THREE.Mesh(
-            new THREE.SphereGeometry(2.7, 16, 16),
+    function createHandle(color, data) {
+        const h = new THREE.Mesh(
+            new THREE.SphereGeometry(2.8, 16, 16),
             new THREE.MeshBasicMaterial({ color, depthTest: false })
         );
-        handle.renderOrder = 999;
-        handle.visible = false;
-        handle.userData = userData;
-        scene.add(handle);
-        return handle;
+        h.renderOrder = 999;
+        h.visible = false;
+        h.userData = data;
+        scene.add(h);
+        return h;
     }
 
-    function createGroupGizmo() {
-        groupGizmo = new THREE.BoxHelper(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1)), 0xff69b4);
+    function createGizmos() {
+        groupGizmo = new THREE.BoxHelper(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1)), 0xff6ea8);
         groupGizmo.visible = false;
         scene.add(groupGizmo);
 
         for (let i = 0; i < 10; i++) {
-            groupHandles.push(createHandle(0xffd84d, { isGroupHandle: true, id: i }));
+            scaleHandles.push(createHandle(0xffd84d, { isScaleHandle: true, id: i }));
             stretchHandles.push(createHandle(0xffd84d, { isStretchHandle: true, id: i, worldDirection: new THREE.Vector3() }));
         }
 
-        const makeR = (col, axis) => {
+        const mkRot = (color, axis) => {
             const r = new THREE.Mesh(
                 new THREE.TorusGeometry(38, 0.8, 16, 64),
-                new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.6, depthTest: false })
+                new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.65, depthTest: false })
             );
             r.renderOrder = 998;
             r.visible = false;
-            r.userData = { isGroupRotationHandle: true, axis };
+            r.userData = { isRotateHandle: true, axis };
             scene.add(r);
             return r;
         };
 
-        groupRotHandles = [makeR(0xff0000, 'x'), makeR(0x00ff00, 'y'), makeR(0x0000ff, 'z')];
+        rotateHandles = [mkRot(0xff4e4e, 'x'), mkRot(0x50bd65, 'y'), mkRot(0x4d7fff, 'z')];
     }
 
-    function setToolMode(mode) {
-        currentTool = mode;
-        document.getElementById('pointer-tool-btn').classList.toggle('active', mode === 'pointer');
-        document.getElementById('rotate-tool-btn').classList.toggle('active', mode === 'rotate');
-        document.getElementById('scale-tool-btn').classList.toggle('active', mode === 'scale');
-        document.getElementById('stretch-tool-btn').classList.toggle('active', mode === 'stretch');
-        updateSelectionVisuals(currentSelection);
-    }
-
-    function setPlacementShape(shapeType) {
-        placementShape = shapeType;
-        document.getElementById('egg-shape-btn').classList.toggle('active', shapeType === 'egg');
-        document.getElementById('paraboloid-shape-btn').classList.toggle('active', shapeType === 'paraboloid');
-        if (ghostShape) {
-            scene.remove(ghostShape);
-            ghostShape.geometry.dispose();
-            ghostShape.material.dispose();
-        }
-        createGhost();
-        if (isPlacementMode) {
-            ghostShape.visible = true;
-        }
+    function getShapeObjects() {
+        return scene.children.filter(o => o.userData.isShape);
     }
 
     function updateSelectionVisuals(selected) {
-        scene.children.filter(o => o.userData.isEgg).forEach(e => e.userData.outline.scale.set(1.02, 1.02, 1.02));
-        groupHandles.forEach(h => h.visible = false);
+        getShapeObjects().forEach(o => o.userData.outline.scale.set(1.02, 1.02, 1.02));
+        scaleHandles.forEach(h => h.visible = false);
         stretchHandles.forEach(h => h.visible = false);
-        groupRotHandles.forEach(h => h.visible = false);
+        rotateHandles.forEach(h => h.visible = false);
         groupGizmo.visible = false;
-        document.getElementById('palette').style.display = 'none';
 
         currentSelection = selected;
-        if (selected.length === 0) return;
+        if (selected.length === 0) {
+            updateInspector();
+            return;
+        }
 
-        selected.forEach(e => e.userData.outline.scale.set(1.1, 1.1, 1.1));
-        document.getElementById('palette').style.display = 'grid';
+        selected.forEach(o => o.userData.outline.scale.set(1.1, 1.1, 1.1));
 
         if (currentTool === 'scale' || currentTool === 'stretch' || currentTool === 'rotate') groupGizmo.visible = true;
-        if (currentTool === 'scale') groupHandles.forEach(h => h.visible = true);
+        if (currentTool === 'scale') scaleHandles.forEach(h => h.visible = true);
         if (currentTool === 'stretch') stretchHandles.forEach(h => h.visible = true);
-        if (currentTool === 'rotate') groupRotHandles.forEach(h => h.visible = true);
+        if (currentTool === 'rotate') rotateHandles.forEach(h => h.visible = true);
+
         updateGroupGizmoVisuals();
+        updateInspector();
     }
 
     function updateGroupGizmoVisuals() {
         if (currentSelection.length === 0) return;
 
         const box = new THREE.Box3();
-        currentSelection.forEach(e => {
-            e.geometry.computeBoundingBox();
-            box.union(e.geometry.boundingBox.clone().applyMatrix4(e.matrixWorld));
+        currentSelection.forEach(obj => {
+            obj.geometry.computeBoundingBox();
+            box.union(obj.geometry.boundingBox.clone().applyMatrix4(obj.matrixWorld));
         });
 
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
-        const helperBox = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z));
-        helperBox.position.copy(center);
-        groupGizmo.update(helperBox);
+        const helper = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z));
+        helper.position.copy(center);
+        groupGizmo.update(helper);
 
-        const handlePoints = [
+        const points = [
             new THREE.Vector3(-0.5, 0.5, 0.5),
             new THREE.Vector3(-0.5, 0.5, -0.5),
             new THREE.Vector3(-0.5, -0.5, 0.5),
@@ -330,18 +596,17 @@
             new THREE.Vector3(0, -0.5, 0)
         ];
 
-        groupHandles.forEach((h, i) => {
-            h.position.copy(center).add(handlePoints[i].clone().multiply(size));
+        scaleHandles.forEach((h, i) => {
+            h.position.copy(center).add(points[i].clone().multiply(size));
         });
 
         stretchHandles.forEach((h, i) => {
-            const offset = handlePoints[i].clone().multiply(size);
-            const worldDirection = offset.lengthSq() === 0 ? new THREE.Vector3(0, 1, 0) : offset.clone().normalize();
+            const offset = points[i].clone().multiply(size);
             h.position.copy(center).add(offset);
-            h.userData.worldDirection.copy(worldDirection);
+            h.userData.worldDirection.copy(offset.lengthSq() === 0 ? new THREE.Vector3(0, 1, 0) : offset.clone().normalize());
         });
 
-        groupRotHandles.forEach((r, i) => {
+        rotateHandles.forEach((r, i) => {
             r.position.copy(center);
             r.rotation.set(0, 0, 0);
             const s = Math.max(size.x, size.y, size.z) * 0.8 + 10;
@@ -352,13 +617,146 @@
     }
 
     function getPointerRay(e) {
+        const rect = renderer.domElement.getBoundingClientRect();
         const mouse = new THREE.Vector2(
-            (e.clientX / window.innerWidth) * 2 - 1,
-            -(e.clientY / window.innerHeight) * 2 + 1
+            ((e.clientX - rect.left) / rect.width) * 2 - 1,
+            -((e.clientY - rect.top) / rect.height) * 2 + 1
         );
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, camera);
         return raycaster;
+    }
+
+    function snapValue(v) {
+        return Math.round(v / SNAP_STEP) * SNAP_STEP;
+    }
+
+    function snapVector3(v) {
+        v.set(snapValue(v.x), snapValue(v.y), snapValue(v.z));
+    }
+
+    function captureState() {
+        const state = getShapeObjects().map(obj => ({
+            pos: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
+            rot: { x: obj.quaternion.x, y: obj.quaternion.y, z: obj.quaternion.z, w: obj.quaternion.w },
+            scale: { x: obj.userData.data.scale.x, y: obj.userData.data.scale.y, z: obj.userData.data.scale.z },
+            col: obj.material.color.getHex(),
+            shapeType: obj.userData.shapeType,
+            deformOffsets: Array.from(obj.geometry.userData.deformOffsets)
+        }));
+
+        const json = JSON.stringify(state);
+        if (historyIndex >= 0 && history[historyIndex] === json) return;
+
+        history = history.slice(0, historyIndex + 1);
+        history.push(json);
+        historyIndex = history.length - 1;
+    }
+
+    function applyState(json) {
+        getShapeObjects().forEach(obj => {
+            obj.geometry.dispose();
+            obj.userData.outline.geometry.dispose();
+            obj.material.dispose();
+            obj.userData.outline.material.dispose();
+            scene.remove(obj);
+        });
+
+        const state = JSON.parse(json);
+        state.forEach(d => {
+            const obj = createShapeMesh(d.shapeType || 'oval', new THREE.Color(d.col));
+            obj.position.set(d.pos.x, d.pos.y, d.pos.z);
+            obj.quaternion.set(d.rot.x, d.rot.y, d.rot.z, d.rot.w);
+            obj.userData.data.scale.set(d.scale.x, d.scale.y, d.scale.z);
+            if (d.deformOffsets) obj.geometry.userData.deformOffsets.set(d.deformOffsets);
+            updateMesh(obj);
+            scene.add(obj);
+        });
+
+        updateSelectionVisuals([]);
+    }
+
+    function executeUndo() {
+        if (historyIndex <= 0) return;
+        historyIndex -= 1;
+        applyState(history[historyIndex]);
+    }
+
+    function executeRedo() {
+        if (historyIndex >= history.length - 1) return;
+        historyIndex += 1;
+        applyState(history[historyIndex]);
+    }
+
+    function duplicateSelection() {
+        if (currentSelection.length === 0) return;
+
+        const clones = [];
+        currentSelection.forEach(obj => {
+            const clone = createShapeMesh(obj.userData.shapeType, obj.material.color.getHex());
+            clone.position.copy(obj.position).add(new THREE.Vector3(8, 0, 8));
+            clone.quaternion.copy(obj.quaternion);
+            clone.userData.data.scale.copy(obj.userData.data.scale);
+            clone.geometry.userData.deformOffsets.set(obj.geometry.userData.deformOffsets);
+            updateMesh(clone);
+            scene.add(clone);
+            clones.push(clone);
+        });
+
+        updateSelectionVisuals(clones);
+        captureState();
+    }
+
+    function deleteSelection() {
+        if (currentSelection.length === 0) return;
+        currentSelection.forEach(obj => {
+            obj.geometry.dispose();
+            obj.userData.outline.geometry.dispose();
+            obj.material.dispose();
+            obj.userData.outline.material.dispose();
+            scene.remove(obj);
+        });
+        updateSelectionVisuals([]);
+        captureState();
+    }
+
+    function updateColor(color) {
+        if (currentSelection.length === 0) return;
+        currentSelection.forEach(obj => obj.material.color.set(color));
+        captureState();
+    }
+
+    function spawnShape(pos) {
+        const obj = createShapeMesh(placementShape, 0xff69b4);
+        obj.position.copy(pos);
+        obj.position.y += BASE_H / 2;
+        if (snapEnabled) snapVector3(obj.position);
+        scene.add(obj);
+        updateSelectionVisuals([obj]);
+        isPlacementMode = false;
+        ghostShape.visible = false;
+        document.getElementById('place-btn').classList.remove('active');
+        captureState();
+    }
+
+    function beginObjectMove(hit, raycaster) {
+        dragTarget = hit.object;
+        isDragging = true;
+        controls.enabled = false;
+
+        dragPlane = new THREE.Plane(
+            camera.getWorldDirection(new THREE.Vector3()).negate(),
+            -dragTarget.position.dot(camera.getWorldDirection(new THREE.Vector3()).negate())
+        );
+
+        const intersection = new THREE.Vector3();
+        if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
+            dragStartPoint = intersection.clone();
+            startPositions = currentSelection.map(obj => obj.position.clone());
+        } else {
+            dragStartPoint = null;
+            startPositions = [];
+        }
     }
 
     function applyStretch(object, session, amount) {
@@ -371,22 +769,22 @@
 
         for (let i = 0; i < orig.count; i++) {
             const idx = i * 3;
-            const vertex = tmpVec.set(
+            const vertex = tmpA.set(
                 orig.getX(i) * object.userData.data.scale.x + session.baseOffsets[idx],
                 orig.getY(i) * object.userData.data.scale.y + session.baseOffsets[idx + 1],
                 orig.getZ(i) * object.userData.data.scale.z + session.baseOffsets[idx + 2]
             );
 
-            const toVertex = tmpVec2.copy(vertex).sub(localAnchor);
-            const along = toVertex.dot(localDir);
-            if (along < -6) continue;
+            const toVertex = tmpB.copy(vertex).sub(localAnchor);
+            const aligned = toVertex.dot(localDir);
+            if (aligned < -8) continue;
 
-            const radialVec = tmpVec3.copy(toVertex).sub(localDir.clone().multiplyScalar(along));
-            const radial = radialVec.length();
+            const alongVec = tmpC.copy(localDir).multiplyScalar(aligned);
+            const radial = toVertex.clone().sub(alongVec).length();
             if (radial > STRETCH_RADIUS) continue;
 
             const radialFalloff = 1 - radial / STRETCH_RADIUS;
-            const alongFalloff = Math.max(0, Math.min(1, (along + 10) / 34));
+            const alongFalloff = Math.max(0, Math.min(1, (aligned + 10) / 34));
             const push = amount * radialFalloff * radialFalloff * alongFalloff;
 
             offsets[idx] = session.baseOffsets[idx] + localDir.x * push;
@@ -397,92 +795,28 @@
         updateMesh(object);
     }
 
-    function captureState() {
-        const state = scene.children
-            .filter(o => o.userData.isEgg)
-            .map(obj => ({
-                pos: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
-                rot: { x: obj.quaternion.x, y: obj.quaternion.y, z: obj.quaternion.z, w: obj.quaternion.w },
-                scale: {
-                    x: obj.userData.data.scale.x,
-                    y: obj.userData.data.scale.y,
-                    z: obj.userData.data.scale.z
-                },
-                col: obj.material.color.getHex(),
-                shapeType: obj.userData.shapeType,
-                deformOffsets: Array.from(obj.geometry.userData.deformOffsets)
-            }));
-
-        const json = JSON.stringify(state);
-        if (historyIndex >= 0 && history[historyIndex] === json) return;
-
-        history = history.slice(0, historyIndex + 1);
-        history.push(json);
-        historyIndex = history.length - 1;
-    }
-
-    function applyState(json) {
-        const state = JSON.parse(json);
-
-        scene.children
-            .filter(o => o.userData.isEgg)
-            .forEach(obj => {
-                obj.geometry.dispose();
-                obj.userData.outline.geometry.dispose();
-                obj.material.dispose();
-                obj.userData.outline.material.dispose();
-                scene.remove(obj);
-            });
-
-        state.forEach(d => {
-            const mesh = createShapeMesh(d.shapeType || 'egg', new THREE.Color(d.col));
-            mesh.position.set(d.pos.x, d.pos.y, d.pos.z);
-            mesh.quaternion.set(d.rot.x, d.rot.y, d.rot.z, d.rot.w);
-            mesh.userData.data.scale.set(d.scale.x, d.scale.y, d.scale.z);
-            if (d.deformOffsets) mesh.geometry.userData.deformOffsets.set(d.deformOffsets);
-            updateMesh(mesh);
-            scene.add(mesh);
-        });
-
-        updateSelectionVisuals([]);
-    }
-
-    window.executeUndo = function() {
-        if (historyIndex <= 0) return;
-        historyIndex -= 1;
-        applyState(history[historyIndex]);
-    };
-
-    window.executeRedo = function() {
-        if (historyIndex >= history.length - 1) return;
-        historyIndex += 1;
-        applyState(history[historyIndex]);
-    };
-
     function onDown(e) {
         if (e.target.tagName !== 'CANVAS') return;
 
         const raycaster = getPointerRay(e);
-        const activeGizmos = currentTool === 'scale'
-            ? groupHandles
-            : currentTool === 'rotate'
-                ? groupRotHandles
-                : currentTool === 'stretch'
-                    ? stretchHandles
-                    : [];
-        const gizmoHits = raycaster.intersectObjects(activeGizmos);
+        const activeGizmos =
+            currentTool === 'scale' ? scaleHandles :
+            currentTool === 'stretch' ? stretchHandles :
+            currentTool === 'rotate' ? rotateHandles : [];
 
+        const gizmoHits = raycaster.intersectObjects(activeGizmos);
         if (gizmoHits.length > 0) {
             dragTarget = gizmoHits[0].object;
             isDragging = true;
             controls.enabled = false;
 
-            const plane = new THREE.Plane(
+            dragPlane = new THREE.Plane(
                 camera.getWorldDirection(new THREE.Vector3()).negate(),
                 -dragTarget.position.dot(camera.getWorldDirection(new THREE.Vector3()).negate())
             );
+
             const intersect = new THREE.Vector3();
-            raycaster.ray.intersectPlane(plane, intersect);
+            raycaster.ray.intersectPlane(dragPlane, intersect);
 
             const box = new THREE.Box3();
             currentSelection.forEach(obj => {
@@ -499,21 +833,21 @@
             startHandleDist = intersect.distanceTo(groupCenter);
 
             if (dragTarget.userData.isStretchHandle && currentSelection.length > 0) {
-                const selected = currentSelection[0];
+                const obj = currentSelection[0];
                 const worldDir = dragTarget.userData.worldDirection.clone().normalize();
-                const localOrigin = selected.worldToLocal(selected.position.clone());
-                const localDirPoint = selected.worldToLocal(selected.position.clone().add(worldDir));
+                const localOrigin = obj.worldToLocal(obj.position.clone());
+                const localDirPoint = obj.worldToLocal(obj.position.clone().add(worldDir));
                 let localDir = localDirPoint.sub(localOrigin).normalize();
                 if (localDir.lengthSq() === 0) localDir.set(0, 1, 0);
 
                 deformSession = {
-                    object: selected,
-                    plane,
+                    object: obj,
+                    plane: dragPlane.clone(),
                     startPoint: intersect.clone(),
                     worldDirection: worldDir,
                     localDirection: localDir,
-                    localAnchor: selected.worldToLocal(dragTarget.position.clone()),
-                    baseOffsets: selected.geometry.userData.deformOffsets.slice()
+                    localAnchor: obj.worldToLocal(dragTarget.position.clone()),
+                    baseOffsets: obj.geometry.userData.deformOffsets.slice()
                 };
             }
 
@@ -525,41 +859,28 @@
             return;
         }
 
-        const shapeHits = raycaster.intersectObjects(scene.children.filter(o => o.userData.isEgg));
-        if (shapeHits.length > 0) {
-            dragTarget = shapeHits[0].object;
+        const hits = raycaster.intersectObjects(getShapeObjects());
+        if (hits.length > 0) {
+            const hit = hits[0];
+            dragTarget = hit.object;
 
             if (!e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([dragTarget]);
             else if (e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([...currentSelection, dragTarget]);
 
-            if (currentTool === 'pointer') {
-                isDragging = true;
-                controls.enabled = false;
-
-                const dragPlane = new THREE.Plane(
-                    camera.getWorldDirection(new THREE.Vector3()).negate(),
-                    -dragTarget.position.dot(camera.getWorldDirection(new THREE.Vector3()).negate())
-                );
-                const intersection = new THREE.Vector3();
-                if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
-                    dragStartPoint = intersection.clone();
-                    startPositions = currentSelection.map(obj => obj.position.clone());
-                } else {
-                    dragStartPoint = null;
-                    startPositions = [];
-                }
-            }
+            if (currentTool === 'pointer') beginObjectMove(hit, raycaster);
         } else {
             dragTarget = null;
             deformSession = null;
+
             if (isPlacementMode && e.button === 0) {
                 spawnShape(new THREE.Vector3(0, 0, 0));
             } else if (currentTool === 'pointer' && e.button === 2) {
                 isBoxSelecting = true;
                 boxStart.set(e.clientX, e.clientY);
-                document.getElementById('select-box').style.display = 'block';
-                updateSelectionVisuals([]);
+                const box = document.getElementById('select-box');
+                box.style.display = 'block';
                 controls.enabled = false;
+                updateSelectionVisuals([]);
             } else {
                 updateSelectionVisuals([]);
             }
@@ -581,42 +902,44 @@
         }
 
         if (!isDragging || !dragTarget) return;
-        if (dragTarget.userData.isEgg && dragStartPoint === null && currentTool === 'pointer') return;
 
         const raycaster = getPointerRay(e);
-        const plane = new THREE.Plane(
-            camera.getWorldDirection(new THREE.Vector3()).negate(),
-            -dragTarget.position.dot(camera.getWorldDirection(new THREE.Vector3()).negate())
-        );
         const intersect = new THREE.Vector3();
 
-        if (dragTarget.userData.isEgg && currentTool === 'pointer') {
-            if (!raycaster.ray.intersectPlane(plane, intersect)) return;
+        if (dragTarget.userData.isShape && currentTool === 'pointer') {
+            if (!dragPlane || dragStartPoint === null) return;
+            if (!raycaster.ray.intersectPlane(dragPlane, intersect)) return;
+
             const delta = intersect.clone().sub(dragStartPoint);
             currentSelection.forEach((obj, i) => {
-                const startPos = startPositions[i];
-                obj.position.set(startPos.x + delta.x, startPos.y + delta.y, startPos.z + delta.z);
+                obj.position.copy(startPositions[i]).add(delta);
+                if (snapEnabled) snapVector3(obj.position);
             });
             updateGroupGizmoVisuals();
-        } else if (dragTarget.userData.isGroupHandle && currentTool === 'scale') {
-            if (!raycaster.ray.intersectPlane(plane, intersect)) return;
+            updateInspector();
+        } else if (dragTarget.userData.isScaleHandle && currentTool === 'scale') {
+            if (!raycaster.ray.intersectPlane(dragPlane, intersect)) return;
+
             const box = new THREE.Box3();
             currentSelection.forEach(obj => {
                 obj.geometry.computeBoundingBox();
                 box.union(obj.geometry.boundingBox.clone().applyMatrix4(obj.matrixWorld));
             });
             const groupCenter = box.getCenter(new THREE.Vector3());
-            const ratio = intersect.distanceTo(groupCenter) / startHandleDist;
+            const ratio = Math.max(0.15, intersect.distanceTo(groupCenter) / startHandleDist);
 
             currentSelection.forEach((obj, i) => {
                 const sd = startGroupData[i];
                 obj.userData.data.scale.copy(sd.scale).multiplyScalar(ratio);
                 updateMesh(obj);
                 obj.position.copy(groupCenter).add(sd.pos.clone().sub(groupCenter).multiplyScalar(ratio));
+                if (snapEnabled) snapVector3(obj.position);
             });
             updateGroupGizmoVisuals();
-        } else if (dragTarget.userData.isGroupRotationHandle && currentTool === 'rotate') {
-            if (!raycaster.ray.intersectPlane(plane, intersect)) return;
+            updateInspector();
+        } else if (dragTarget.userData.isRotateHandle && currentTool === 'rotate') {
+            if (!raycaster.ray.intersectPlane(dragPlane, intersect)) return;
+
             const box = new THREE.Box3();
             currentSelection.forEach(obj => {
                 obj.geometry.computeBoundingBox();
@@ -633,20 +956,24 @@
                 : dragTarget.userData.axis === 'y'
                     ? new THREE.Vector3(0, 1, 0)
                     : new THREE.Vector3(0, 0, 1);
+
             const rotQ = new THREE.Quaternion().setFromAxisAngle(axis, -(angle - startMouseAngle));
 
             currentSelection.forEach((obj, i) => {
                 const sd = startGroupData[i];
                 obj.position.copy(groupCenter).add(sd.pos.clone().sub(groupCenter).applyQuaternion(rotQ));
                 obj.quaternion.multiplyQuaternions(rotQ, sd.rot);
+                if (snapEnabled) snapVector3(obj.position);
             });
             updateGroupGizmoVisuals();
+            updateInspector();
         } else if (dragTarget.userData.isStretchHandle && currentTool === 'stretch' && deformSession) {
             if (!raycaster.ray.intersectPlane(deformSession.plane, intersect)) return;
             const deltaWorld = intersect.clone().sub(deformSession.startPoint);
-            const amount = deltaWorld.dot(deformSession.worldDirection) * 2.4;
+            const amount = deltaWorld.dot(deformSession.worldDirection) * 2.5;
             applyStretch(deformSession.object, deformSession, amount);
             updateGroupGizmoVisuals();
+            updateInspector();
         }
     }
 
@@ -661,14 +988,13 @@
             const maxY = Math.max(boxStart.y, e.clientY);
 
             if (Math.abs(maxX - minX) > 5) {
-                const selected = scene.children
-                    .filter(o => o.userData.isEgg)
-                    .filter(mesh => {
-                        const sp = mesh.position.clone().project(camera);
-                        const x = (sp.x + 1) * window.innerWidth / 2;
-                        const y = (1 - sp.y) * window.innerHeight / 2;
-                        return x >= minX && x <= maxX && y >= minY && y <= maxY;
-                    });
+                const selected = getShapeObjects().filter(obj => {
+                    const p = obj.position.clone().project(camera);
+                    const rect = renderer.domElement.getBoundingClientRect();
+                    const x = rect.left + (p.x + 1) * rect.width / 2;
+                    const y = rect.top + (1 - p.y) * rect.height / 2;
+                    return x >= minX && x <= maxX && y >= minY && y <= maxY;
+                });
                 updateSelectionVisuals(selected);
             }
         }
@@ -677,33 +1003,43 @@
         isDragging = false;
         dragTarget = null;
         dragStartPoint = null;
+        dragPlane = null;
         startPositions = [];
         deformSession = null;
         controls.enabled = true;
     }
 
-    function createGhost() {
-        ghostShape = createShapeMesh(placementShape, 0x28a745, true);
-        ghostShape.visible = false;
-        scene.add(ghostShape);
-    }
+    function updateInspector() {
+        const nameEl = document.getElementById('selection-name');
+        const countEl = document.getElementById('selection-count');
+        const px = document.getElementById('pos-x');
+        const py = document.getElementById('pos-y');
+        const pz = document.getElementById('pos-z');
+        const sx = document.getElementById('scale-x');
+        const sy = document.getElementById('scale-y');
+        const sz = document.getElementById('scale-z');
 
-    function togglePlacementMode() {
-        isPlacementMode = !isPlacementMode;
-        ghostShape.position.set(0, BASE_H / 2, 0);
-        ghostShape.visible = isPlacementMode;
-        document.getElementById('spawn-btn').classList.toggle('active', isPlacementMode);
-    }
+        if (currentSelection.length === 0) {
+            nameEl.textContent = 'Nothing selected';
+            countEl.textContent = '0 objects';
+            px.textContent = 'X: -';
+            py.textContent = 'Y: -';
+            pz.textContent = 'Z: -';
+            sx.textContent = 'W: -';
+            sy.textContent = 'H: -';
+            sz.textContent = 'D: -';
+            return;
+        }
 
-    function spawnShape(pos) {
-        const mesh = createShapeMesh(placementShape, 0xff69b4);
-        mesh.position.copy(pos).y += BASE_H / 2;
-        scene.add(mesh);
-        captureState();
-        isPlacementMode = false;
-        ghostShape.visible = false;
-        document.getElementById('spawn-btn').classList.remove('active');
-        updateSelectionVisuals([mesh]);
+        const obj = currentSelection[0];
+        nameEl.textContent = obj.userData.shapeType.toUpperCase();
+        countEl.textContent = currentSelection.length + (currentSelection.length === 1 ? ' object' : ' objects');
+        px.textContent = 'X: ' + obj.position.x.toFixed(1);
+        py.textContent = 'Y: ' + obj.position.y.toFixed(1);
+        pz.textContent = 'Z: ' + obj.position.z.toFixed(1);
+        sx.textContent = 'W: ' + obj.userData.data.scale.x.toFixed(2);
+        sy.textContent = 'H: ' + obj.userData.data.scale.y.toFixed(2);
+        sz.textContent = 'D: ' + obj.userData.data.scale.z.toFixed(2);
     }
 
     function animate() {
@@ -712,14 +1048,16 @@
     }
 
     window.onload = init;
-    window.updateColor = (c) => {
-        if (currentSelection.length > 0) {
-            currentSelection.forEach(obj => obj.material.color.set(c));
-            captureState();
-        }
-    };
     window.setToolMode = setToolMode;
     window.setPlacementShape = setPlacementShape;
+    window.togglePlacementMode = togglePlacementMode;
+    window.executeUndo = executeUndo;
+    window.executeRedo = executeRedo;
+    window.updateColor = updateColor;
+    window.duplicateSelection = duplicateSelection;
+    window.deleteSelection = deleteSelection;
+    window.toggleSnap = toggleSnap;
+    window.resetView = resetView;
 </script>
 </body>
 </html>
