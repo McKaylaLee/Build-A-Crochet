@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.31.0 - Tool Modes</title>
+    <title>Build-A-Crochet v5.32.0 - Tool Modes</title>
     <style>
         body { margin: 0; background-color: #ffffff; color: #111; overflow: hidden; display: flex; font-family: monospace; touch-action: none; user-select: none; }
         #panel { width: 92px; height: 100vh; background: #f0f0f0; border-right: 1px solid #ccc; display: flex; flex-direction: column; align-items: center; padding-top: 16px; gap: 8px; z-index: 1000; position: absolute; left: 0; top: 0; overflow-y: auto; }
@@ -15,6 +15,10 @@
         .egg-btn { background: #ff69b4; border-radius: 50%; width: 44px; height: 56px; margin-top: 2px; }
         .egg-btn.active { background: #28a745; box-shadow: 0 0 15px rgba(40,167,69,0.5); }
         .history-btn { background: #333; color: white; }
+        #tool-controls { position: absolute; top: 16px; left: 112px; z-index: 1001; background: rgba(255,255,255,0.95); border: 1px solid #ccc; border-radius: 10px; padding: 10px 12px; display: none; align-items: center; gap: 10px; }
+        #tool-controls label { font-size: 12px; font-weight: bold; color: #333; }
+        #tool-controls input[type="range"] { width: 160px; }
+        #tool-controls-value { min-width: 28px; font-size: 12px; color: #333; text-align: right; }
         #v-tag { position: absolute; bottom: 20px; right: 20px; color: #444; font-size: 12px; font-weight: bold; pointer-events: none; z-index: 50; background: rgba(255,255,255,0.8); padding: 4px; border-radius: 4px; }
         #palette { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 12px; display: none; grid-template-columns: repeat(2, 1fr); gap: 5px; border: 1px solid #ccc; z-index: 200; }
         .color-dot { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); }
@@ -52,7 +56,13 @@
     <div id="egg-spawn-btn" class="btn egg-btn" onclick="togglePlacementMode()"></div>
 </div>
 
-<div id="v-tag">Build-A-Crochet v5.31.0</div>
+<div id="tool-controls">
+    <label for="sculpt-size-slider">SCULPT SIZE</label>
+    <input id="sculpt-size-slider" type="range" min="8" max="60" value="18" oninput="updateSculptSize(this.value)">
+    <div id="tool-controls-value">18</div>
+</div>
+
+<div id="v-tag">Build-A-Crochet v5.32.0</div>
 <div id="select-box"></div>
 <div id="palette">
     <div class="color-dot" style="background: #ff69b4;" onclick="updateColor('#ff69b4')"></div>
@@ -68,19 +78,18 @@
     let isPlacementMode = false, dragTarget = null, isDragging = false;
     let groupHandles = [], groupRotHandles = [], groupGizmo;
     let startHandleDist = 1;
-    let undoStack = [], redoStack = [];
+    let history = [], historyIndex = -1;
     let currentSelection = [], isBoxSelecting = false, boxStart = new THREE.Vector2();
     let startGroupData = [], startMouseAngle = 0;
     let dragStartPoint = null, startPositions = [];
     let currentTool = 'pointer';
     let deformSession = null;
+    let sculptRadius = 18;
     
     const BASE_H = 96, BASE_R = 36;
-    const STRETCH_RADIUS = 42;
-    const SCULPT_RADIUS = 30;
-    const tmpVecA = new THREE.Vector3();
-    const tmpVecB = new THREE.Vector3();
-    const tmpVecC = new THREE.Vector3();
+    const STRETCH_RADIUS = 46;
+    const tmpVec = new THREE.Vector3();
+    const tmpVec2 = new THREE.Vector3();
 
     function init() {
         scene = new THREE.Scene();
@@ -134,7 +143,6 @@
             const targets = [...currentSelection];
             if (targets.length > 0) {
                 targets.forEach(o => {
-                    if (o.userData.outline) scene.remove(o.userData.outline);
                     o.geometry.dispose();
                     o.material.dispose();
                     scene.remove(o);
@@ -153,6 +161,7 @@
             const r = BASE_R * Math.sqrt(Math.max(0, 1 - Math.pow((y - BASE_H / 2) / (BASE_H / 2), 2)));
             points.push(new THREE.Vector2(Math.max(0.1, r), y));
         }
+
         const geo = new THREE.LatheGeometry(points, 32);
         geo.translate(0, -BASE_H / 2, 0);
         geo.userData.origPos = geo.attributes.position.clone();
@@ -164,16 +173,21 @@
         if (!isGhost) {
             egg.userData.isEgg = true;
             egg.userData.data = { scale: new THREE.Vector3(1, 1, 1) };
-            const outline = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide }));
+            const outline = new THREE.Mesh(
+                geo.clone(),
+                new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide })
+            );
             outline.scale.set(1.02, 1.02, 1.02);
             egg.add(outline);
             egg.userData.outline = outline;
         }
+
         return egg;
     }
 
     function updateMesh(egg) {
         if (!egg) return;
+
         const pos = egg.geometry.attributes.position;
         const orig = egg.geometry.userData.origPos;
         const offsets = egg.geometry.userData.deformOffsets;
@@ -188,11 +202,17 @@
                 orig.getZ(i) * scale.z + offsets[idx + 2]
             );
         }
+
         pos.needsUpdate = true;
-        pos.computeBoundingBox();
-        pos.computeBoundingSphere();
+        egg.geometry.computeBoundingBox();
+        egg.geometry.computeBoundingSphere();
         egg.geometry.computeVertexNormals();
-        egg.userData.outline.geometry.attributes.position.copy(pos).needsUpdate = true;
+
+        const outlinePos = egg.userData.outline.geometry.attributes.position;
+        outlinePos.copy(pos);
+        outlinePos.needsUpdate = true;
+        egg.userData.outline.geometry.computeBoundingBox();
+        egg.userData.outline.geometry.computeBoundingSphere();
         egg.userData.outline.geometry.computeVertexNormals();
     }
 
@@ -224,6 +244,7 @@
             scene.add(r);
             return r;
         };
+
         groupRotHandles = [makeR(0xff0000, 'x'), makeR(0x00ff00, 'y'), makeR(0x0000ff, 'z')];
     }
 
@@ -234,7 +255,13 @@
         document.getElementById('scale-tool-btn').classList.toggle('active', mode === 'scale');
         document.getElementById('stretch-tool-btn').classList.toggle('active', mode === 'stretch');
         document.getElementById('sculpt-tool-btn').classList.toggle('active', mode === 'sculpt');
+        document.getElementById('tool-controls').style.display = mode === 'sculpt' ? 'flex' : 'none';
         updateSelectionVisuals(currentSelection);
+    }
+
+    function updateSculptSize(value) {
+        sculptRadius = Number(value);
+        document.getElementById('tool-controls-value').textContent = value;
     }
 
     function updateSelectionVisuals(selected) {
@@ -250,15 +277,9 @@
         selected.forEach(e => e.userData.outline.scale.set(1.1, 1.1, 1.1));
         document.getElementById('palette').style.display = 'grid';
 
-        if (currentTool === 'scale' || currentTool === 'rotate') {
-            groupGizmo.visible = true;
-        }
-        if (currentTool === 'scale') {
-            groupHandles.forEach(h => h.visible = true);
-        }
-        if (currentTool === 'rotate') {
-            groupRotHandles.forEach(h => h.visible = true);
-        }
+        if (currentTool === 'scale' || currentTool === 'rotate') groupGizmo.visible = true;
+        if (currentTool === 'scale') groupHandles.forEach(h => h.visible = true);
+        if (currentTool === 'rotate') groupRotHandles.forEach(h => h.visible = true);
         updateGroupGizmoVisuals();
     }
 
@@ -309,38 +330,45 @@
         return raycaster;
     }
 
-    function beginStretchSession(hit, e) {
-        const worldPoint = hit.point.clone();
-        const localPoint = dragTarget.worldToLocal(worldPoint.clone());
-        const localCenter = new THREE.Vector3(0, 0, 0);
-        const localDirection = localPoint.clone().sub(localCenter).normalize();
+    function beginStretchSession(hit, e, raycaster) {
+        const dragPlane = new THREE.Plane(
+            camera.getWorldDirection(new THREE.Vector3()).negate(),
+            -hit.point.dot(camera.getWorldDirection(new THREE.Vector3()).negate())
+        );
+
+        const intersection = new THREE.Vector3();
+        if (!raycaster.ray.intersectPlane(dragPlane, intersection)) return false;
+
+        const localPoint = dragTarget.worldToLocal(hit.point.clone());
+        let localDirection = localPoint.clone().normalize();
         if (localDirection.lengthSq() === 0) localDirection.set(0, 1, 0);
 
         deformSession = {
             mode: 'stretch',
             object: dragTarget,
-            startY: e.clientY,
+            plane: dragPlane.clone(),
             localPoint,
             localDirection,
+            startY: e.clientY,
             baseOffsets: dragTarget.geometry.userData.deformOffsets.slice()
         };
+
+        dragStartPoint = intersection.clone();
+        return true;
     }
 
     function beginSculptSession(hit) {
-        const worldPoint = hit.point.clone();
-        const localPoint = dragTarget.worldToLocal(worldPoint.clone());
-        const worldNormal = hit.face.normal.clone().transformDirection(dragTarget.matrixWorld).normalize();
-        const localDirection = dragTarget.worldToLocal(hit.point.clone().add(worldNormal)).sub(localPoint).normalize();
+        const localPoint = dragTarget.worldToLocal(hit.point.clone());
+        let localDirection = hit.face.normal.clone();
+        localDirection.normalize();
 
         deformSession = {
             mode: 'sculpt',
             object: dragTarget,
-            localPoint,
-            localDirection,
-            baseOffsets: dragTarget.geometry.userData.deformOffsets.slice()
+            localDirection
         };
 
-        applySculpt(hit.object, deformSession.localPoint, deformSession.localDirection, deformSession.baseOffsets);
+        applySculptDab(dragTarget, localPoint, localDirection, -4.5);
     }
 
     function applyStretch(object, dragDeltaY, session) {
@@ -348,49 +376,116 @@
         offsets.set(session.baseOffsets);
 
         const orig = object.geometry.userData.origPos;
-        const amount = -dragDeltaY * 0.35;
+        const amount = -dragDeltaY * 0.8;
+
         for (let i = 0; i < orig.count; i++) {
             const idx = i * 3;
-            const vertex = tmpVecA.set(
-                orig.getX(i) * object.userData.data.scale.x,
-                orig.getY(i) * object.userData.data.scale.y,
-                orig.getZ(i) * object.userData.data.scale.z
+            const vertex = tmpVec.set(
+                orig.getX(i) * object.userData.data.scale.x + session.baseOffsets[idx],
+                orig.getY(i) * object.userData.data.scale.y + session.baseOffsets[idx + 1],
+                orig.getZ(i) * object.userData.data.scale.z + session.baseOffsets[idx + 2]
             );
+
             const dist = vertex.distanceTo(session.localPoint);
             if (dist > STRETCH_RADIUS) continue;
 
             const falloff = 1 - dist / STRETCH_RADIUS;
             const push = amount * falloff * falloff;
-            offsets[idx] += session.localDirection.x * push;
-            offsets[idx + 1] += session.localDirection.y * push;
-            offsets[idx + 2] += session.localDirection.z * push;
+
+            offsets[idx] = session.baseOffsets[idx] + session.localDirection.x * push;
+            offsets[idx + 1] = session.baseOffsets[idx + 1] + session.localDirection.y * push;
+            offsets[idx + 2] = session.baseOffsets[idx + 2] + session.localDirection.z * push;
         }
+
         updateMesh(object);
     }
 
-    function applySculpt(object, localPoint, localDirection, baseOffsets) {
+    function applySculptDab(object, localPoint, localDirection, strength) {
         const offsets = object.geometry.userData.deformOffsets;
-        offsets.set(baseOffsets);
-
         const orig = object.geometry.userData.origPos;
+
         for (let i = 0; i < orig.count; i++) {
             const idx = i * 3;
-            const vertex = tmpVecA.set(
-                orig.getX(i) * object.userData.data.scale.x,
-                orig.getY(i) * object.userData.data.scale.y,
-                orig.getZ(i) * object.userData.data.scale.z
+            const vertex = tmpVec.set(
+                orig.getX(i) * object.userData.data.scale.x + offsets[idx],
+                orig.getY(i) * object.userData.data.scale.y + offsets[idx + 1],
+                orig.getZ(i) * object.userData.data.scale.z + offsets[idx + 2]
             );
-            const dist = vertex.distanceTo(localPoint);
-            if (dist > SCULPT_RADIUS) continue;
 
-            const falloff = 1 - dist / SCULPT_RADIUS;
-            const push = -10 * falloff * falloff;
+            const dist = vertex.distanceTo(localPoint);
+            if (dist > sculptRadius) continue;
+
+            const falloff = 1 - dist / sculptRadius;
+            const push = strength * falloff * falloff;
+
             offsets[idx] += localDirection.x * push;
             offsets[idx + 1] += localDirection.y * push;
             offsets[idx + 2] += localDirection.z * push;
         }
+
         updateMesh(object);
     }
+
+    function captureState() {
+        const state = scene.children
+            .filter(o => o.userData.isEgg)
+            .map(obj => ({
+                pos: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
+                rot: { x: obj.quaternion.x, y: obj.quaternion.y, z: obj.quaternion.z, w: obj.quaternion.w },
+                scale: {
+                    x: obj.userData.data.scale.x,
+                    y: obj.userData.data.scale.y,
+                    z: obj.userData.data.scale.z
+                },
+                col: obj.material.color.getHex(),
+                deformOffsets: Array.from(obj.geometry.userData.deformOffsets)
+            }));
+
+        const json = JSON.stringify(state);
+        if (historyIndex >= 0 && history[historyIndex] === json) return;
+
+        history = history.slice(0, historyIndex + 1);
+        history.push(json);
+        historyIndex = history.length - 1;
+    }
+
+    function applyState(json) {
+        const state = JSON.parse(json);
+
+        scene.children
+            .filter(o => o.userData.isEgg)
+            .forEach(obj => {
+                obj.geometry.dispose();
+                obj.userData.outline.geometry.dispose();
+                obj.material.dispose();
+                obj.userData.outline.material.dispose();
+                scene.remove(obj);
+            });
+
+        state.forEach(d => {
+            const egg = createEgg(new THREE.Color(d.col));
+            egg.position.set(d.pos.x, d.pos.y, d.pos.z);
+            egg.quaternion.set(d.rot.x, d.rot.y, d.rot.z, d.rot.w);
+            egg.userData.data.scale.set(d.scale.x, d.scale.y, d.scale.z);
+            if (d.deformOffsets) egg.geometry.userData.deformOffsets.set(d.deformOffsets);
+            updateMesh(egg);
+            scene.add(egg);
+        });
+
+        updateSelectionVisuals([]);
+    }
+
+    window.executeUndo = function() {
+        if (historyIndex <= 0) return;
+        historyIndex -= 1;
+        applyState(history[historyIndex]);
+    };
+
+    window.executeRedo = function() {
+        if (historyIndex >= history.length - 1) return;
+        historyIndex += 1;
+        applyState(history[historyIndex]);
+    };
 
     function onDown(e) {
         if (e.target.tagName !== 'CANVAS') return;
@@ -458,9 +553,10 @@
                     startPositions = [];
                 }
             } else if (currentTool === 'stretch') {
-                isDragging = true;
-                controls.enabled = false;
-                beginStretchSession(hit, e);
+                if (beginStretchSession(hit, e, raycaster)) {
+                    isDragging = true;
+                    controls.enabled = false;
+                }
             } else if (currentTool === 'sculpt') {
                 isDragging = true;
                 controls.enabled = false;
@@ -561,6 +657,13 @@
         } else if (currentTool === 'stretch' && deformSession && deformSession.mode === 'stretch') {
             applyStretch(deformSession.object, e.clientY - deformSession.startY, deformSession);
             updateGroupGizmoVisuals();
+        } else if (currentTool === 'sculpt' && deformSession && deformSession.mode === 'sculpt') {
+            const hits = raycaster.intersectObjects([deformSession.object]);
+            if (hits.length > 0) {
+                const localPoint = deformSession.object.worldToLocal(hits[0].point.clone());
+                applySculptDab(deformSession.object, localPoint, deformSession.localDirection, -1.35);
+                updateGroupGizmoVisuals();
+            }
         }
     }
 
@@ -594,59 +697,6 @@
         startPositions = [];
         deformSession = null;
         controls.enabled = true;
-    }
-
-    function captureState() {
-        const state = scene.children
-            .filter(o => o.userData.isEgg)
-            .map(obj => ({
-                pos: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
-                rot: { x: obj.quaternion.x, y: obj.quaternion.y, z: obj.quaternion.z, w: obj.quaternion.w },
-                scale: {
-                    x: obj.userData.data.scale.x,
-                    y: obj.userData.data.scale.y,
-                    z: obj.userData.data.scale.z
-                },
-                col: obj.material.color.getHex(),
-                deformOffsets: Array.from(obj.geometry.userData.deformOffsets)
-            }));
-        undoStack.push(JSON.stringify(state));
-        if (undoStack.length > 50) undoStack.shift();
-        redoStack = [];
-    }
-
-    window.executeUndo = function() {
-        if (undoStack.length < 2) return;
-        redoStack.push(undoStack.pop());
-        applyState(undoStack[undoStack.length - 1]);
-    };
-
-    window.executeRedo = function() {
-        if (redoStack.length === 0) return;
-        const state = redoStack.pop();
-        undoStack.push(state);
-        applyState(state);
-    };
-
-    function applyState(json) {
-        const state = JSON.parse(json);
-        scene.children.filter(o => o.userData.isEgg).forEach(obj => {
-            if (obj.userData.outline) scene.remove(obj.userData.outline);
-            obj.geometry.dispose();
-            obj.material.dispose();
-            scene.remove(obj);
-        });
-
-        state.forEach(d => {
-            const egg = createEgg(new THREE.Color(d.col));
-            egg.position.set(d.pos.x, d.pos.y, d.pos.z);
-            egg.quaternion.set(d.rot.x, d.rot.y, d.rot.z, d.rot.w);
-            egg.userData.data.scale.set(d.scale.x, d.scale.y, d.scale.z);
-            if (d.deformOffsets) egg.geometry.userData.deformOffsets.set(d.deformOffsets);
-            updateMesh(egg);
-            scene.add(egg);
-        });
-        updateSelectionVisuals([]);
     }
 
     function createGhost() {
@@ -686,6 +736,7 @@
         }
     };
     window.setToolMode = setToolMode;
+    window.updateSculptSize = updateSculptSize;
 </script>
 </body>
 </html>
