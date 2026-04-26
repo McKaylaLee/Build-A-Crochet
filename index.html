@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.35.0 - Builder Mode</title>
+    <title>Build-A-Crochet v5.36.0 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -210,7 +210,6 @@
         <button class="btn tool-btn active" id="tool-pointer" onclick="setToolMode('pointer')"><span class="icon">↖</span><span>SELECT</span></button>
         <button class="btn tool-btn" id="tool-rotate" onclick="setToolMode('rotate')"><span class="icon">↻</span><span>ROTATE</span></button>
         <button class="btn tool-btn" id="tool-scale" onclick="setToolMode('scale')"><span class="icon">⤢</span><span>SIZE</span></button>
-        <button class="btn tool-btn" id="tool-stretch" onclick="setToolMode('stretch')"><span class="icon">⇱</span><span>STRETCH</span></button>
 
         <div class="divider"></div>
 
@@ -243,7 +242,7 @@
 
     <main id="canvas-wrap">
         <div id="select-box"></div>
-        <div id="version-tag">v5.35.0</div>
+        <div id="version-tag">v5.36.0</div>
     </main>
 
     <aside id="rightbar">
@@ -303,10 +302,10 @@
     let isBoxSelecting = false;
     let boxStart = new THREE.Vector2();
     let snapEnabled = true;
+    let scaleSession = null;
 
     let groupGizmo;
     let scaleHandles = [];
-    let stretchHandles = [];
     let rotateHandles = [];
 
     let history = [];
@@ -314,12 +313,7 @@
 
     const BASE_H = 96;
     const BASE_R = 36;
-    const STRETCH_RADIUS = 46;
     const SNAP_STEP = 4;
-
-    const tmpA = new THREE.Vector3();
-    const tmpB = new THREE.Vector3();
-    const tmpC = new THREE.Vector3();
 
     function init() {
         scene = new THREE.Scene();
@@ -381,7 +375,6 @@
         document.getElementById('tool-pointer').classList.toggle('active', mode === 'pointer');
         document.getElementById('tool-rotate').classList.toggle('active', mode === 'rotate');
         document.getElementById('tool-scale').classList.toggle('active', mode === 'scale');
-        document.getElementById('tool-stretch').classList.toggle('active', mode === 'stretch');
         updateSelectionVisuals(currentSelection);
     }
 
@@ -439,8 +432,6 @@
     function createShapeMesh(shapeType, color, isGhost = false) {
         const geo = new THREE.LatheGeometry(createProfile(shapeType), 32);
         geo.translate(0, -BASE_H / 2, 0);
-        geo.userData.origPos = geo.attributes.position.clone();
-        geo.userData.deformOffsets = new Float32Array(geo.attributes.position.count * 3);
 
         const mat = new THREE.MeshPhongMaterial({
             color,
@@ -474,35 +465,6 @@
         scene.add(ghostShape);
     }
 
-    function updateMesh(mesh) {
-        const pos = mesh.geometry.attributes.position;
-        const orig = mesh.geometry.userData.origPos;
-        const offsets = mesh.geometry.userData.deformOffsets;
-        const scale = mesh.userData.data.scale;
-
-        for (let i = 0; i < orig.count; i++) {
-            const idx = i * 3;
-            pos.setXYZ(
-                i,
-                orig.getX(i) * scale.x + offsets[idx],
-                orig.getY(i) * scale.y + offsets[idx + 1],
-                orig.getZ(i) * scale.z + offsets[idx + 2]
-            );
-        }
-
-        pos.needsUpdate = true;
-        mesh.geometry.computeBoundingBox();
-        mesh.geometry.computeBoundingSphere();
-        mesh.geometry.computeVertexNormals();
-
-        const outlinePos = mesh.userData.outline.geometry.attributes.position;
-        outlinePos.copy(pos);
-        outlinePos.needsUpdate = true;
-        mesh.userData.outline.geometry.computeBoundingBox();
-        mesh.userData.outline.geometry.computeBoundingSphere();
-        mesh.userData.outline.geometry.computeVertexNormals();
-    }
-
     function createHandle(color, data) {
         const h = new THREE.Mesh(
             new THREE.SphereGeometry(2.8, 16, 16),
@@ -520,10 +482,32 @@
         groupGizmo.visible = false;
         scene.add(groupGizmo);
 
-        for (let i = 0; i < 10; i++) {
-            scaleHandles.push(createHandle(0xffd84d, { isScaleHandle: true, id: i }));
-            stretchHandles.push(createHandle(0xffd84d, { isStretchHandle: true, id: i, worldDirection: new THREE.Vector3() }));
-        }
+        const defs = [
+            { pos: [-0.5,  0.5,  0.5], active: ['x', 'y', 'z'], signs: { x: -1, y:  1, z:  1 } },
+            { pos: [-0.5,  0.5, -0.5], active: ['x', 'y', 'z'], signs: { x: -1, y:  1, z: -1 } },
+            { pos: [-0.5, -0.5,  0.5], active: ['x', 'y', 'z'], signs: { x: -1, y: -1, z:  1 } },
+            { pos: [-0.5, -0.5, -0.5], active: ['x', 'y', 'z'], signs: { x: -1, y: -1, z: -1 } },
+            { pos: [ 0.5,  0.5,  0.5], active: ['x', 'y', 'z'], signs: { x:  1, y:  1, z:  1 } },
+            { pos: [ 0.5,  0.5, -0.5], active: ['x', 'y', 'z'], signs: { x:  1, y:  1, z: -1 } },
+            { pos: [ 0.5, -0.5,  0.5], active: ['x', 'y', 'z'], signs: { x:  1, y: -1, z:  1 } },
+            { pos: [ 0.5, -0.5, -0.5], active: ['x', 'y', 'z'], signs: { x:  1, y: -1, z: -1 } },
+            { pos: [ 0.0,  0.5,  0.0], active: ['y'],           signs: { x:  0, y:  1, z:  0 } },
+            { pos: [ 0.0, -0.5,  0.0], active: ['y'],           signs: { x:  0, y: -1, z:  0 } },
+            { pos: [ 0.5,  0.0,  0.0], active: ['x'],           signs: { x:  1, y:  0, z:  0 } },
+            { pos: [-0.5,  0.0,  0.0], active: ['x'],           signs: { x: -1, y:  0, z:  0 } },
+            { pos: [ 0.0,  0.0,  0.5], active: ['z'],           signs: { x:  0, y:  0, z:  1 } },
+            { pos: [ 0.0,  0.0, -0.5], active: ['z'],           signs: { x:  0, y:  0, z: -1 } }
+        ];
+
+        defs.forEach((def, i) => {
+            scaleHandles.push(createHandle(0xffd84d, {
+                isScaleHandle: true,
+                id: i,
+                point: new THREE.Vector3(def.pos[0], def.pos[1], def.pos[2]),
+                activeAxes: def.active,
+                signs: def.signs
+            }));
+        });
 
         const mkRot = (color, axis) => {
             const r = new THREE.Mesh(
@@ -547,7 +531,6 @@
     function updateSelectionVisuals(selected) {
         getShapeObjects().forEach(o => o.userData.outline.scale.set(1.02, 1.02, 1.02));
         scaleHandles.forEach(h => h.visible = false);
-        stretchHandles.forEach(h => h.visible = false);
         rotateHandles.forEach(h => h.visible = false);
         groupGizmo.visible = false;
 
@@ -559,9 +542,8 @@
 
         selected.forEach(o => o.userData.outline.scale.set(1.1, 1.1, 1.1));
 
-        if (currentTool === 'scale' || currentTool === 'stretch' || currentTool === 'rotate') groupGizmo.visible = true;
+        if (currentTool === 'scale' || currentTool === 'rotate') groupGizmo.visible = true;
         if (currentTool === 'scale') scaleHandles.forEach(h => h.visible = true);
-        if (currentTool === 'stretch') stretchHandles.forEach(h => h.visible = true);
         if (currentTool === 'rotate') rotateHandles.forEach(h => h.visible = true);
 
         updateGroupGizmoVisuals();
@@ -573,8 +555,7 @@
 
         const box = new THREE.Box3();
         currentSelection.forEach(obj => {
-            obj.geometry.computeBoundingBox();
-            box.union(obj.geometry.boundingBox.clone().applyMatrix4(obj.matrixWorld));
+            box.union(new THREE.Box3().setFromObject(obj));
         });
 
         const center = box.getCenter(new THREE.Vector3());
@@ -583,27 +564,12 @@
         helper.position.copy(center);
         groupGizmo.update(helper);
 
-        const points = [
-            new THREE.Vector3(-0.5, 0.5, 0.5),
-            new THREE.Vector3(-0.5, 0.5, -0.5),
-            new THREE.Vector3(-0.5, -0.5, 0.5),
-            new THREE.Vector3(-0.5, -0.5, -0.5),
-            new THREE.Vector3(0.5, 0.5, 0.5),
-            new THREE.Vector3(0.5, 0.5, -0.5),
-            new THREE.Vector3(0.5, -0.5, 0.5),
-            new THREE.Vector3(0.5, -0.5, -0.5),
-            new THREE.Vector3(0, 0.5, 0),
-            new THREE.Vector3(0, -0.5, 0)
-        ];
-
-        scaleHandles.forEach((h, i) => {
-            h.position.copy(center).add(points[i].clone().multiply(size));
-        });
-
-        stretchHandles.forEach((h, i) => {
-            const offset = points[i].clone().multiply(size);
-            h.position.copy(center).add(offset);
-            h.userData.worldDirection.copy(offset.lengthSq() === 0 ? new THREE.Vector3(0, 1, 0) : offset.clone().normalize());
+        scaleHandles.forEach(h => {
+            h.position.copy(center).add(new THREE.Vector3(
+                h.userData.point.x * size.x,
+                h.userData.point.y * size.y,
+                h.userData.point.z * size.z
+            ));
         });
 
         rotateHandles.forEach((r, i) => {
@@ -641,8 +607,7 @@
             rot: { x: obj.quaternion.x, y: obj.quaternion.y, z: obj.quaternion.z, w: obj.quaternion.w },
             scale: { x: obj.userData.data.scale.x, y: obj.userData.data.scale.y, z: obj.userData.data.scale.z },
             col: obj.material.color.getHex(),
-            shapeType: obj.userData.shapeType,
-            deformOffsets: Array.from(obj.geometry.userData.deformOffsets)
+            shapeType: obj.userData.shapeType
         }));
 
         const json = JSON.stringify(state);
@@ -668,8 +633,6 @@
             obj.position.set(d.pos.x, d.pos.y, d.pos.z);
             obj.quaternion.set(d.rot.x, d.rot.y, d.rot.z, d.rot.w);
             obj.userData.data.scale.set(d.scale.x, d.scale.y, d.scale.z);
-            if (d.deformOffsets) obj.geometry.userData.deformOffsets.set(d.deformOffsets);
-            updateMesh(obj);
             scene.add(obj);
         });
 
@@ -697,8 +660,6 @@
             clone.position.copy(obj.position).add(new THREE.Vector3(8, 0, 8));
             clone.quaternion.copy(obj.quaternion);
             clone.userData.data.scale.copy(obj.userData.data.scale);
-            clone.geometry.userData.deformOffsets.set(obj.geometry.userData.deformOffsets);
-            updateMesh(clone);
             scene.add(clone);
             clones.push(clone);
         });
@@ -759,52 +720,13 @@
         }
     }
 
-    function applyStretch(object, session, amount) {
-        const offsets = object.geometry.userData.deformOffsets;
-        offsets.set(session.baseOffsets);
-
-        const orig = object.geometry.userData.origPos;
-        const localDir = session.localDirection;
-        const localAnchor = session.localAnchor;
-
-        for (let i = 0; i < orig.count; i++) {
-            const idx = i * 3;
-            const vertex = tmpA.set(
-                orig.getX(i) * object.userData.data.scale.x + session.baseOffsets[idx],
-                orig.getY(i) * object.userData.data.scale.y + session.baseOffsets[idx + 1],
-                orig.getZ(i) * object.userData.data.scale.z + session.baseOffsets[idx + 2]
-            );
-
-            const toVertex = tmpB.copy(vertex).sub(localAnchor);
-            const aligned = toVertex.dot(localDir);
-            if (aligned < -8) continue;
-
-            const alongVec = tmpC.copy(localDir).multiplyScalar(aligned);
-            const radial = toVertex.clone().sub(alongVec).length();
-            if (radial > STRETCH_RADIUS) continue;
-
-            const radialFalloff = 1 - radial / STRETCH_RADIUS;
-            const alongFalloff = Math.max(0, Math.min(1, (aligned + 10) / 34));
-            const push = amount * radialFalloff * radialFalloff * alongFalloff;
-
-            offsets[idx] = session.baseOffsets[idx] + localDir.x * push;
-            offsets[idx + 1] = session.baseOffsets[idx + 1] + localDir.y * push;
-            offsets[idx + 2] = session.baseOffsets[idx + 2] + localDir.z * push;
-        }
-
-        updateMesh(object);
-    }
-
     function onDown(e) {
         if (e.target.tagName !== 'CANVAS') return;
 
         const raycaster = getPointerRay(e);
-        const activeGizmos =
-            currentTool === 'scale' ? scaleHandles :
-            currentTool === 'stretch' ? stretchHandles :
-            currentTool === 'rotate' ? rotateHandles : [];
-
+        const activeGizmos = currentTool === 'scale' ? scaleHandles : currentTool === 'rotate' ? rotateHandles : [];
         const gizmoHits = raycaster.intersectObjects(activeGizmos);
+
         if (gizmoHits.length > 0) {
             dragTarget = gizmoHits[0].object;
             isDragging = true;
@@ -819,11 +741,9 @@
             raycaster.ray.intersectPlane(dragPlane, intersect);
 
             const box = new THREE.Box3();
-            currentSelection.forEach(obj => {
-                obj.geometry.computeBoundingBox();
-                box.union(obj.geometry.boundingBox.clone().applyMatrix4(obj.matrixWorld));
-            });
+            currentSelection.forEach(obj => box.union(new THREE.Box3().setFromObject(obj)));
             const groupCenter = box.getCenter(new THREE.Vector3());
+            const groupSize = box.getSize(new THREE.Vector3());
 
             startGroupData = currentSelection.map(obj => ({
                 pos: obj.position.clone(),
@@ -832,22 +752,20 @@
             }));
             startHandleDist = intersect.distanceTo(groupCenter);
 
-            if (dragTarget.userData.isStretchHandle && currentSelection.length > 0) {
-                const obj = currentSelection[0];
-                const worldDir = dragTarget.userData.worldDirection.clone().normalize();
-                const localOrigin = obj.worldToLocal(obj.position.clone());
-                const localDirPoint = obj.worldToLocal(obj.position.clone().add(worldDir));
-                let localDir = localDirPoint.sub(localOrigin).normalize();
-                if (localDir.lengthSq() === 0) localDir.set(0, 1, 0);
+            if (dragTarget.userData.isScaleHandle) {
+                const signs = dragTarget.userData.signs;
+                const anchor = groupCenter.clone();
+                if (signs.x !== 0) anchor.x -= signs.x * groupSize.x * 0.5;
+                if (signs.y !== 0) anchor.y -= signs.y * groupSize.y * 0.5;
+                if (signs.z !== 0) anchor.z -= signs.z * groupSize.z * 0.5;
 
-                deformSession = {
-                    object: obj,
-                    plane: dragPlane.clone(),
+                scaleSession = {
                     startPoint: intersect.clone(),
-                    worldDirection: worldDir,
-                    localDirection: localDir,
-                    localAnchor: obj.worldToLocal(dragTarget.position.clone()),
-                    baseOffsets: obj.geometry.userData.deformOffsets.slice()
+                    startCenter: groupCenter.clone(),
+                    startSize: groupSize.clone(),
+                    anchor,
+                    activeAxes: dragTarget.userData.activeAxes,
+                    signs
                 };
             }
 
@@ -870,7 +788,7 @@
             if (currentTool === 'pointer') beginObjectMove(hit, raycaster);
         } else {
             dragTarget = null;
-            deformSession = null;
+            scaleSession = null;
 
             if (isPlacementMode && e.button === 0) {
                 spawnShape(new THREE.Vector3(0, 0, 0));
@@ -918,33 +836,44 @@
             updateGroupGizmoVisuals();
             updateInspector();
         } else if (dragTarget.userData.isScaleHandle && currentTool === 'scale') {
-            if (!raycaster.ray.intersectPlane(dragPlane, intersect)) return;
+            if (!raycaster.ray.intersectPlane(dragPlane, intersect) || !scaleSession) return;
 
-            const box = new THREE.Box3();
-            currentSelection.forEach(obj => {
-                obj.geometry.computeBoundingBox();
-                box.union(obj.geometry.boundingBox.clone().applyMatrix4(obj.matrixWorld));
+            const delta = intersect.clone().sub(scaleSession.startPoint);
+            const newSize = scaleSession.startSize.clone();
+            const ratios = { x: 1, y: 1, z: 1 };
+
+            ['x', 'y', 'z'].forEach(axis => {
+                if (!scaleSession.activeAxes.includes(axis)) return;
+                const sign = scaleSession.signs[axis];
+                const change = delta[axis] * sign;
+                newSize[axis] = Math.max(8, scaleSession.startSize[axis] + change);
+                ratios[axis] = newSize[axis] / Math.max(0.0001, scaleSession.startSize[axis]);
             });
-            const groupCenter = box.getCenter(new THREE.Vector3());
-            const ratio = Math.max(0.15, intersect.distanceTo(groupCenter) / startHandleDist);
 
             currentSelection.forEach((obj, i) => {
-                const sd = startGroupData[i];
-                obj.userData.data.scale.copy(sd.scale).multiplyScalar(ratio);
-                updateMesh(obj);
-                obj.position.copy(groupCenter).add(sd.pos.clone().sub(groupCenter).multiplyScalar(ratio));
+                const start = startGroupData[i];
+                obj.userData.data.scale.set(
+                    start.scale.x * ratios.x,
+                    start.scale.y * ratios.y,
+                    start.scale.z * ratios.z
+                );
+
+                obj.position.set(
+                    scaleSession.activeAxes.includes('x') ? scaleSession.anchor.x + (start.pos.x - scaleSession.anchor.x) * ratios.x : start.pos.x,
+                    scaleSession.activeAxes.includes('y') ? scaleSession.anchor.y + (start.pos.y - scaleSession.anchor.y) * ratios.y : start.pos.y,
+                    scaleSession.activeAxes.includes('z') ? scaleSession.anchor.z + (start.pos.z - scaleSession.anchor.z) * ratios.z : start.pos.z
+                );
+
                 if (snapEnabled) snapVector3(obj.position);
             });
+
             updateGroupGizmoVisuals();
             updateInspector();
         } else if (dragTarget.userData.isRotateHandle && currentTool === 'rotate') {
             if (!raycaster.ray.intersectPlane(dragPlane, intersect)) return;
 
             const box = new THREE.Box3();
-            currentSelection.forEach(obj => {
-                obj.geometry.computeBoundingBox();
-                box.union(obj.geometry.boundingBox.clone().applyMatrix4(obj.matrixWorld));
-            });
+            currentSelection.forEach(obj => box.union(new THREE.Box3().setFromObject(obj)));
             const groupCenter = box.getCenter(new THREE.Vector3());
             const sPos = dragTarget.position.clone().project(camera);
             const angle = Math.atan2(
@@ -965,13 +894,7 @@
                 obj.quaternion.multiplyQuaternions(rotQ, sd.rot);
                 if (snapEnabled) snapVector3(obj.position);
             });
-            updateGroupGizmoVisuals();
-            updateInspector();
-        } else if (dragTarget.userData.isStretchHandle && currentTool === 'stretch' && deformSession) {
-            if (!raycaster.ray.intersectPlane(deformSession.plane, intersect)) return;
-            const deltaWorld = intersect.clone().sub(deformSession.startPoint);
-            const amount = deltaWorld.dot(deformSession.worldDirection) * 2.5;
-            applyStretch(deformSession.object, deformSession, amount);
+
             updateGroupGizmoVisuals();
             updateInspector();
         }
@@ -1005,7 +928,7 @@
         dragStartPoint = null;
         dragPlane = null;
         startPositions = [];
-        deformSession = null;
+        scaleSession = null;
         controls.enabled = true;
     }
 
