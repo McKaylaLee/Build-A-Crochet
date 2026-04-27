@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.37.0 - Builder Mode</title>
+    <title>Build-A-Crochet v5.38.0 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -31,7 +31,7 @@
             width: 100vw;
             height: 100vh;
             display: grid;
-            grid-template-columns: 96px 1fr 240px;
+            grid-template-columns: 108px 1fr 240px;
             grid-template-rows: 62px 1fr;
             grid-template-areas:
                 "left top right"
@@ -114,15 +114,36 @@
             line-height: 1;
         }
 
+        .shape-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: flex-start;
+            padding-left: 8px;
+            min-height: 40px;
+        }
+
+        .shape-icon {
+            width: 18px;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1;
+            color: var(--muted);
+            flex: 0 0 18px;
+        }
+
+        .shape-label {
+            font-size: 10px;
+        }
+
         .btn.active {
             background: var(--accent);
             color: #fff;
             border-color: #ff9bc2;
         }
 
-        .btn.green.active {
-            background: var(--green);
-            border-color: #6ccc95;
+        .btn.active .shape-icon {
+            color: #fff;
         }
 
         .divider {
@@ -214,12 +235,21 @@
         <div class="divider"></div>
 
         <div class="label">SHAPES</div>
-        <button class="btn shape-btn active" id="shape-oval" onclick="setPlacementShape('oval')">OVAL</button>
-        <button class="btn shape-btn" id="shape-paraboloid" onclick="setPlacementShape('paraboloid')">PARA</button>
-        <button class="btn shape-btn" id="shape-sphere" onclick="setPlacementShape('sphere')">SPHERE</button>
-        <button class="btn shape-btn" id="shape-cylinder" onclick="setPlacementShape('cylinder')">CYL</button>
-        <button class="btn shape-btn" id="shape-cone" onclick="setPlacementShape('cone')">CONE</button>
-        <button class="btn green" id="place-btn" onclick="togglePlacementMode()">PLACE</button>
+        <button class="btn shape-btn active" id="shape-oval" onclick="spawnShapeFromButton('oval')">
+            <span class="shape-icon">⬭</span><span class="shape-label">OVAL</span>
+        </button>
+        <button class="btn shape-btn" id="shape-paraboloid" onclick="spawnShapeFromButton('paraboloid')">
+            <span class="shape-icon">∪</span><span class="shape-label">PARA</span>
+        </button>
+        <button class="btn shape-btn" id="shape-sphere" onclick="spawnShapeFromButton('sphere')">
+            <span class="shape-icon">◯</span><span class="shape-label">SPHERE</span>
+        </button>
+        <button class="btn shape-btn" id="shape-cylinder" onclick="spawnShapeFromButton('cylinder')">
+            <span class="shape-icon">⬯</span><span class="shape-label">CYL</span>
+        </button>
+        <button class="btn shape-btn" id="shape-cone" onclick="spawnShapeFromButton('cone')">
+            <span class="shape-icon">△</span><span class="shape-label">CONE</span>
+        </button>
     </aside>
 
     <header id="topbar">
@@ -242,7 +272,7 @@
 
     <main id="canvas-wrap">
         <div id="select-box"></div>
-        <div id="version-tag">v5.37.0</div>
+        <div id="version-tag">v5.38.0</div>
     </main>
 
     <aside id="rightbar">
@@ -286,10 +316,9 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
 <script>
-    let scene, camera, renderer, controls, gridHelper, ghostShape;
+    let scene, camera, renderer, controls, gridHelper;
     let currentTool = 'pointer';
     let placementShape = 'oval';
-    let isPlacementMode = false;
     let isDragging = false;
     let dragTarget = null;
     let dragStartPoint = null;
@@ -346,7 +375,6 @@
         controls.update();
 
         createGizmos();
-        createGhost();
 
         window.addEventListener('resize', onResize);
         window.addEventListener('pointerdown', onDown);
@@ -387,20 +415,11 @@
         ['oval', 'paraboloid', 'sphere', 'cylinder', 'cone'].forEach(name => {
             document.getElementById('shape-' + name).classList.toggle('active', name === shape);
         });
-        if (ghostShape) {
-            scene.remove(ghostShape);
-            ghostShape.geometry.dispose();
-            ghostShape.material.dispose();
-        }
-        createGhost();
-        ghostShape.visible = isPlacementMode;
     }
 
-    function togglePlacementMode() {
-        isPlacementMode = !isPlacementMode;
-        document.getElementById('place-btn').classList.toggle('active', isPlacementMode);
-        ghostShape.position.set(0, BASE_H * 0.5, 0);
-        ghostShape.visible = isPlacementMode;
+    function spawnShapeFromButton(shape) {
+        setPlacementShape(shape);
+        spawnShape(new THREE.Vector3(0, 0, 0));
     }
 
     function toggleSnap() {
@@ -433,7 +452,7 @@
         return points;
     }
 
-    function createShapeMesh(shapeType, color, isGhost = false) {
+    function createShapeMesh(shapeType, color) {
         const geo = new THREE.LatheGeometry(createProfile(shapeType), 32);
         geo.translate(0, -BASE_H / 2, 0);
 
@@ -441,33 +460,24 @@
             color,
             wireframe: true,
             transparent: true,
-            opacity: isGhost ? 0.28 : 0.82
+            opacity: 0.82
         });
 
         const mesh = new THREE.Mesh(geo, mat);
+        mesh.userData.isShape = true;
+        mesh.userData.shapeType = shapeType;
+        mesh.userData.data = { scale: new THREE.Vector3(1, 1, 1) };
 
-        if (!isGhost) {
-            mesh.userData.isShape = true;
-            mesh.userData.shapeType = shapeType;
-            mesh.userData.data = { scale: new THREE.Vector3(1, 1, 1) };
-
-            const outline = new THREE.Mesh(
-                geo.clone(),
-                new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide })
-            );
-            outline.scale.set(1.02, 1.02, 1.02);
-            mesh.add(outline);
-            mesh.userData.outline = outline;
-            syncObjectScale(mesh);
-        }
+        const outline = new THREE.Mesh(
+            geo.clone(),
+            new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide })
+        );
+        outline.scale.set(1.02, 1.02, 1.02);
+        mesh.add(outline);
+        mesh.userData.outline = outline;
+        syncObjectScale(mesh);
 
         return mesh;
-    }
-
-    function createGhost() {
-        ghostShape = createShapeMesh(placementShape, 0x2da562, true);
-        ghostShape.visible = false;
-        scene.add(ghostShape);
     }
 
     function createHandle(color, data) {
@@ -701,9 +711,6 @@
         if (snapEnabled) snapVector3(obj.position);
         scene.add(obj);
         updateSelectionVisuals([obj]);
-        isPlacementMode = false;
-        ghostShape.visible = false;
-        document.getElementById('place-btn').classList.remove('active');
         captureState();
     }
 
@@ -797,9 +804,7 @@
             dragTarget = null;
             scaleSession = null;
 
-            if (isPlacementMode && e.button === 0) {
-                spawnShape(new THREE.Vector3(0, 0, 0));
-            } else if (currentTool === 'pointer' && e.button === 2) {
+            if (currentTool === 'pointer' && e.button === 2) {
                 isBoxSelecting = true;
                 boxStart.set(e.clientX, e.clientY);
                 const box = document.getElementById('select-box');
@@ -981,7 +986,7 @@
     window.onload = init;
     window.setToolMode = setToolMode;
     window.setPlacementShape = setPlacementShape;
-    window.togglePlacementMode = togglePlacementMode;
+    window.spawnShapeFromButton = spawnShapeFromButton;
     window.executeUndo = executeUndo;
     window.executeRedo = executeRedo;
     window.updateColor = updateColor;
