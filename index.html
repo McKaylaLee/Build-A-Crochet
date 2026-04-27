@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.38.0 - Builder Mode</title>
+    <title>Build-A-Crochet v5.39.0 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -272,7 +272,7 @@
 
     <main id="canvas-wrap">
         <div id="select-box"></div>
-        <div id="version-tag">v5.38.0</div>
+        <div id="version-tag">v5.39.0</div>
     </main>
 
     <aside id="rightbar">
@@ -325,7 +325,6 @@
     let dragPlane = null;
     let startPositions = [];
     let startGroupData = [];
-    let startHandleDist = 1;
     let startMouseAngle = 0;
     let currentSelection = [];
     let isBoxSelecting = false;
@@ -498,20 +497,20 @@
         scene.add(groupGizmo);
 
         const defs = [
-            { pos: [-0.5,  0.5,  0.5], active: ['x', 'y', 'z'], signs: { x: -1, y:  1, z:  1 } },
-            { pos: [-0.5,  0.5, -0.5], active: ['x', 'y', 'z'], signs: { x: -1, y:  1, z: -1 } },
-            { pos: [-0.5, -0.5,  0.5], active: ['x', 'y', 'z'], signs: { x: -1, y: -1, z:  1 } },
-            { pos: [-0.5, -0.5, -0.5], active: ['x', 'y', 'z'], signs: { x: -1, y: -1, z: -1 } },
-            { pos: [ 0.5,  0.5,  0.5], active: ['x', 'y', 'z'], signs: { x:  1, y:  1, z:  1 } },
-            { pos: [ 0.5,  0.5, -0.5], active: ['x', 'y', 'z'], signs: { x:  1, y:  1, z: -1 } },
-            { pos: [ 0.5, -0.5,  0.5], active: ['x', 'y', 'z'], signs: { x:  1, y: -1, z:  1 } },
-            { pos: [ 0.5, -0.5, -0.5], active: ['x', 'y', 'z'], signs: { x:  1, y: -1, z: -1 } },
-            { pos: [ 0.0,  0.5,  0.0], active: ['y'],           signs: { x:  0, y:  1, z:  0 } },
-            { pos: [ 0.0, -0.5,  0.0], active: ['y'],           signs: { x:  0, y: -1, z:  0 } },
-            { pos: [ 0.5,  0.0,  0.0], active: ['x'],           signs: { x:  1, y:  0, z:  0 } },
-            { pos: [-0.5,  0.0,  0.0], active: ['x'],           signs: { x: -1, y:  0, z:  0 } },
-            { pos: [ 0.0,  0.0,  0.5], active: ['z'],           signs: { x:  0, y:  0, z:  1 } },
-            { pos: [ 0.0,  0.0, -0.5], active: ['z'],           signs: { x:  0, y:  0, z: -1 } }
+            { pos: [-0.5,  0.5,  0.5], kind: 'uniform' },
+            { pos: [-0.5,  0.5, -0.5], kind: 'uniform' },
+            { pos: [-0.5, -0.5,  0.5], kind: 'uniform' },
+            { pos: [-0.5, -0.5, -0.5], kind: 'uniform' },
+            { pos: [ 0.5,  0.5,  0.5], kind: 'uniform' },
+            { pos: [ 0.5,  0.5, -0.5], kind: 'uniform' },
+            { pos: [ 0.5, -0.5,  0.5], kind: 'uniform' },
+            { pos: [ 0.5, -0.5, -0.5], kind: 'uniform' },
+            { pos: [ 0.0,  0.5,  0.0], kind: 'axis', active: ['y'], signs: { x: 0, y: 1, z: 0 } },
+            { pos: [ 0.0, -0.5,  0.0], kind: 'axis', active: ['y'], signs: { x: 0, y: -1, z: 0 } },
+            { pos: [ 0.5,  0.0,  0.0], kind: 'axis', active: ['x'], signs: { x: 1, y: 0, z: 0 } },
+            { pos: [-0.5,  0.0,  0.0], kind: 'axis', active: ['x'], signs: { x: -1, y: 0, z: 0 } },
+            { pos: [ 0.0,  0.0,  0.5], kind: 'axis', active: ['z'], signs: { x: 0, y: 0, z: 1 } },
+            { pos: [ 0.0,  0.0, -0.5], kind: 'axis', active: ['z'], signs: { x: 0, y: 0, z: -1 } }
         ];
 
         defs.forEach((def, i) => {
@@ -519,8 +518,9 @@
                 isScaleHandle: true,
                 id: i,
                 point: new THREE.Vector3(def.pos[0], def.pos[1], def.pos[2]),
-                activeAxes: def.active,
-                signs: def.signs
+                kind: def.kind,
+                activeAxes: def.active || [],
+                signs: def.signs || { x: 0, y: 0, z: 0 }
             }));
         });
 
@@ -764,23 +764,28 @@
                 scale: obj.userData.data.scale.clone(),
                 rot: obj.quaternion.clone()
             }));
-            startHandleDist = intersect.distanceTo(groupCenter);
 
             if (dragTarget.userData.isScaleHandle) {
-                const signs = dragTarget.userData.signs;
-                const anchor = groupCenter.clone();
-                if (signs.x !== 0) anchor.x -= signs.x * groupSize.x * 0.5;
-                if (signs.y !== 0) anchor.y -= signs.y * groupSize.y * 0.5;
-                if (signs.z !== 0) anchor.z -= signs.z * groupSize.z * 0.5;
-
+                const dir = dragTarget.position.clone().sub(groupCenter).normalize();
                 scaleSession = {
                     startPoint: intersect.clone(),
                     startCenter: groupCenter.clone(),
                     startSize: groupSize.clone(),
-                    anchor,
+                    anchor: groupCenter.clone(),
                     activeAxes: dragTarget.userData.activeAxes,
-                    signs
+                    signs: dragTarget.userData.signs,
+                    kind: dragTarget.userData.kind,
+                    direction: dir
                 };
+
+                if (dragTarget.userData.kind === 'axis') {
+                    const signs = dragTarget.userData.signs;
+                    const anchor = groupCenter.clone();
+                    if (signs.x !== 0) anchor.x -= signs.x * groupSize.x * 0.5;
+                    if (signs.y !== 0) anchor.y -= signs.y * groupSize.y * 0.5;
+                    if (signs.z !== 0) anchor.z -= signs.z * groupSize.z * 0.5;
+                    scaleSession.anchor.copy(anchor);
+                }
             }
 
             const sPos = dragTarget.position.clone().project(camera);
@@ -850,35 +855,57 @@
         } else if (dragTarget.userData.isScaleHandle && currentTool === 'scale') {
             if (!raycaster.ray.intersectPlane(dragPlane, intersect) || !scaleSession) return;
 
-            const delta = intersect.clone().sub(scaleSession.startPoint);
-            const newSize = scaleSession.startSize.clone();
-            const ratios = { x: 1, y: 1, z: 1 };
+            if (scaleSession.kind === 'uniform') {
+                const startDist = Math.max(0.0001, scaleSession.startPoint.distanceTo(scaleSession.startCenter));
+                const currentDist = Math.max(0.0001, intersect.distanceTo(scaleSession.startCenter));
+                const ratio = Math.max(0.15, currentDist / startDist);
 
-            ['x', 'y', 'z'].forEach(axis => {
-                if (!scaleSession.activeAxes.includes(axis)) return;
-                const sign = scaleSession.signs[axis];
-                const change = delta[axis] * sign;
-                newSize[axis] = Math.max(8, scaleSession.startSize[axis] + change);
-                ratios[axis] = newSize[axis] / Math.max(0.0001, scaleSession.startSize[axis]);
-            });
+                currentSelection.forEach((obj, i) => {
+                    const start = startGroupData[i];
+                    obj.userData.data.scale.set(
+                        start.scale.x * ratio,
+                        start.scale.y * ratio,
+                        start.scale.z * ratio
+                    );
+                    syncObjectScale(obj);
 
-            currentSelection.forEach((obj, i) => {
-                const start = startGroupData[i];
-                obj.userData.data.scale.set(
-                    start.scale.x * ratios.x,
-                    start.scale.y * ratios.y,
-                    start.scale.z * ratios.z
-                );
-                syncObjectScale(obj);
+                    obj.position.copy(scaleSession.startCenter).add(
+                        start.pos.clone().sub(scaleSession.startCenter).multiplyScalar(ratio)
+                    );
 
-                obj.position.set(
-                    scaleSession.activeAxes.includes('x') ? scaleSession.anchor.x + (start.pos.x - scaleSession.anchor.x) * ratios.x : start.pos.x,
-                    scaleSession.activeAxes.includes('y') ? scaleSession.anchor.y + (start.pos.y - scaleSession.anchor.y) * ratios.y : start.pos.y,
-                    scaleSession.activeAxes.includes('z') ? scaleSession.anchor.z + (start.pos.z - scaleSession.anchor.z) * ratios.z : start.pos.z
-                );
+                    if (snapEnabled) snapVector3(obj.position);
+                });
+            } else {
+                const delta = intersect.clone().sub(scaleSession.startPoint);
+                const newSize = scaleSession.startSize.clone();
+                const ratios = { x: 1, y: 1, z: 1 };
 
-                if (snapEnabled) snapVector3(obj.position);
-            });
+                ['x', 'y', 'z'].forEach(axis => {
+                    if (!scaleSession.activeAxes.includes(axis)) return;
+                    const sign = scaleSession.signs[axis];
+                    const change = delta[axis] * sign;
+                    newSize[axis] = Math.max(8, scaleSession.startSize[axis] + change);
+                    ratios[axis] = newSize[axis] / Math.max(0.0001, scaleSession.startSize[axis]);
+                });
+
+                currentSelection.forEach((obj, i) => {
+                    const start = startGroupData[i];
+                    obj.userData.data.scale.set(
+                        start.scale.x * ratios.x,
+                        start.scale.y * ratios.y,
+                        start.scale.z * ratios.z
+                    );
+                    syncObjectScale(obj);
+
+                    obj.position.set(
+                        scaleSession.activeAxes.includes('x') ? scaleSession.anchor.x + (start.pos.x - scaleSession.anchor.x) * ratios.x : start.pos.x,
+                        scaleSession.activeAxes.includes('y') ? scaleSession.anchor.y + (start.pos.y - scaleSession.anchor.y) * ratios.y : start.pos.y,
+                        scaleSession.activeAxes.includes('z') ? scaleSession.anchor.z + (start.pos.z - scaleSession.anchor.z) * ratios.z : start.pos.z
+                    );
+
+                    if (snapEnabled) snapVector3(obj.position);
+                });
+            }
 
             updateGroupGizmoVisuals();
             updateInspector();
