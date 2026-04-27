@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.42.0 - Builder Mode</title>
+    <title>Build-A-Crochet v5.43.0 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -222,6 +222,22 @@
             z-index: 6;
             pointer-events: none;
         }
+
+        #rotate-readout {
+            position: absolute;
+            display: none;
+            pointer-events: none;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 12px;
+            color: var(--text);
+            white-space: nowrap;
+            transform: translate(16px, -18px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
     </style>
 </head>
 <body>
@@ -268,7 +284,8 @@
 
     <main id="canvas-wrap">
         <div id="select-box"></div>
-        <div id="version-tag">v5.42.0</div>
+        <div id="rotate-readout">0°</div>
+        <div id="version-tag">v5.43.0</div>
     </main>
 
     <aside id="rightbar">
@@ -293,15 +310,6 @@
                 <div class="value" id="scale-x">W: -</div>
                 <div class="value" id="scale-y">H: -</div>
                 <div class="value" id="scale-z">D: -</div>
-            </div>
-        </div>
-
-        <div class="panel-card stack">
-            <div class="label">ROTATION</div>
-            <div class="mini-grid">
-                <div class="value" id="rot-x">X: 0°</div>
-                <div class="value" id="rot-y">Y: 0°</div>
-                <div class="value" id="rot-z">Z: 0°</div>
             </div>
         </div>
 
@@ -335,8 +343,6 @@
     let isBoxSelecting = false;
     let boxStart = new THREE.Vector2();
     let scaleSession = null;
-    let activeRotationAxis = null;
-    let currentRotationDegrees = { x: 0, y: 0, z: 0 };
 
     let groupGizmo;
     let scaleHandles = [];
@@ -347,7 +353,7 @@
 
     const BASE_H = 96;
     const BASE_R = 36;
-    const ROTATION_SNAP_DEGREES = [ -180, -90, 0, 90, 180 ];
+    const ROTATION_SNAP_DEGREES = [-180, -90, 0, 90, 180];
     const ROTATION_SNAP_THRESHOLD = 8;
 
     function init() {
@@ -565,7 +571,6 @@
 
         currentSelection = selected;
         if (selected.length === 0) {
-            currentRotationDegrees = { x: 0, y: 0, z: 0 };
             updateInspector();
             return;
         }
@@ -629,456 +634,4 @@
 
         for (let i = 0; i < ROTATION_SNAP_DEGREES.length; i++) {
             const target = ROTATION_SNAP_DEGREES[i];
-            const diff = Math.abs(degrees - target);
-            if (diff < bestDiff) {
-                bestDiff = diff;
-                snapped = target;
-            }
-        }
-
-        return bestDiff <= ROTATION_SNAP_THRESHOLD ? snapped : degrees;
-    }
-
-    function captureState() {
-        const state = getShapeObjects().map(obj => ({
-            pos: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
-            rot: { x: obj.quaternion.x, y: obj.quaternion.y, z: obj.quaternion.z, w: obj.quaternion.w },
-            scale: { x: obj.userData.data.scale.x, y: obj.userData.data.scale.y, z: obj.userData.data.scale.z },
-            col: obj.material.color.getHex(),
-            shapeType: obj.userData.shapeType
-        }));
-
-        const json = JSON.stringify(state);
-        if (historyIndex >= 0 && history[historyIndex] === json) return;
-
-        history = history.slice(0, historyIndex + 1);
-        history.push(json);
-        historyIndex = history.length - 1;
-    }
-
-    function applyState(json) {
-        getShapeObjects().forEach(obj => {
-            obj.geometry.dispose();
-            obj.userData.outline.geometry.dispose();
-            obj.material.dispose();
-            obj.userData.outline.material.dispose();
-            scene.remove(obj);
-        });
-
-        const state = JSON.parse(json);
-        state.forEach(d => {
-            const obj = createShapeMesh(d.shapeType || 'circle', new THREE.Color(d.col));
-            obj.position.set(d.pos.x, d.pos.y, d.pos.z);
-            obj.quaternion.set(d.rot.x, d.rot.y, d.rot.z, d.rot.w);
-            obj.userData.data.scale.set(d.scale.x, d.scale.y, d.scale.z);
-            syncObjectScale(obj);
-            scene.add(obj);
-        });
-
-        updateSelectionVisuals([]);
-    }
-
-    function executeUndo() {
-        if (historyIndex <= 0) return;
-        historyIndex -= 1;
-        applyState(history[historyIndex]);
-    }
-
-    function executeRedo() {
-        if (historyIndex >= history.length - 1) return;
-        historyIndex += 1;
-        applyState(history[historyIndex]);
-    }
-
-    function duplicateSelection() {
-        if (currentSelection.length === 0) return;
-
-        const clones = [];
-        currentSelection.forEach(obj => {
-            const clone = createShapeMesh(obj.userData.shapeType, obj.material.color.getHex());
-            clone.position.copy(obj.position).add(new THREE.Vector3(8, 0, 8));
-            clone.quaternion.copy(obj.quaternion);
-            clone.userData.data.scale.copy(obj.userData.data.scale);
-            syncObjectScale(clone);
-            scene.add(clone);
-            clones.push(clone);
-        });
-
-        updateSelectionVisuals(clones);
-        captureState();
-    }
-
-    function deleteSelection() {
-        if (currentSelection.length === 0) return;
-        currentSelection.forEach(obj => {
-            obj.geometry.dispose();
-            obj.userData.outline.geometry.dispose();
-            obj.material.dispose();
-            obj.userData.outline.material.dispose();
-            scene.remove(obj);
-        });
-        updateSelectionVisuals([]);
-        captureState();
-    }
-
-    function updateColor(color) {
-        if (currentSelection.length === 0) return;
-        currentSelection.forEach(obj => obj.material.color.set(color));
-        captureState();
-    }
-
-    function spawnShape(pos) {
-        const obj = createShapeMesh(placementShape, 0xff69b4);
-        obj.position.copy(pos);
-        obj.position.y += getShapeHeight(placementShape) * 0.5;
-        scene.add(obj);
-        updateSelectionVisuals([obj]);
-        captureState();
-    }
-
-    function beginObjectMove(hit, raycaster) {
-        dragTarget = hit.object;
-        isDragging = true;
-        controls.enabled = false;
-
-        dragPlane = new THREE.Plane(
-            camera.getWorldDirection(new THREE.Vector3()).negate(),
-            -dragTarget.position.dot(camera.getWorldDirection(new THREE.Vector3()).negate())
-        );
-
-        const intersection = new THREE.Vector3();
-        if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
-            dragStartPoint = intersection.clone();
-            startPositions = currentSelection.map(obj => obj.position.clone());
-        } else {
-            dragStartPoint = null;
-            startPositions = [];
-        }
-    }
-
-    function onDown(e) {
-        if (e.target.tagName !== 'CANVAS') return;
-
-        const raycaster = getPointerRay(e);
-        const activeGizmos = currentTool === 'scale' ? scaleHandles : currentTool === 'rotate' ? rotateHandles : [];
-        const gizmoHits = raycaster.intersectObjects(activeGizmos);
-
-        if (gizmoHits.length > 0) {
-            dragTarget = gizmoHits[0].object;
-            isDragging = true;
-            controls.enabled = false;
-            activeRotationAxis = null;
-
-            dragPlane = new THREE.Plane(
-                camera.getWorldDirection(new THREE.Vector3()).negate(),
-                -dragTarget.position.dot(camera.getWorldDirection(new THREE.Vector3()).negate())
-            );
-
-            const intersect = new THREE.Vector3();
-            raycaster.ray.intersectPlane(dragPlane, intersect);
-
-            const box = new THREE.Box3();
-            currentSelection.forEach(obj => box.union(new THREE.Box3().setFromObject(obj)));
-            const groupCenter = box.getCenter(new THREE.Vector3());
-            const groupSize = box.getSize(new THREE.Vector3());
-
-            startGroupData = currentSelection.map(obj => ({
-                pos: obj.position.clone(),
-                scale: obj.userData.data.scale.clone(),
-                rot: obj.quaternion.clone()
-            }));
-
-            if (dragTarget.userData.isScaleHandle) {
-                const signs = dragTarget.userData.signs;
-                const kind = dragTarget.userData.kind;
-                const anchor = groupCenter.clone();
-
-                if (kind === 'axis') {
-                    if (signs.x !== 0) anchor.x -= signs.x * groupSize.x * 0.5;
-                    if (signs.y !== 0) anchor.y -= signs.y * groupSize.y * 0.5;
-                    if (signs.z !== 0) anchor.z -= signs.z * groupSize.z * 0.5;
-                }
-
-                scaleSession = {
-                    startPoint: intersect.clone(),
-                    startCenter: groupCenter.clone(),
-                    startSize: groupSize.clone(),
-                    anchor,
-                    activeAxes: dragTarget.userData.activeAxes,
-                    signs,
-                    kind
-                };
-            }
-
-            if (dragTarget.userData.isRotateHandle) {
-                activeRotationAxis = dragTarget.userData.axis;
-                currentRotationDegrees = { x: 0, y: 0, z: 0 };
-            }
-
-            const sPos = dragTarget.position.clone().project(camera);
-            startMouseAngle = Math.atan2(
-                e.clientY - (window.innerHeight / 2 * (1 - sPos.y)),
-                e.clientX - (window.innerWidth / 2 * (1 + sPos.x))
-            );
-            updateInspector();
-            return;
-        }
-
-        const hits = raycaster.intersectObjects(getShapeObjects());
-        if (hits.length > 0) {
-            const hit = hits[0];
-            dragTarget = hit.object;
-            activeRotationAxis = null;
-            currentRotationDegrees = { x: 0, y: 0, z: 0 };
-
-            if (!e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([dragTarget]);
-            else if (e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([...currentSelection, dragTarget]);
-
-            if (currentTool === 'pointer') beginObjectMove(hit, raycaster);
-        } else {
-            dragTarget = null;
-            scaleSession = null;
-            activeRotationAxis = null;
-            currentRotationDegrees = { x: 0, y: 0, z: 0 };
-
-            if (currentTool === 'pointer' && e.button === 2) {
-                isBoxSelecting = true;
-                boxStart.set(e.clientX, e.clientY);
-                const box = document.getElementById('select-box');
-                box.style.display = 'block';
-                controls.enabled = false;
-                updateSelectionVisuals([]);
-            } else {
-                updateSelectionVisuals([]);
-            }
-        }
-    }
-
-    function onMove(e) {
-        if (isBoxSelecting) {
-            const el = document.getElementById('select-box');
-            const x = Math.min(boxStart.x, e.clientX);
-            const y = Math.min(boxStart.y, e.clientY);
-            const w = Math.abs(e.clientX - boxStart.x);
-            const h = Math.abs(e.clientY - boxStart.y);
-            el.style.left = x + 'px';
-            el.style.top = y + 'px';
-            el.style.width = w + 'px';
-            el.style.height = h + 'px';
-            return;
-        }
-
-        if (!isDragging || !dragTarget) return;
-
-        const raycaster = getPointerRay(e);
-        const intersect = new THREE.Vector3();
-
-        if (dragTarget.userData.isShape && currentTool === 'pointer') {
-            if (!dragPlane || dragStartPoint === null) return;
-            if (!raycaster.ray.intersectPlane(dragPlane, intersect)) return;
-
-            const delta = intersect.clone().sub(dragStartPoint);
-            currentSelection.forEach((obj, i) => {
-                obj.position.copy(startPositions[i]).add(delta);
-            });
-            updateGroupGizmoVisuals();
-            updateInspector();
-        } else if (dragTarget.userData.isScaleHandle && currentTool === 'scale') {
-            if (!raycaster.ray.intersectPlane(dragPlane, intersect) || !scaleSession) return;
-
-            if (scaleSession.kind === 'uniform') {
-                const startDist = Math.max(0.0001, scaleSession.startPoint.distanceTo(scaleSession.startCenter));
-                const currentDist = Math.max(0.0001, intersect.distanceTo(scaleSession.startCenter));
-                const ratio = Math.max(0.15, currentDist / startDist);
-
-                currentSelection.forEach((obj, i) => {
-                    const start = startGroupData[i];
-                    obj.userData.data.scale.set(
-                        start.scale.x * ratio,
-                        start.scale.y * ratio,
-                        start.scale.z * ratio
-                    );
-                    syncObjectScale(obj);
-
-                    obj.position.copy(scaleSession.startCenter).add(
-                        start.pos.clone().sub(scaleSession.startCenter).multiplyScalar(ratio)
-                    );
-                });
-            } else {
-                const delta = intersect.clone().sub(scaleSession.startPoint);
-                const newSize = scaleSession.startSize.clone();
-                const ratios = { x: 1, y: 1, z: 1 };
-
-                ['x', 'y', 'z'].forEach(axis => {
-                    if (!scaleSession.activeAxes.includes(axis)) return;
-                    const sign = scaleSession.signs[axis];
-                    let change = 0;
-
-                    if (axis === 'y') change = delta.y * sign;
-                    else if (axis === 'x') change = delta.x * sign;
-                    else if (axis === 'z') change = delta.z * sign;
-
-                    newSize[axis] = Math.max(8, scaleSession.startSize[axis] + change);
-                    ratios[axis] = newSize[axis] / Math.max(0.0001, scaleSession.startSize[axis]);
-                });
-
-                currentSelection.forEach((obj, i) => {
-                    const start = startGroupData[i];
-                    obj.userData.data.scale.set(
-                        start.scale.x * ratios.x,
-                        start.scale.y * ratios.y,
-                        start.scale.z * ratios.z
-                    );
-                    syncObjectScale(obj);
-
-                    obj.position.set(
-                        scaleSession.activeAxes.includes('x') ? scaleSession.anchor.x + (start.pos.x - scaleSession.anchor.x) * ratios.x : start.pos.x,
-                        scaleSession.activeAxes.includes('y') ? scaleSession.anchor.y + (start.pos.y - scaleSession.anchor.y) * ratios.y : start.pos.y,
-                        scaleSession.activeAxes.includes('z') ? scaleSession.anchor.z + (start.pos.z - scaleSession.anchor.z) * ratios.z : start.pos.z
-                    );
-                });
-            }
-
-            updateGroupGizmoVisuals();
-            updateInspector();
-        } else if (dragTarget.userData.isRotateHandle && currentTool === 'rotate') {
-            if (!raycaster.ray.intersectPlane(dragPlane, intersect)) return;
-
-            const box = new THREE.Box3();
-            currentSelection.forEach(obj => box.union(new THREE.Box3().setFromObject(obj)));
-            const groupCenter = box.getCenter(new THREE.Vector3());
-            const sPos = dragTarget.position.clone().project(camera);
-            let angle = Math.atan2(
-                e.clientY - (window.innerHeight / 2 * (1 - sPos.y)),
-                e.clientX - (window.innerWidth / 2 * (1 + sPos.x))
-            );
-            let deltaAngle = -(angle - startMouseAngle);
-            let degrees = THREE.MathUtils.radToDeg(deltaAngle);
-            degrees = maybeSnapRotationDegrees(degrees);
-            deltaAngle = THREE.MathUtils.degToRad(degrees);
-
-            const axis = dragTarget.userData.axis === 'x'
-                ? new THREE.Vector3(1, 0, 0)
-                : dragTarget.userData.axis === 'y'
-                    ? new THREE.Vector3(0, 1, 0)
-                    : new THREE.Vector3(0, 0, 1);
-
-            const rotQ = new THREE.Quaternion().setFromAxisAngle(axis, deltaAngle);
-
-            currentSelection.forEach((obj, i) => {
-                const sd = startGroupData[i];
-                obj.position.copy(groupCenter).add(sd.pos.clone().sub(groupCenter).applyQuaternion(rotQ));
-                obj.quaternion.multiplyQuaternions(rotQ, sd.rot);
-            });
-
-            currentRotationDegrees = { x: 0, y: 0, z: 0 };
-            currentRotationDegrees[dragTarget.userData.axis] = degrees;
-
-            updateGroupGizmoVisuals();
-            updateInspector();
-        }
-    }
-
-    function onUp(e) {
-        if (isBoxSelecting) {
-            isBoxSelecting = false;
-            document.getElementById('select-box').style.display = 'none';
-
-            const minX = Math.min(boxStart.x, e.clientX);
-            const minY = Math.min(boxStart.y, e.clientY);
-            const maxX = Math.max(boxStart.x, e.clientX);
-            const maxY = Math.max(boxStart.y, e.clientY);
-
-            if (Math.abs(maxX - minX) > 5) {
-                const selected = getShapeObjects().filter(obj => {
-                    const p = obj.position.clone().project(camera);
-                    const rect = renderer.domElement.getBoundingClientRect();
-                    const x = rect.left + (p.x + 1) * rect.width / 2;
-                    const y = rect.top + (1 - p.y) * rect.height / 2;
-                    return x >= minX && x <= maxX && y >= minY && y <= maxY;
-                });
-                updateSelectionVisuals(selected);
-            }
-        }
-
-        if (isDragging) captureState();
-        isDragging = false;
-        dragTarget = null;
-        dragStartPoint = null;
-        dragPlane = null;
-        startPositions = [];
-        scaleSession = null;
-        activeRotationAxis = null;
-        currentRotationDegrees = { x: 0, y: 0, z: 0 };
-        controls.enabled = true;
-        updateInspector();
-    }
-
-    function updateInspector() {
-        const nameEl = document.getElementById('selection-name');
-        const countEl = document.getElementById('selection-count');
-        const px = document.getElementById('pos-x');
-        const py = document.getElementById('pos-y');
-        const pz = document.getElementById('pos-z');
-        const sx = document.getElementById('scale-x');
-        const sy = document.getElementById('scale-y');
-        const sz = document.getElementById('scale-z');
-        const rx = document.getElementById('rot-x');
-        const ry = document.getElementById('rot-y');
-        const rz = document.getElementById('rot-z');
-
-        if (currentSelection.length === 0) {
-            nameEl.textContent = 'Nothing selected';
-            countEl.textContent = '0 objects';
-            px.textContent = 'X: -';
-            py.textContent = 'Y: -';
-            pz.textContent = 'Z: -';
-            sx.textContent = 'W: -';
-            sy.textContent = 'H: -';
-            sz.textContent = 'D: -';
-            rx.textContent = 'X: 0°';
-            ry.textContent = 'Y: 0°';
-            rz.textContent = 'Z: 0°';
-            return;
-        }
-
-        const obj = currentSelection[0];
-        nameEl.textContent = obj.userData.shapeType.toUpperCase();
-        countEl.textContent = currentSelection.length + (currentSelection.length === 1 ? ' object' : ' objects');
-        px.textContent = 'X: ' + obj.position.x.toFixed(1);
-        py.textContent = 'Y: ' + obj.position.y.toFixed(1);
-        pz.textContent = 'Z: ' + obj.position.z.toFixed(1);
-        sx.textContent = 'W: ' + obj.userData.data.scale.x.toFixed(2);
-        sy.textContent = 'H: ' + obj.userData.data.scale.y.toFixed(2);
-        sz.textContent = 'D: ' + obj.userData.data.scale.z.toFixed(2);
-
-        if (currentTool === 'rotate' && activeRotationAxis) {
-            rx.textContent = 'X: ' + currentRotationDegrees.x.toFixed(0) + '°';
-            ry.textContent = 'Y: ' + currentRotationDegrees.y.toFixed(0) + '°';
-            rz.textContent = 'Z: ' + currentRotationDegrees.z.toFixed(0) + '°';
-        } else {
-            const euler = new THREE.Euler().setFromQuaternion(obj.quaternion, 'XYZ');
-            rx.textContent = 'X: ' + THREE.MathUtils.radToDeg(euler.x).toFixed(0) + '°';
-            ry.textContent = 'Y: ' + THREE.MathUtils.radToDeg(euler.y).toFixed(0) + '°';
-            rz.textContent = 'Z: ' + THREE.MathUtils.radToDeg(euler.z).toFixed(0) + '°';
-        }
-    }
-
-    function animate() {
-        requestAnimationFrame(animate);
-        renderer.render(scene, camera);
-    }
-
-    window.onload = init;
-    window.setToolMode = setToolMode;
-    window.setPlacementShape = setPlacementShape;
-    window.spawnShapeFromButton = spawnShapeFromButton;
-    window.executeUndo = executeUndo;
-    window.executeRedo = executeRedo;
-    window.updateColor = updateColor;
-    window.duplicateSelection = duplicateSelection;
-    window.deleteSelection = deleteSelection;
-    window.resetView = resetView;
-</script>
-</body>
-</html>
+            const diff = Math.abs
