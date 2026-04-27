@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.41.0 - Builder Mode</title>
+    <title>Build-A-Crochet v5.42.0 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -268,7 +268,7 @@
 
     <main id="canvas-wrap">
         <div id="select-box"></div>
-        <div id="version-tag">v5.41.0</div>
+        <div id="version-tag">v5.42.0</div>
     </main>
 
     <aside id="rightbar">
@@ -293,6 +293,15 @@
                 <div class="value" id="scale-x">W: -</div>
                 <div class="value" id="scale-y">H: -</div>
                 <div class="value" id="scale-z">D: -</div>
+            </div>
+        </div>
+
+        <div class="panel-card stack">
+            <div class="label">ROTATION</div>
+            <div class="mini-grid">
+                <div class="value" id="rot-x">X: 0°</div>
+                <div class="value" id="rot-y">Y: 0°</div>
+                <div class="value" id="rot-z">Z: 0°</div>
             </div>
         </div>
 
@@ -326,6 +335,8 @@
     let isBoxSelecting = false;
     let boxStart = new THREE.Vector2();
     let scaleSession = null;
+    let activeRotationAxis = null;
+    let currentRotationDegrees = { x: 0, y: 0, z: 0 };
 
     let groupGizmo;
     let scaleHandles = [];
@@ -336,6 +347,8 @@
 
     const BASE_H = 96;
     const BASE_R = 36;
+    const ROTATION_SNAP_DEGREES = [ -180, -90, 0, 90, 180 ];
+    const ROTATION_SNAP_THRESHOLD = 8;
 
     function init() {
         scene = new THREE.Scene();
@@ -552,6 +565,7 @@
 
         currentSelection = selected;
         if (selected.length === 0) {
+            currentRotationDegrees = { x: 0, y: 0, z: 0 };
             updateInspector();
             return;
         }
@@ -607,6 +621,22 @@
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, camera);
         return raycaster;
+    }
+
+    function maybeSnapRotationDegrees(degrees) {
+        let snapped = degrees;
+        let bestDiff = Infinity;
+
+        for (let i = 0; i < ROTATION_SNAP_DEGREES.length; i++) {
+            const target = ROTATION_SNAP_DEGREES[i];
+            const diff = Math.abs(degrees - target);
+            if (diff < bestDiff) {
+                bestDiff = diff;
+                snapped = target;
+            }
+        }
+
+        return bestDiff <= ROTATION_SNAP_THRESHOLD ? snapped : degrees;
     }
 
     function captureState() {
@@ -737,6 +767,7 @@
             dragTarget = gizmoHits[0].object;
             isDragging = true;
             controls.enabled = false;
+            activeRotationAxis = null;
 
             dragPlane = new THREE.Plane(
                 camera.getWorldDirection(new THREE.Vector3()).negate(),
@@ -779,11 +810,17 @@
                 };
             }
 
+            if (dragTarget.userData.isRotateHandle) {
+                activeRotationAxis = dragTarget.userData.axis;
+                currentRotationDegrees = { x: 0, y: 0, z: 0 };
+            }
+
             const sPos = dragTarget.position.clone().project(camera);
             startMouseAngle = Math.atan2(
                 e.clientY - (window.innerHeight / 2 * (1 - sPos.y)),
                 e.clientX - (window.innerWidth / 2 * (1 + sPos.x))
             );
+            updateInspector();
             return;
         }
 
@@ -791,6 +828,8 @@
         if (hits.length > 0) {
             const hit = hits[0];
             dragTarget = hit.object;
+            activeRotationAxis = null;
+            currentRotationDegrees = { x: 0, y: 0, z: 0 };
 
             if (!e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([dragTarget]);
             else if (e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([...currentSelection, dragTarget]);
@@ -799,6 +838,8 @@
         } else {
             dragTarget = null;
             scaleSession = null;
+            activeRotationAxis = null;
+            currentRotationDegrees = { x: 0, y: 0, z: 0 };
 
             if (currentTool === 'pointer' && e.button === 2) {
                 isBoxSelecting = true;
@@ -907,23 +948,31 @@
             currentSelection.forEach(obj => box.union(new THREE.Box3().setFromObject(obj)));
             const groupCenter = box.getCenter(new THREE.Vector3());
             const sPos = dragTarget.position.clone().project(camera);
-            const angle = Math.atan2(
+            let angle = Math.atan2(
                 e.clientY - (window.innerHeight / 2 * (1 - sPos.y)),
                 e.clientX - (window.innerWidth / 2 * (1 + sPos.x))
             );
+            let deltaAngle = -(angle - startMouseAngle);
+            let degrees = THREE.MathUtils.radToDeg(deltaAngle);
+            degrees = maybeSnapRotationDegrees(degrees);
+            deltaAngle = THREE.MathUtils.degToRad(degrees);
+
             const axis = dragTarget.userData.axis === 'x'
                 ? new THREE.Vector3(1, 0, 0)
                 : dragTarget.userData.axis === 'y'
                     ? new THREE.Vector3(0, 1, 0)
                     : new THREE.Vector3(0, 0, 1);
 
-            const rotQ = new THREE.Quaternion().setFromAxisAngle(axis, -(angle - startMouseAngle));
+            const rotQ = new THREE.Quaternion().setFromAxisAngle(axis, deltaAngle);
 
             currentSelection.forEach((obj, i) => {
                 const sd = startGroupData[i];
                 obj.position.copy(groupCenter).add(sd.pos.clone().sub(groupCenter).applyQuaternion(rotQ));
                 obj.quaternion.multiplyQuaternions(rotQ, sd.rot);
             });
+
+            currentRotationDegrees = { x: 0, y: 0, z: 0 };
+            currentRotationDegrees[dragTarget.userData.axis] = degrees;
 
             updateGroupGizmoVisuals();
             updateInspector();
@@ -959,7 +1008,10 @@
         dragPlane = null;
         startPositions = [];
         scaleSession = null;
+        activeRotationAxis = null;
+        currentRotationDegrees = { x: 0, y: 0, z: 0 };
         controls.enabled = true;
+        updateInspector();
     }
 
     function updateInspector() {
@@ -971,6 +1023,9 @@
         const sx = document.getElementById('scale-x');
         const sy = document.getElementById('scale-y');
         const sz = document.getElementById('scale-z');
+        const rx = document.getElementById('rot-x');
+        const ry = document.getElementById('rot-y');
+        const rz = document.getElementById('rot-z');
 
         if (currentSelection.length === 0) {
             nameEl.textContent = 'Nothing selected';
@@ -981,6 +1036,9 @@
             sx.textContent = 'W: -';
             sy.textContent = 'H: -';
             sz.textContent = 'D: -';
+            rx.textContent = 'X: 0°';
+            ry.textContent = 'Y: 0°';
+            rz.textContent = 'Z: 0°';
             return;
         }
 
@@ -993,6 +1051,17 @@
         sx.textContent = 'W: ' + obj.userData.data.scale.x.toFixed(2);
         sy.textContent = 'H: ' + obj.userData.data.scale.y.toFixed(2);
         sz.textContent = 'D: ' + obj.userData.data.scale.z.toFixed(2);
+
+        if (currentTool === 'rotate' && activeRotationAxis) {
+            rx.textContent = 'X: ' + currentRotationDegrees.x.toFixed(0) + '°';
+            ry.textContent = 'Y: ' + currentRotationDegrees.y.toFixed(0) + '°';
+            rz.textContent = 'Z: ' + currentRotationDegrees.z.toFixed(0) + '°';
+        } else {
+            const euler = new THREE.Euler().setFromQuaternion(obj.quaternion, 'XYZ');
+            rx.textContent = 'X: ' + THREE.MathUtils.radToDeg(euler.x).toFixed(0) + '°';
+            ry.textContent = 'Y: ' + THREE.MathUtils.radToDeg(euler.y).toFixed(0) + '°';
+            rz.textContent = 'Z: ' + THREE.MathUtils.radToDeg(euler.z).toFixed(0) + '°';
+        }
     }
 
     function animate() {
