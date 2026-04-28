@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.45.0 - Builder Mode</title>
+    <title>Build-A-Crochet v5.46.0 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -285,7 +285,7 @@
     <main id="canvas-wrap">
         <div id="select-box"></div>
         <div id="rotate-readout">0 deg</div>
-        <div id="version-tag">v5.45.0</div>
+        <div id="version-tag">v5.46.0</div>
     </main>
 
     <aside id="rightbar">
@@ -376,8 +376,8 @@
         gridHelper.position.y = -0.2;
         scene.add(gridHelper);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
         dirLight.position.set(120, 220, 100);
         scene.add(dirLight);
 
@@ -445,6 +445,16 @@
         controls.update();
     }
 
+    function createSolidMaterial(color) {
+        return new THREE.MeshPhongMaterial({
+            color,
+            transparent: false,
+            opacity: 1,
+            side: THREE.DoubleSide,
+            flatShading: false
+        });
+    }
+
     function createProfile(shapeType) {
         const points = [];
         if (shapeType === 'circle') {
@@ -474,25 +484,9 @@
     }
 
     function createCap(radius, y, color) {
-        const mat = new THREE.MeshPhongMaterial({
-            color,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.82,
-            side: THREE.DoubleSide
-        });
-        const cap = new THREE.Mesh(new THREE.CircleGeometry(radius, 32), mat);
+        const cap = new THREE.Mesh(new THREE.CircleGeometry(radius, 32), createSolidMaterial(color));
         cap.rotation.x = -Math.PI / 2;
         cap.position.y = y;
-        return cap;
-    }
-
-    function createCapOutline(radius, y) {
-        const mat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide });
-        const cap = new THREE.Mesh(new THREE.CircleGeometry(radius, 32), mat);
-        cap.rotation.x = -Math.PI / 2;
-        cap.position.y = y;
-        cap.scale.set(1.02, 1.02, 1.02);
         return cap;
     }
 
@@ -508,50 +502,43 @@
 
         if (bottomRadius > 0.11) {
             const cap = createCap(bottomRadius, bottomY, color);
-            const outline = createCapOutline(bottomRadius, bottomY);
             mesh.add(cap);
-            mesh.add(outline);
-            mesh.userData.capMeshes.push(cap, outline);
+            mesh.userData.capMeshes.push(cap);
         }
 
         if (topRadius > 0.11) {
             const cap = createCap(topRadius, topY, color);
-            const outline = createCapOutline(topRadius, topY);
             mesh.add(cap);
-            mesh.add(outline);
-            mesh.userData.capMeshes.push(cap, outline);
+            mesh.userData.capMeshes.push(cap);
         }
     }
 
     function createShapeMesh(shapeType, color) {
         const geo = new THREE.LatheGeometry(createProfile(shapeType), 32);
         geo.translate(0, -getShapeHeight(shapeType) / 2, 0);
+        geo.computeVertexNormals();
 
-        const mat = new THREE.MeshPhongMaterial({
-            color,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.82
-        });
-
-        const mesh = new THREE.Mesh(geo, mat);
+        const mesh = new THREE.Mesh(geo, createSolidMaterial(color));
         mesh.userData.isShape = true;
         mesh.userData.shapeType = shapeType;
         mesh.userData.data = { scale: new THREE.Vector3(1, 1, 1) };
         mesh.userData.capMeshes = [];
 
-        const outline = new THREE.Mesh(
-            geo.clone(),
-            new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide })
-        );
-        outline.scale.set(1.02, 1.02, 1.02);
-        mesh.add(outline);
-        mesh.userData.outline = outline;
-
         addEndCaps(mesh, shapeType, color);
         syncObjectScale(mesh);
 
         return mesh;
+    }
+
+    function updateSelectionAppearance(obj, selected) {
+        obj.material.emissive.set(selected ? 0x331122 : 0x000000);
+        obj.material.emissiveIntensity = selected ? 0.7 : 0;
+        if (obj.userData.capMeshes) {
+            obj.userData.capMeshes.forEach(cap => {
+                cap.material.emissive.set(selected ? 0x331122 : 0x000000);
+                cap.material.emissiveIntensity = selected ? 0.7 : 0;
+            });
+        }
     }
 
     function disposeShape(obj) {
@@ -562,9 +549,7 @@
             });
         }
         obj.geometry.dispose();
-        obj.userData.outline.geometry.dispose();
         obj.material.dispose();
-        obj.userData.outline.material.dispose();
         scene.remove(obj);
     }
 
@@ -633,7 +618,7 @@
     }
 
     function updateSelectionVisuals(selected) {
-        getShapeObjects().forEach(o => o.userData.outline.scale.set(1.02, 1.02, 1.02));
+        getShapeObjects().forEach(o => updateSelectionAppearance(o, false));
         scaleHandles.forEach(h => h.visible = false);
         rotateHandles.forEach(h => h.visible = false);
         groupGizmo.visible = false;
@@ -644,7 +629,7 @@
             return;
         }
 
-        selected.forEach(o => o.userData.outline.scale.set(1.1, 1.1, 1.1));
+        selected.forEach(o => updateSelectionAppearance(o, true));
 
         if (currentTool === 'scale' || currentTool === 'rotate') groupGizmo.visible = true;
         if (currentTool === 'scale') scaleHandles.forEach(h => h.visible = true);
@@ -804,9 +789,7 @@
         currentSelection.forEach(obj => {
             obj.material.color.set(color);
             if (obj.userData.capMeshes) {
-                obj.userData.capMeshes.forEach(cap => {
-                    if (cap.material && cap.material.color) cap.material.color.set(color);
-                });
+                obj.userData.capMeshes.forEach(cap => cap.material.color.set(color));
             }
         });
         captureState();
