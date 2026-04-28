@@ -1,333 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.47.0 - Builder Mode</title>
-    <style>
-        :root {
-            --bg: #f5f5f2;
-            --panel: #ffffff;
-            --line: #d8d8d2;
-            --soft: #ecece6;
-            --text: #1f1f1c;
-            --muted: #66665f;
-            --accent: #ff6ea8;
-            --accent-2: #ffd84d;
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            overflow: hidden;
-            background: var(--bg);
-            color: var(--text);
-            font-family: monospace;
-            touch-action: none;
-            user-select: none;
-        }
-
-        #app {
-            width: 100vw;
-            height: 100vh;
-            display: grid;
-            grid-template-columns: 108px 1fr 240px;
-            grid-template-rows: 62px 1fr;
-            grid-template-areas:
-                "left top right"
-                "left canvas right";
-        }
-
-        #leftbar, #topbar, #rightbar {
-            background: var(--panel);
-            z-index: 10;
-        }
-
-        #leftbar {
-            grid-area: left;
-            border-right: 1px solid var(--line);
-            padding: 12px 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            overflow-y: auto;
-        }
-
-        #topbar {
-            grid-area: top;
-            border-bottom: 1px solid var(--line);
-            padding: 10px 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
-        #rightbar {
-            grid-area: right;
-            border-left: 1px solid var(--line);
-            padding: 14px 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        #canvas-wrap {
-            grid-area: canvas;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stack { display: flex; flex-direction: column; gap: 8px; }
-        .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-        .label {
-            font-size: 10px;
-            color: var(--muted);
-            letter-spacing: 0.4px;
-        }
-
-        .btn {
-            border: 1px solid var(--line);
-            background: var(--soft);
-            color: var(--text);
-            border-radius: 8px;
-            padding: 8px 6px;
-            cursor: pointer;
-            font: inherit;
-            font-size: 10px;
-            line-height: 1.1;
-            text-align: center;
-            min-height: 42px;
-        }
-
-        .tool-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 3px;
-            min-height: 54px;
-        }
-
-        .tool-btn .icon {
-            font-size: 17px;
-            line-height: 1;
-        }
-
-        .shape-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            justify-content: flex-start;
-            padding-left: 8px;
-            min-height: 40px;
-        }
-
-        .shape-icon {
-            width: 18px;
-            text-align: center;
-            font-size: 14px;
-            line-height: 1;
-            color: var(--muted);
-            flex: 0 0 18px;
-        }
-
-        .shape-label {
-            font-size: 10px;
-        }
-
-        .btn.active {
-            background: var(--accent);
-            color: #fff;
-            border-color: #ff9bc2;
-        }
-
-        .btn.active .shape-icon {
-            color: #fff;
-        }
-
-        .divider {
-            height: 1px;
-            background: var(--line);
-            margin: 2px 0;
-        }
-
-        .top-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .top-btn {
-            min-height: 36px;
-            min-width: 66px;
-            padding: 8px 10px;
-        }
-
-        .title {
-            font-weight: bold;
-            font-size: 12px;
-        }
-
-        .subtitle {
-            font-size: 10px;
-            color: var(--muted);
-        }
-
-        .panel-card {
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 10px;
-            background: #fcfcfa;
-        }
-
-        .value {
-            font-size: 12px;
-            color: var(--text);
-        }
-
-        .mini-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-
-        .swatch {
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            border: 1px solid rgba(0,0,0,0.12);
-            cursor: pointer;
-        }
-
-        #select-box {
-            border: 2px dashed var(--accent);
-            background: rgba(255, 110, 168, 0.08);
-            position: absolute;
-            pointer-events: none;
-            display: none;
-            z-index: 5;
-        }
-
-        #version-tag {
-            position: absolute;
-            right: 14px;
-            bottom: 14px;
-            background: rgba(255,255,255,0.88);
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            padding: 4px 8px;
-            font-size: 11px;
-            color: var(--muted);
-            z-index: 6;
-            pointer-events: none;
-        }
-
-        #rotate-readout {
-            position: absolute;
-            display: none;
-            pointer-events: none;
-            z-index: 20;
-            background: rgba(255, 255, 255, 0.96);
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            padding: 4px 8px;
-            font-size: 12px;
-            color: var(--text);
-            white-space: nowrap;
-            transform: translate(16px, -18px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-    </style>
-</head>
-<body>
-<div id="app">
-    <aside id="leftbar">
-        <div class="label">TOOLS</div>
-        <button class="btn tool-btn active" id="tool-pointer" onclick="setToolMode('pointer')"><span class="icon">↖</span><span>SELECT</span></button>
-        <button class="btn tool-btn" id="tool-rotate" onclick="setToolMode('rotate')"><span class="icon">↻</span><span>ROTATE</span></button>
-        <button class="btn tool-btn" id="tool-scale" onclick="setToolMode('scale')"><span class="icon">⤢</span><span>SIZE</span></button>
-
-        <div class="divider"></div>
-
-        <div class="label">SHAPES</div>
-        <button class="btn shape-btn active" id="shape-circle" onclick="spawnShapeFromButton('circle')">
-            <span class="shape-icon">◯</span><span class="shape-label">CIRCLE</span>
-        </button>
-        <button class="btn shape-btn" id="shape-paraboloid" onclick="spawnShapeFromButton('paraboloid')">
-            <span class="shape-icon">∪</span><span class="shape-label">PARA</span>
-        </button>
-        <button class="btn shape-btn" id="shape-cylinder" onclick="spawnShapeFromButton('cylinder')">
-            <span class="shape-icon">⬯</span><span class="shape-label">CYL</span>
-        </button>
-        <button class="btn shape-btn" id="shape-cone" onclick="spawnShapeFromButton('cone')">
-            <span class="shape-icon">△</span><span class="shape-label">CONE</span>
-        </button>
-    </aside>
-
-    <header id="topbar">
-        <div class="top-group">
-            <div>
-                <div class="title">Build-A-Crochet</div>
-                <div class="subtitle">Builder-style workspace</div>
-            </div>
-        </div>
-
-        <div class="top-group">
-            <button class="btn top-btn" onclick="executeUndo()">UNDO</button>
-            <button class="btn top-btn" onclick="executeRedo()">REDO</button>
-            <button class="btn top-btn" onclick="duplicateSelection()">DUP</button>
-            <button class="btn top-btn" onclick="deleteSelection()">DELETE</button>
-            <button class="btn top-btn" onclick="resetView()">VIEW</button>
-        </div>
-    </header>
-
-    <main id="canvas-wrap">
-        <div id="select-box"></div>
-        <div id="rotate-readout">0 deg</div>
-        <div id="version-tag">v5.47.0</div>
-    </main>
-
-    <aside id="rightbar">
-        <div class="panel-card stack">
-            <div class="label">SELECTION</div>
-            <div class="value" id="selection-name">Nothing selected</div>
-            <div class="subtitle" id="selection-count">0 objects</div>
-        </div>
-
-        <div class="panel-card stack">
-            <div class="label">POSITION</div>
-            <div class="mini-grid">
-                <div class="value" id="pos-x">X: -</div>
-                <div class="value" id="pos-y">Y: -</div>
-                <div class="value" id="pos-z">Z: -</div>
-            </div>
-        </div>
-
-        <div class="panel-card stack">
-            <div class="label">SIZE</div>
-            <div class="mini-grid">
-                <div class="value" id="scale-x">W: -</div>
-                <div class="value" id="scale-y">H: -</div>
-                <div class="value" id="scale-z">D: -</div>
-            </div>
-        </div>
-
-        <div class="panel-card stack">
-            <div class="label">COLOR</div>
-            <div class="row">
-                <button class="swatch" style="background:#ff69b4" onclick="updateColor('#ff69b4')"></button>
-                <button class="swatch" style="background:#ffffff" onclick="updateColor('#ffffff')"></button>
-                <button class="swatch" style="background:#000000" onclick="updateColor('#000000')"></button>
-                <button class="swatch" style="background:#7ed957" onclick="updateColor('#7ed957')"></button>
-            </div>
-        </div>
-    </aside>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
+```html
 <script>
     let scene, camera, renderer, controls, gridHelper;
     let currentTool = 'pointer';
@@ -353,7 +24,7 @@
 
     const BASE_H = 96;
     const BASE_R = 36;
-    const ROTATION_SNAP_DEGREES = [-180, -90, 0, 90, 180];
+    const ROTATION_SNAP_STEP = 90;
     const ROTATION_SNAP_THRESHOLD = 8;
 
     function init() {
@@ -407,7 +78,7 @@
     }
 
     function onKey(e) {
-        if (e.key === "Delete" || e.key === "Backspace") deleteSelection();
+        if (e.key === 'Delete' || e.key === 'Backspace') deleteSelection();
     }
 
     function getShapeHeight(shapeType) {
@@ -682,20 +353,19 @@
         return raycaster;
     }
 
+    function normalizeDegrees(degrees) {
+        let normalized = degrees % 360;
+        if (normalized > 180) normalized -= 360;
+        if (normalized <= -180) normalized += 360;
+        return normalized;
+    }
+
     function maybeSnapRotationDegrees(degrees) {
-        let bestTarget = degrees;
-        let bestDiff = Infinity;
-
-        for (let i = 0; i < ROTATION_SNAP_DEGREES.length; i++) {
-            const target = ROTATION_SNAP_DEGREES[i];
-            const diff = Math.abs(degrees - target);
-            if (diff < bestDiff) {
-                bestDiff = diff;
-                bestTarget = target;
-            }
-        }
-
-        return bestDiff <= ROTATION_SNAP_THRESHOLD ? bestTarget : degrees;
+        const normalized = normalizeDegrees(degrees);
+        const nearestStep = Math.round(normalized / ROTATION_SNAP_STEP) * ROTATION_SNAP_STEP;
+        const snappedTarget = normalizeDegrees(nearestStep);
+        const diff = Math.abs(normalized - snappedTarget);
+        return diff <= ROTATION_SNAP_THRESHOLD ? snappedTarget : normalized;
     }
 
     function showRotateReadout(clientX, clientY, degrees) {
@@ -1016,12 +686,12 @@
             currentSelection.forEach(obj => box.union(new THREE.Box3().setFromObject(obj)));
             const groupCenter = box.getCenter(new THREE.Vector3());
             const sPos = dragTarget.position.clone().project(camera);
-            let angle = Math.atan2(
+            const angle = Math.atan2(
                 e.clientY - (window.innerHeight / 2 * (1 - sPos.y)),
                 e.clientX - (window.innerWidth / 2 * (1 + sPos.x))
             );
             let deltaAngle = -(angle - startMouseAngle);
-            let degrees = THREE.MathUtils.radToDeg(deltaAngle);
+            let degrees = normalizeDegrees(THREE.MathUtils.radToDeg(deltaAngle));
             degrees = maybeSnapRotationDegrees(degrees);
             deltaAngle = THREE.MathUtils.degToRad(degrees);
 
@@ -1130,5 +800,4 @@
     window.deleteSelection = deleteSelection;
     window.resetView = resetView;
 </script>
-</body>
-</html>
+```
