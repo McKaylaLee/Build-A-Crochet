@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.46.0 - Builder Mode</title>
+    <title>Build-A-Crochet v5.47.0 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -285,7 +285,7 @@
     <main id="canvas-wrap">
         <div id="select-box"></div>
         <div id="rotate-readout">0 deg</div>
-        <div id="version-tag">v5.46.0</div>
+        <div id="version-tag">v5.47.0</div>
     </main>
 
     <aside id="rightbar">
@@ -483,9 +483,9 @@
         return points;
     }
 
-    function createCap(radius, y, color) {
+    function createCap(radius, y, color, flip = false) {
         const cap = new THREE.Mesh(new THREE.CircleGeometry(radius, 32), createSolidMaterial(color));
-        cap.rotation.x = -Math.PI / 2;
+        cap.rotation.x = flip ? Math.PI / 2 : -Math.PI / 2;
         cap.position.y = y;
         return cap;
     }
@@ -501,13 +501,13 @@
         const topY = profile[profile.length - 1].y - halfHeight;
 
         if (bottomRadius > 0.11) {
-            const cap = createCap(bottomRadius, bottomY, color);
+            const cap = createCap(bottomRadius, bottomY, color, false);
             mesh.add(cap);
             mesh.userData.capMeshes.push(cap);
         }
 
         if (topRadius > 0.11) {
-            const cap = createCap(topRadius, topY, color);
+            const cap = createCap(topRadius, topY, color, true);
             mesh.add(cap);
             mesh.userData.capMeshes.push(cap);
         }
