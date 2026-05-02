@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.51.2 - Builder Mode</title>
+    <title>Build-A-Crochet v5.51.3 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -287,7 +287,7 @@
     <main id="canvas-wrap">
         <div id="select-box"></div>
         <div id="rotate-readout">0 deg</div>
-        <div id="version-tag">v5.51.2</div>
+        <div id="version-tag">v5.51.3</div>
     </main>
 
     <aside id="rightbar">
@@ -625,7 +625,7 @@
     function createHandle(color, data) {
         const h = new THREE.Mesh(
             new THREE.SphereGeometry(2.8, 16, 16),
-            new THREE.MeshBasicMaterial({ color, depthTest: false })
+            new THREE.MeshBasicMaterial({ color, depthTest: true })
         );
         h.renderOrder = 999;
         h.visible = false;
