@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.53.0 - Builder Mode</title>
+    <title>Build-A-Crochet v5.52.3 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -14,7 +14,6 @@
             --muted: #66665f;
             --accent: #ff6ea8;
             --accent-2: #ffd84d;
-            --overlay: rgba(30, 30, 28, 0.35);
         }
 
         * { box-sizing: border-box; }
@@ -33,7 +32,7 @@
             width: 100vw;
             height: 100vh;
             display: grid;
-            grid-template-columns: 108px 1fr 260px;
+            grid-template-columns: 108px 1fr 240px;
             grid-template-rows: 62px 1fr;
             grid-template-areas:
                 "left top right"
@@ -103,10 +102,6 @@
             min-height: 42px;
         }
 
-        .btn:hover {
-            background: #e4e4de;
-        }
-
         .tool-btn {
             display: flex;
             flex-direction: column;
@@ -163,7 +158,6 @@
             display: flex;
             gap: 8px;
             align-items: center;
-            flex-wrap: wrap;
         }
 
         .top-btn {
@@ -246,109 +240,6 @@
             transform: translate(16px, -18px);
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
-
-        #library-overlay {
-            position: absolute;
-            inset: 0;
-            background: var(--overlay);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 40;
-        }
-
-        #library-modal {
-            width: min(720px, calc(100% - 48px));
-            max-height: calc(100% - 48px);
-            overflow: hidden;
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            background: #fff;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.16);
-            display: flex;
-            flex-direction: column;
-        }
-
-        #library-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--line);
-            background: #fcfcfa;
-        }
-
-        #library-title {
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        #library-subtitle {
-            font-size: 10px;
-            color: var(--muted);
-        }
-
-        #library-body {
-            padding: 14px;
-            overflow: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        #library-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .slot-row {
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 10px;
-            background: #fcfcfa;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .slot-name {
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .slot-meta {
-            font-size: 10px;
-            color: var(--muted);
-            margin-top: 4px;
-        }
-
-        .slot-buttons {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .slot-input {
-            width: 100%;
-            min-height: 34px;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            background: #fff;
-            color: var(--text);
-            font: inherit;
-            font-size: 11px;
-            padding: 8px 10px;
-        }
-
-        .empty-text {
-            font-size: 11px;
-            color: var(--muted);
-            padding: 6px 2px;
-        }
     </style>
 </head>
 <body>
@@ -389,8 +280,6 @@
             <button class="btn top-btn" onclick="executeRedo()">REDO</button>
             <button class="btn top-btn" onclick="duplicateSelection()">DUP</button>
             <button class="btn top-btn" onclick="deleteSelection()">DELETE</button>
-            <button class="btn top-btn" onclick="openSavePanel()">SAVE</button>
-            <button class="btn top-btn" onclick="openLoadPanel()">LOAD</button>
             <button class="btn top-btn" onclick="resetView()">VIEW</button>
         </div>
     </header>
@@ -398,23 +287,7 @@
     <main id="canvas-wrap">
         <div id="select-box"></div>
         <div id="rotate-readout">0 deg</div>
-        <div id="version-tag">v5.53.0</div>
-
-        <div id="library-overlay">
-            <div id="library-modal">
-                <div id="library-header">
-                    <div>
-                        <div id="library-title">Saved Builds</div>
-                        <div id="library-subtitle">Store builds inside the app</div>
-                    </div>
-                    <div id="library-actions">
-                        <button class="btn top-btn" onclick="addSaveSlot()">ADD SLOT</button>
-                        <button class="btn top-btn" onclick="closeLibraryPanel()">CLOSE</button>
-                    </div>
-                </div>
-                <div id="library-body"></div>
-            </div>
-        </div>
+        <div id="version-tag">v5.52.3</div>
     </main>
 
     <aside id="rightbar">
@@ -481,13 +354,10 @@
     let history = [];
     let historyIndex = -1;
 
-    let libraryMode = 'load';
-
     const BASE_H = 96;
     const BASE_R = 36;
     const ROTATION_SNAP_STEP = 90;
     const ROTATION_SNAP_THRESHOLD = 16;
-    const SAVE_STORAGE_KEY = 'buildACrochetSaveSlotsV1';
 
     function init() {
         scene = new THREE.Scene();
@@ -510,7 +380,6 @@
         scene.add(gridHelper);
 
         scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
         dirLight.position.set(120, 220, 100);
         scene.add(dirLight);
@@ -528,11 +397,6 @@
         window.addEventListener('pointerup', onUp);
         window.addEventListener('keydown', onKey);
 
-        document.getElementById('library-overlay').addEventListener('pointerdown', (e) => {
-            if (e.target.id === 'library-overlay') closeLibraryPanel();
-        });
-
-        ensureAtLeastOneSlot();
         captureState();
         animate();
         updateInspector();
@@ -547,7 +411,6 @@
 
     function onKey(e) {
         if (e.key === 'Delete' || e.key === 'Backspace') deleteSelection();
-        if (e.key === 'Escape') closeLibraryPanel();
     }
 
     function getShapeHeight(shapeType) {
@@ -598,7 +461,6 @@
 
     function createProfile(shapeType) {
         const points = [];
-
         if (shapeType === 'circle') {
             for (let i = 0; i <= 24; i++) {
                 const t = i / 24;
@@ -728,7 +590,6 @@
     function updateSelectionAppearance(obj, selected) {
         obj.material.emissive.set(0x000000);
         obj.material.emissiveIntensity = 0;
-
         if (obj.userData.capMeshes) {
             obj.userData.capMeshes.forEach(cap => {
                 if (cap.userData.lineOverlay) cap.userData.lineOverlay.visible = true;
@@ -736,7 +597,6 @@
                 cap.material.emissiveIntensity = 0;
             });
         }
-
         if (obj.userData.blackOutline) obj.userData.blackOutline.visible = true;
         if (obj.userData.blueOutline) obj.userData.blueOutline.visible = selected;
     }
@@ -752,14 +612,12 @@
                 if (cap.material) cap.material.dispose();
             });
         }
-
         if (obj.userData.outlineMeshes) {
             obj.userData.outlineMeshes.forEach(outline => {
                 if (outline.geometry) outline.geometry.dispose();
                 if (outline.material) outline.material.dispose();
             });
         }
-
         obj.geometry.dispose();
         obj.material.dispose();
         scene.remove(obj);
@@ -790,11 +648,7 @@
     }
 
     function createGizmos() {
-        groupGizmo = new THREE.LineSegments(
-            new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
-            new THREE.LineBasicMaterial({ color: 0xff6ea8, depthTest: false })
-        );
-        groupGizmo.renderOrder = 997;
+        groupGizmo = new THREE.BoxHelper(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1)), 0xff6ea8);
         groupGizmo.visible = false;
         scene.add(groupGizmo);
 
@@ -848,38 +702,6 @@
         return scene.children.filter(o => o.userData.isShape);
     }
 
-    function getSelectionTransformData() {
-        if (currentSelection.length === 0) return null;
-
-        if (currentSelection.length === 1) {
-            const obj = currentSelection[0];
-            const bbox = obj.geometry.boundingBox.clone();
-            const baseSize = bbox.getSize(new THREE.Vector3());
-            const size = new THREE.Vector3(
-                Math.abs(baseSize.x * obj.userData.data.scale.x),
-                Math.abs(baseSize.y * obj.userData.data.scale.y),
-                Math.abs(baseSize.z * obj.userData.data.scale.z)
-            );
-
-            return {
-                center: obj.position.clone(),
-                size,
-                quaternion: obj.quaternion.clone(),
-                oriented: true
-            };
-        }
-
-        const box = new THREE.Box3();
-        currentSelection.forEach(obj => box.union(new THREE.Box3().setFromObject(obj)));
-
-        return {
-            center: box.getCenter(new THREE.Vector3()),
-            size: box.getSize(new THREE.Vector3()),
-            quaternion: new THREE.Quaternion(),
-            oriented: false
-        };
-    }
-
     function updateSelectionVisuals(selected) {
         getShapeObjects().forEach(o => updateSelectionAppearance(o, false));
         scaleHandles.forEach(h => h.visible = false);
@@ -888,7 +710,6 @@
         hideActiveRotateRing();
 
         currentSelection = selected;
-
         if (selected.length === 0) {
             updateInspector();
             return;
@@ -905,33 +726,32 @@
     }
 
     function updateGroupGizmoVisuals() {
-        const data = getSelectionTransformData();
-        if (!data) return;
+        if (currentSelection.length === 0) return;
 
-        groupGizmo.position.copy(data.center);
-        groupGizmo.quaternion.copy(data.quaternion);
-        groupGizmo.scale.copy(data.size);
+        const box = new THREE.Box3();
+        currentSelection.forEach(obj => {
+            box.union(new THREE.Box3().setFromObject(obj));
+        });
+
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const helper = new THREE.Mesh(new THREE.BoxGeometry(size.x, size.y, size.z));
+        helper.position.copy(center);
+        groupGizmo.update(helper);
 
         scaleHandles.forEach(h => {
-            const localPos = new THREE.Vector3(
-                h.userData.point.x * data.size.x,
-                h.userData.point.y * data.size.y,
-                h.userData.point.z * data.size.z
-            );
-            h.position.copy(data.center).add(localPos.applyQuaternion(data.quaternion));
+            h.position.copy(center).add(new THREE.Vector3(
+                h.userData.point.x * size.x,
+                h.userData.point.y * size.y,
+                h.userData.point.z * size.z
+            ));
         });
 
         rotateHandles.forEach((r, i) => {
-            r.position.copy(data.center);
+            r.position.copy(center);
             r.rotation.set(0, 0, 0);
-
-            if (data.oriented) {
-                r.quaternion.copy(data.quaternion);
-            }
-
-            const s = Math.max(data.size.x, data.size.y, data.size.z) * 0.8 + 10;
+            const s = Math.max(size.x, size.y, size.z) * 0.8 + 10;
             r.scale.set(s / 38, s / 38, s / 38);
-
             if (i === 0) r.rotateY(Math.PI / 2);
             if (i === 1) r.rotateX(Math.PI / 2);
         });
@@ -980,7 +800,7 @@
         document.getElementById('rotate-readout').style.display = 'none';
     }
 
-    function getCurrentStateJson() {
+    function captureState() {
         const state = getShapeObjects().map(obj => ({
             pos: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
             rot: { x: obj.quaternion.x, y: obj.quaternion.y, z: obj.quaternion.z, w: obj.quaternion.w },
@@ -988,11 +808,8 @@
             col: obj.material.color.getHex(),
             shapeType: obj.userData.shapeType
         }));
-        return JSON.stringify(state);
-    }
 
-    function captureState() {
-        const json = getCurrentStateJson();
+        const json = JSON.stringify(state);
         if (historyIndex >= 0 && history[historyIndex] === json) return;
 
         history = history.slice(0, historyIndex + 1);
@@ -1061,14 +878,12 @@
 
     function updateColor(color) {
         if (currentSelection.length === 0) return;
-
         currentSelection.forEach(obj => {
             obj.material.color.set(color);
             if (obj.userData.capMeshes) {
                 obj.userData.capMeshes.forEach(cap => cap.material.color.set(color));
             }
         });
-
         captureState();
     }
 
@@ -1102,7 +917,6 @@
     }
 
     function onDown(e) {
-        if (document.getElementById('library-overlay').style.display === 'flex') return;
         if (e.target.tagName !== 'CANVAS') return;
 
         const raycaster = getPointerRay(e);
@@ -1129,48 +943,52 @@
             const intersect = new THREE.Vector3();
             raycaster.ray.intersectPlane(dragPlane, intersect);
 
-            const selectionData = getSelectionTransformData();
+            const box = new THREE.Box3();
+            currentSelection.forEach(obj => box.union(new THREE.Box3().setFromObject(obj)));
+            const groupCenter = box.getCenter(new THREE.Vector3());
+            const groupSize = box.getSize(new THREE.Vector3());
+
             startGroupData = currentSelection.map(obj => ({
                 pos: obj.position.clone(),
                 scale: obj.userData.data.scale.clone(),
                 rot: obj.quaternion.clone()
             }));
 
-            if (dragTarget.userData.isScaleHandle && selectionData) {
+            if (dragTarget.userData.isScaleHandle) {
                 const signs = dragTarget.userData.signs;
                 const kind = dragTarget.userData.kind;
+                const anchor = groupCenter.clone();
 
-                const axisVectors = {
-                    x: new THREE.Vector3(1, 0, 0).applyQuaternion(selectionData.quaternion),
-                    y: new THREE.Vector3(0, 1, 0).applyQuaternion(selectionData.quaternion),
-                    z: new THREE.Vector3(0, 0, 1).applyQuaternion(selectionData.quaternion)
-                };
-
-                const localAnchor = new THREE.Vector3(
-                    dragTarget.userData.activeAxes.includes('x') ? -signs.x * selectionData.size.x * 0.5 : 0,
-                    dragTarget.userData.activeAxes.includes('y') ? -signs.y * selectionData.size.y * 0.5 : 0,
-                    dragTarget.userData.activeAxes.includes('z') ? -signs.z * selectionData.size.z * 0.5 : 0
-                );
+                if (kind === 'axis') {
+                    if (signs.x !== 0) anchor.x -= signs.x * groupSize.x * 0.5;
+                    if (signs.y !== 0) anchor.y -= signs.y * groupSize.y * 0.5;
+                    if (signs.z !== 0) anchor.z -= signs.z * groupSize.z * 0.5;
+                }
 
                 scaleSession = {
                     startPoint: intersect.clone(),
-                    startCenter: selectionData.center.clone(),
-                    startSize: selectionData.size.clone(),
-                    quaternion: selectionData.quaternion.clone(),
-                    anchor: selectionData.center.clone().add(localAnchor.applyQuaternion(selectionData.quaternion)),
+                    startCenter: groupCenter.clone(),
+                    startSize: groupSize.clone(),
+                    anchor,
                     activeAxes: dragTarget.userData.activeAxes,
                     signs,
-                    kind,
-                    oriented: selectionData.oriented,
-                    axisVectors
+                    kind
                 };
             }
 
-            const sPos = dragTarget.position.clone().project(camera);
-            startMouseAngle = Math.atan2(
-                e.clientY - (window.innerHeight / 2 * (1 - sPos.y)),
-                e.clientX - (window.innerWidth / 2 * (1 + sPos.x))
-            );
+            if (dragTarget.userData.isRotateHandle) {
+                const screenCenter = groupCenter.clone().project(camera);
+                const centerX = window.innerWidth * 0.5 * (1 + screenCenter.x);
+                const centerY = window.innerHeight * 0.5 * (1 - screenCenter.y);
+                startMouseAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+            } else {
+                const sPos = dragTarget.position.clone().project(camera);
+                startMouseAngle = Math.atan2(
+                    e.clientY - (window.innerHeight / 2 * (1 - sPos.y)),
+                    e.clientX - (window.innerWidth / 2 * (1 + sPos.x))
+                );
+            }
+
             return;
         }
 
@@ -1258,38 +1076,10 @@
                     );
                     syncObjectScale(obj);
 
-                    if (currentSelection.length > 1) {
-                        obj.position.copy(scaleSession.startCenter).add(
-                            start.pos.clone().sub(scaleSession.startCenter).multiplyScalar(ratio)
-                        );
-                    } else {
-                        obj.position.copy(scaleSession.startCenter);
-                    }
+                    obj.position.copy(scaleSession.startCenter).add(
+                        start.pos.clone().sub(scaleSession.startCenter).multiplyScalar(ratio)
+                    );
                 });
-            } else if (currentSelection.length === 1 && scaleSession.oriented) {
-                const obj = currentSelection[0];
-                const start = startGroupData[0];
-                const deltaWorld = intersect.clone().sub(scaleSession.startPoint);
-                const newScale = start.scale.clone();
-                const centerOffset = new THREE.Vector3();
-
-                ['x', 'y', 'z'].forEach(axis => {
-                    if (!scaleSession.activeAxes.includes(axis)) return;
-
-                    const sign = scaleSession.signs[axis];
-                    const worldAxis = scaleSession.axisVectors[axis];
-                    const change = deltaWorld.dot(worldAxis) * sign;
-                    const newDimension = Math.max(8, scaleSession.startSize[axis] + change);
-                    const ratio = newDimension / Math.max(0.0001, scaleSession.startSize[axis]);
-                    newScale[axis] = start.scale[axis] * ratio;
-
-                    const shift = (newDimension - scaleSession.startSize[axis]) * 0.5 * sign;
-                    centerOffset.add(worldAxis.clone().multiplyScalar(shift));
-                });
-
-                obj.userData.data.scale.copy(newScale);
-                syncObjectScale(obj);
-                obj.position.copy(scaleSession.startCenter).add(centerOffset);
             } else {
                 const delta = intersect.clone().sub(scaleSession.startPoint);
                 const newSize = scaleSession.startSize.clone();
@@ -1333,18 +1123,26 @@
             const box = new THREE.Box3();
             currentSelection.forEach(obj => box.union(new THREE.Box3().setFromObject(obj)));
             const groupCenter = box.getCenter(new THREE.Vector3());
+            const screenCenter = groupCenter.clone().project(camera);
+            const centerX = window.innerWidth * 0.5 * (1 + screenCenter.x);
+            const centerY = window.innerHeight * 0.5 * (1 - screenCenter.y);
+
+            const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+            let deltaAngle = angle - startMouseAngle;
+
+            if (dragTarget.userData.axis === 'x' || dragTarget.userData.axis === 'z') {
+                deltaAngle *= -1;
+            }
+
+            let degrees = normalizeDegrees(THREE.MathUtils.radToDeg(deltaAngle));
+            degrees = maybeSnapRotationDegrees(degrees);
+            deltaAngle = THREE.MathUtils.degToRad(degrees);
 
             const axis = dragTarget.userData.axis === 'x'
                 ? new THREE.Vector3(1, 0, 0)
                 : dragTarget.userData.axis === 'y'
                     ? new THREE.Vector3(0, 1, 0)
                     : new THREE.Vector3(0, 0, 1);
-
-            const planeCenter = groupCenter.clone().project(camera);
-            const currentMouseAngle = Math.atan2(e.clientY - window.innerHeight * 0.5 * (1 - planeCenter.y), e.clientX - window.innerWidth * 0.5 * (1 + planeCenter.x));
-            const rawDegrees = normalizeDegrees(THREE.MathUtils.radToDeg(currentMouseAngle - startMouseAngle));
-            const snappedDegrees = maybeSnapRotationDegrees(rawDegrees);
-            const deltaAngle = THREE.MathUtils.degToRad(snappedDegrees);
 
             const rotQ = new THREE.Quaternion().setFromAxisAngle(axis, deltaAngle);
 
@@ -1355,7 +1153,7 @@
             });
 
             syncActiveRotateRingFromHandle(dragTarget);
-            showRotateReadout(e.clientX, e.clientY, snappedDegrees);
+            showRotateReadout(e.clientX, e.clientY, degrees);
             updateGroupGizmoVisuals();
             updateInspector();
         }
@@ -1431,173 +1229,6 @@
         sz.textContent = 'D: ' + obj.userData.data.scale.z.toFixed(2);
     }
 
-    function getSavedSlots() {
-        try {
-            const raw = localStorage.getItem(SAVE_STORAGE_KEY);
-            const parsed = raw ? JSON.parse(raw) : [];
-            return Array.isArray(parsed) ? parsed : [];
-        } catch (err) {
-            return [];
-        }
-    }
-
-    function setSavedSlots(slots) {
-        localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(slots));
-    }
-
-    function ensureAtLeastOneSlot() {
-        const slots = getSavedSlots();
-        if (slots.length > 0) return;
-
-        setSavedSlots([
-            { name: 'Slot 1', state: '', updatedAt: '' }
-        ]);
-    }
-
-    function getSlotDateText(slot) {
-        if (!slot.updatedAt) return 'Empty slot';
-        const date = new Date(slot.updatedAt);
-        return 'Saved ' + date.toLocaleString();
-    }
-
-    function openSavePanel() {
-        libraryMode = 'save';
-        renderLibraryPanel();
-        document.getElementById('library-overlay').style.display = 'flex';
-    }
-
-    function openLoadPanel() {
-        libraryMode = 'load';
-        renderLibraryPanel();
-        document.getElementById('library-overlay').style.display = 'flex';
-    }
-
-    function closeLibraryPanel() {
-        document.getElementById('library-overlay').style.display = 'none';
-    }
-
-    function addSaveSlot() {
-        const slots = getSavedSlots();
-        slots.push({
-            name: 'Slot ' + (slots.length + 1),
-            state: '',
-            updatedAt: ''
-        });
-        setSavedSlots(slots);
-        renderLibraryPanel();
-    }
-
-    function renameSlot(index, value) {
-        const slots = getSavedSlots();
-        if (!slots[index]) return;
-        slots[index].name = value.trim() || ('Slot ' + (index + 1));
-        setSavedSlots(slots);
-    }
-
-    function saveToSlot(index) {
-        const slots = getSavedSlots();
-        if (!slots[index]) return;
-
-        const input = document.getElementById('slot-name-input-' + index);
-        if (input) {
-            slots[index].name = input.value.trim() || ('Slot ' + (index + 1));
-        }
-
-        slots[index].state = getCurrentStateJson();
-        slots[index].updatedAt = new Date().toISOString();
-        setSavedSlots(slots);
-        renderLibraryPanel();
-    }
-
-    function loadFromSlot(index) {
-        const slots = getSavedSlots();
-        if (!slots[index] || !slots[index].state) return;
-        applyState(slots[index].state);
-        captureState();
-        closeLibraryPanel();
-    }
-
-    function clearSlot(index) {
-        const slots = getSavedSlots();
-        if (!slots[index]) return;
-        slots[index].state = '';
-        slots[index].updatedAt = '';
-        setSavedSlots(slots);
-        renderLibraryPanel();
-    }
-
-    function renderLibraryPanel() {
-        const slots = getSavedSlots();
-        const title = document.getElementById('library-title');
-        const subtitle = document.getElementById('library-subtitle');
-        const body = document.getElementById('library-body');
-
-        title.textContent = libraryMode === 'save' ? 'Save Build' : 'Load Build';
-        subtitle.textContent = libraryMode === 'save'
-            ? 'Pick a slot to save your current build'
-            : 'Pick a saved slot to load';
-
-        body.innerHTML = '';
-
-        if (slots.length === 0) {
-            const empty = document.createElement('div');
-            empty.className = 'empty-text';
-            empty.textContent = 'No slots yet.';
-            body.appendChild(empty);
-            return;
-        }
-
-        slots.forEach((slot, index) => {
-            const row = document.createElement('div');
-            row.className = 'slot-row';
-
-            const left = document.createElement('div');
-
-            const nameInput = document.createElement('input');
-            nameInput.className = 'slot-input';
-            nameInput.id = 'slot-name-input-' + index;
-            nameInput.value = slot.name || ('Slot ' + (index + 1));
-            nameInput.onchange = () => renameSlot(index, nameInput.value);
-            left.appendChild(nameInput);
-
-            const meta = document.createElement('div');
-            meta.className = 'slot-meta';
-            meta.textContent = getSlotDateText(slot);
-            left.appendChild(meta);
-
-            const right = document.createElement('div');
-            right.className = 'slot-buttons';
-
-            if (libraryMode === 'save') {
-                const saveBtn = document.createElement('button');
-                saveBtn.className = 'btn top-btn';
-                saveBtn.textContent = slot.state ? 'OVERWRITE' : 'SAVE HERE';
-                saveBtn.onclick = () => saveToSlot(index);
-                right.appendChild(saveBtn);
-            } else {
-                const loadBtn = document.createElement('button');
-                loadBtn.className = 'btn top-btn';
-                loadBtn.textContent = 'LOAD';
-                loadBtn.disabled = !slot.state;
-                loadBtn.style.opacity = slot.state ? '1' : '0.45';
-                loadBtn.onclick = () => loadFromSlot(index);
-                right.appendChild(loadBtn);
-            }
-
-            const clearBtn = document.createElement('button');
-            clearBtn.className = 'btn top-btn';
-            clearBtn.textContent = 'CLEAR';
-            clearBtn.disabled = !slot.state;
-            clearBtn.style.opacity = slot.state ? '1' : '0.45';
-            clearBtn.onclick = () => clearSlot(index);
-            right.appendChild(clearBtn);
-
-            row.appendChild(left);
-            row.appendChild(right);
-            body.appendChild(row);
-        });
-    }
-
     function animate() {
         requestAnimationFrame(animate);
         renderer.render(scene, camera);
@@ -1613,10 +1244,6 @@
     window.duplicateSelection = duplicateSelection;
     window.deleteSelection = deleteSelection;
     window.resetView = resetView;
-    window.openSavePanel = openSavePanel;
-    window.openLoadPanel = openLoadPanel;
-    window.closeLibraryPanel = closeLibraryPanel;
-    window.addSaveSlot = addSaveSlot;
 </script>
 </body>
 </html>
