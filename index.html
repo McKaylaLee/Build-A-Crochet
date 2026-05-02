@@ -492,6 +492,13 @@
         return cap;
     }
 
+    function createLineOverlay(geometry) {
+        return new THREE.LineSegments(
+            new THREE.WireframeGeometry(geometry),
+            new THREE.LineBasicMaterial({ color: 0x000000 })
+        );
+    }
+
     function addEndCaps(mesh, shapeType, color) {
         mesh.userData.capMeshes = [];
         const halfHeight = getShapeHeight(shapeType) / 2;
@@ -504,12 +511,18 @@
 
         if (bottomRadius > 0.11) {
             const cap = createCap(bottomRadius, bottomY, color, false);
+            const capLines = createLineOverlay(cap.geometry);
+            cap.add(capLines);
+            cap.userData.lineOverlay = capLines;
             mesh.add(cap);
             mesh.userData.capMeshes.push(cap);
         }
 
         if (topRadius > 0.11) {
             const cap = createCap(topRadius, topY, color, true);
+            const capLines = createLineOverlay(cap.geometry);
+            cap.add(capLines);
+            cap.userData.lineOverlay = capLines;
             mesh.add(cap);
             mesh.userData.capMeshes.push(cap);
         }
@@ -526,6 +539,10 @@
         mesh.userData.data = { scale: new THREE.Vector3(1, 1, 1) };
         mesh.userData.capMeshes = [];
         mesh.userData.outlineMeshes = [];
+
+        const bodyLines = createLineOverlay(geo);
+        mesh.add(bodyLines);
+        mesh.userData.bodyLines = bodyLines;
 
         const blackOutline = new THREE.Mesh(
             geo.clone(),
@@ -558,11 +575,15 @@
 
         if (obj.userData.capMeshes) {
             obj.userData.capMeshes.forEach(cap => {
+                if (cap.userData.lineOverlay) {
+                    cap.userData.lineOverlay.visible = true;
+                }
                 cap.material.emissive.set(0x000000);
                 cap.material.emissiveIntensity = 0;
             });
         }
 
+        if (obj.userData.bodyLines) obj.userData.bodyLines.visible = true;
         if (obj.userData.blackOutline) obj.userData.blackOutline.visible = true;
         if (obj.userData.blueOutline) obj.userData.blueOutline.visible = selected && currentTool === 'pointer';
     }
@@ -570,6 +591,10 @@
     function disposeShape(obj) {
         if (obj.userData.capMeshes) {
             obj.userData.capMeshes.forEach(cap => {
+                if (cap.userData.lineOverlay) {
+                    if (cap.userData.lineOverlay.geometry) cap.userData.lineOverlay.geometry.dispose();
+                    if (cap.userData.lineOverlay.material) cap.userData.lineOverlay.material.dispose();
+                }
                 if (cap.geometry) cap.geometry.dispose();
                 if (cap.material) cap.material.dispose();
             });
@@ -580,6 +605,11 @@
                 if (outline.geometry) outline.geometry.dispose();
                 if (outline.material) outline.material.dispose();
             });
+        }
+
+        if (obj.userData.bodyLines) {
+            if (obj.userData.bodyLines.geometry) obj.userData.bodyLines.geometry.dispose();
+            if (obj.userData.bodyLines.material) obj.userData.bodyLines.material.dispose();
         }
 
         obj.geometry.dispose();
@@ -658,7 +688,6 @@
         groupGizmo.visible = false;
 
         currentSelection = selected;
-
         if (selected.length === 0) {
             updateInspector();
             return;
@@ -820,14 +849,12 @@
 
     function updateColor(color) {
         if (currentSelection.length === 0) return;
-
         currentSelection.forEach(obj => {
             obj.material.color.set(color);
             if (obj.userData.capMeshes) {
                 obj.userData.capMeshes.forEach(cap => cap.material.color.set(color));
             }
         });
-
         captureState();
     }
 
@@ -928,11 +955,8 @@
             dragTarget = hit.object;
             hideRotateReadout();
 
-            if (!e.ctrlKey && !currentSelection.includes(dragTarget)) {
-                updateSelectionVisuals([dragTarget]);
-            } else if (e.ctrlKey && !currentSelection.includes(dragTarget)) {
-                updateSelectionVisuals([...currentSelection, dragTarget]);
-            }
+            if (!e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([dragTarget]);
+            else if (e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([...currentSelection, dragTarget]);
 
             if (currentTool === 'pointer') beginObjectMove(hit, raycaster);
         } else {
@@ -1059,7 +1083,6 @@
                 e.clientY - (window.innerHeight / 2 * (1 - sPos.y)),
                 e.clientX - (window.innerWidth / 2 * (1 + sPos.x))
             );
-
             let deltaAngle = -(angle - startMouseAngle);
             let degrees = normalizeDegrees(THREE.MathUtils.radToDeg(deltaAngle));
             degrees = maybeSnapRotationDegrees(degrees);
