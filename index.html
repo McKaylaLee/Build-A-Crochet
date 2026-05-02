@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.52.2 - Builder Mode</title>
+    <title>Build-A-Crochet v5.53.0 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -14,6 +14,7 @@
             --muted: #66665f;
             --accent: #ff6ea8;
             --accent-2: #ffd84d;
+            --overlay: rgba(30, 30, 28, 0.35);
         }
 
         * { box-sizing: border-box; }
@@ -32,7 +33,7 @@
             width: 100vw;
             height: 100vh;
             display: grid;
-            grid-template-columns: 108px 1fr 240px;
+            grid-template-columns: 108px 1fr 260px;
             grid-template-rows: 62px 1fr;
             grid-template-areas:
                 "left top right"
@@ -102,6 +103,10 @@
             min-height: 42px;
         }
 
+        .btn:hover {
+            background: #e4e4de;
+        }
+
         .tool-btn {
             display: flex;
             flex-direction: column;
@@ -158,6 +163,7 @@
             display: flex;
             gap: 8px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .top-btn {
@@ -240,6 +246,109 @@
             transform: translate(16px, -18px);
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
+
+        #library-overlay {
+            position: absolute;
+            inset: 0;
+            background: var(--overlay);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+        }
+
+        #library-modal {
+            width: min(720px, calc(100% - 48px));
+            max-height: calc(100% - 48px);
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.16);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #library-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line);
+            background: #fcfcfa;
+        }
+
+        #library-title {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        #library-subtitle {
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        #library-body {
+            padding: 14px;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #library-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .slot-row {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 10px;
+            background: #fcfcfa;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .slot-name {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .slot-meta {
+            font-size: 10px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .slot-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .slot-input {
+            width: 100%;
+            min-height: 34px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #fff;
+            color: var(--text);
+            font: inherit;
+            font-size: 11px;
+            padding: 8px 10px;
+        }
+
+        .empty-text {
+            font-size: 11px;
+            color: var(--muted);
+            padding: 6px 2px;
+        }
     </style>
 </head>
 <body>
@@ -280,6 +389,8 @@
             <button class="btn top-btn" onclick="executeRedo()">REDO</button>
             <button class="btn top-btn" onclick="duplicateSelection()">DUP</button>
             <button class="btn top-btn" onclick="deleteSelection()">DELETE</button>
+            <button class="btn top-btn" onclick="openSavePanel()">SAVE</button>
+            <button class="btn top-btn" onclick="openLoadPanel()">LOAD</button>
             <button class="btn top-btn" onclick="resetView()">VIEW</button>
         </div>
     </header>
@@ -287,7 +398,23 @@
     <main id="canvas-wrap">
         <div id="select-box"></div>
         <div id="rotate-readout">0 deg</div>
-        <div id="version-tag">v5.52.2</div>
+        <div id="version-tag">v5.53.0</div>
+
+        <div id="library-overlay">
+            <div id="library-modal">
+                <div id="library-header">
+                    <div>
+                        <div id="library-title">Saved Builds</div>
+                        <div id="library-subtitle">Store builds inside the app</div>
+                    </div>
+                    <div id="library-actions">
+                        <button class="btn top-btn" onclick="addSaveSlot()">ADD SLOT</button>
+                        <button class="btn top-btn" onclick="closeLibraryPanel()">CLOSE</button>
+                    </div>
+                </div>
+                <div id="library-body"></div>
+            </div>
+        </div>
     </main>
 
     <aside id="rightbar">
@@ -354,10 +481,13 @@
     let history = [];
     let historyIndex = -1;
 
+    let libraryMode = 'load';
+
     const BASE_H = 96;
     const BASE_R = 36;
     const ROTATION_SNAP_STEP = 90;
     const ROTATION_SNAP_THRESHOLD = 16;
+    const SAVE_STORAGE_KEY = 'buildACrochetSaveSlotsV1';
 
     function init() {
         scene = new THREE.Scene();
@@ -398,6 +528,11 @@
         window.addEventListener('pointerup', onUp);
         window.addEventListener('keydown', onKey);
 
+        document.getElementById('library-overlay').addEventListener('pointerdown', (e) => {
+            if (e.target.id === 'library-overlay') closeLibraryPanel();
+        });
+
+        ensureAtLeastOneSlot();
         captureState();
         animate();
         updateInspector();
@@ -412,6 +547,7 @@
 
     function onKey(e) {
         if (e.key === 'Delete' || e.key === 'Backspace') deleteSelection();
+        if (e.key === 'Escape') closeLibraryPanel();
     }
 
     function getShapeHeight(shapeType) {
@@ -844,7 +980,7 @@
         document.getElementById('rotate-readout').style.display = 'none';
     }
 
-    function captureState() {
+    function getCurrentStateJson() {
         const state = getShapeObjects().map(obj => ({
             pos: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
             rot: { x: obj.quaternion.x, y: obj.quaternion.y, z: obj.quaternion.z, w: obj.quaternion.w },
@@ -852,8 +988,11 @@
             col: obj.material.color.getHex(),
             shapeType: obj.userData.shapeType
         }));
+        return JSON.stringify(state);
+    }
 
-        const json = JSON.stringify(state);
+    function captureState() {
+        const json = getCurrentStateJson();
         if (historyIndex >= 0 && history[historyIndex] === json) return;
 
         history = history.slice(0, historyIndex + 1);
@@ -963,6 +1102,7 @@
     }
 
     function onDown(e) {
+        if (document.getElementById('library-overlay').style.display === 'flex') return;
         if (e.target.tagName !== 'CANVAS') return;
 
         const raycaster = getPointerRay(e);
@@ -1193,16 +1333,6 @@
             const box = new THREE.Box3();
             currentSelection.forEach(obj => box.union(new THREE.Box3().setFromObject(obj)));
             const groupCenter = box.getCenter(new THREE.Vector3());
-            const sPos = dragTarget.position.clone().project(camera);
-            const angle = Math.atan2(
-                e.clientY - (window.innerHeight / 2 * (1 - sPos.y)),
-                e.clientX - (window.innerWidth / 2 * (1 + sPos.x))
-            );
-
-            let deltaAngle = -(angle - startMouseAngle);
-            let degrees = normalizeDegrees(THREE.MathUtils.radToDeg(deltaAngle));
-            degrees = maybeSnapRotationDegrees(degrees);
-            deltaAngle = THREE.MathUtils.degToRad(degrees);
 
             const axis = dragTarget.userData.axis === 'x'
                 ? new THREE.Vector3(1, 0, 0)
@@ -1210,16 +1340,22 @@
                     ? new THREE.Vector3(0, 1, 0)
                     : new THREE.Vector3(0, 0, 1);
 
+            const planeCenter = groupCenter.clone().project(camera);
+            const currentMouseAngle = Math.atan2(e.clientY - window.innerHeight * 0.5 * (1 - planeCenter.y), e.clientX - window.innerWidth * 0.5 * (1 + planeCenter.x));
+            const rawDegrees = normalizeDegrees(THREE.MathUtils.radToDeg(currentMouseAngle - startMouseAngle));
+            const snappedDegrees = maybeSnapRotationDegrees(rawDegrees);
+            const deltaAngle = THREE.MathUtils.degToRad(snappedDegrees);
+
             const rotQ = new THREE.Quaternion().setFromAxisAngle(axis, deltaAngle);
 
             currentSelection.forEach((obj, i) => {
                 const sd = startGroupData[i];
                 obj.position.copy(groupCenter).add(sd.pos.clone().sub(groupCenter).applyQuaternion(rotQ));
-                obj.quaternion.multiplyQuaternions(rotQ, sd.rot);
+                obj.quaternion.copy(sd.rot).premultiply(rotQ);
             });
 
             syncActiveRotateRingFromHandle(dragTarget);
-            showRotateReadout(e.clientX, e.clientY, degrees);
+            showRotateReadout(e.clientX, e.clientY, snappedDegrees);
             updateGroupGizmoVisuals();
             updateInspector();
         }
@@ -1295,6 +1431,173 @@
         sz.textContent = 'D: ' + obj.userData.data.scale.z.toFixed(2);
     }
 
+    function getSavedSlots() {
+        try {
+            const raw = localStorage.getItem(SAVE_STORAGE_KEY);
+            const parsed = raw ? JSON.parse(raw) : [];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (err) {
+            return [];
+        }
+    }
+
+    function setSavedSlots(slots) {
+        localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(slots));
+    }
+
+    function ensureAtLeastOneSlot() {
+        const slots = getSavedSlots();
+        if (slots.length > 0) return;
+
+        setSavedSlots([
+            { name: 'Slot 1', state: '', updatedAt: '' }
+        ]);
+    }
+
+    function getSlotDateText(slot) {
+        if (!slot.updatedAt) return 'Empty slot';
+        const date = new Date(slot.updatedAt);
+        return 'Saved ' + date.toLocaleString();
+    }
+
+    function openSavePanel() {
+        libraryMode = 'save';
+        renderLibraryPanel();
+        document.getElementById('library-overlay').style.display = 'flex';
+    }
+
+    function openLoadPanel() {
+        libraryMode = 'load';
+        renderLibraryPanel();
+        document.getElementById('library-overlay').style.display = 'flex';
+    }
+
+    function closeLibraryPanel() {
+        document.getElementById('library-overlay').style.display = 'none';
+    }
+
+    function addSaveSlot() {
+        const slots = getSavedSlots();
+        slots.push({
+            name: 'Slot ' + (slots.length + 1),
+            state: '',
+            updatedAt: ''
+        });
+        setSavedSlots(slots);
+        renderLibraryPanel();
+    }
+
+    function renameSlot(index, value) {
+        const slots = getSavedSlots();
+        if (!slots[index]) return;
+        slots[index].name = value.trim() || ('Slot ' + (index + 1));
+        setSavedSlots(slots);
+    }
+
+    function saveToSlot(index) {
+        const slots = getSavedSlots();
+        if (!slots[index]) return;
+
+        const input = document.getElementById('slot-name-input-' + index);
+        if (input) {
+            slots[index].name = input.value.trim() || ('Slot ' + (index + 1));
+        }
+
+        slots[index].state = getCurrentStateJson();
+        slots[index].updatedAt = new Date().toISOString();
+        setSavedSlots(slots);
+        renderLibraryPanel();
+    }
+
+    function loadFromSlot(index) {
+        const slots = getSavedSlots();
+        if (!slots[index] || !slots[index].state) return;
+        applyState(slots[index].state);
+        captureState();
+        closeLibraryPanel();
+    }
+
+    function clearSlot(index) {
+        const slots = getSavedSlots();
+        if (!slots[index]) return;
+        slots[index].state = '';
+        slots[index].updatedAt = '';
+        setSavedSlots(slots);
+        renderLibraryPanel();
+    }
+
+    function renderLibraryPanel() {
+        const slots = getSavedSlots();
+        const title = document.getElementById('library-title');
+        const subtitle = document.getElementById('library-subtitle');
+        const body = document.getElementById('library-body');
+
+        title.textContent = libraryMode === 'save' ? 'Save Build' : 'Load Build';
+        subtitle.textContent = libraryMode === 'save'
+            ? 'Pick a slot to save your current build'
+            : 'Pick a saved slot to load';
+
+        body.innerHTML = '';
+
+        if (slots.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'empty-text';
+            empty.textContent = 'No slots yet.';
+            body.appendChild(empty);
+            return;
+        }
+
+        slots.forEach((slot, index) => {
+            const row = document.createElement('div');
+            row.className = 'slot-row';
+
+            const left = document.createElement('div');
+
+            const nameInput = document.createElement('input');
+            nameInput.className = 'slot-input';
+            nameInput.id = 'slot-name-input-' + index;
+            nameInput.value = slot.name || ('Slot ' + (index + 1));
+            nameInput.onchange = () => renameSlot(index, nameInput.value);
+            left.appendChild(nameInput);
+
+            const meta = document.createElement('div');
+            meta.className = 'slot-meta';
+            meta.textContent = getSlotDateText(slot);
+            left.appendChild(meta);
+
+            const right = document.createElement('div');
+            right.className = 'slot-buttons';
+
+            if (libraryMode === 'save') {
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'btn top-btn';
+                saveBtn.textContent = slot.state ? 'OVERWRITE' : 'SAVE HERE';
+                saveBtn.onclick = () => saveToSlot(index);
+                right.appendChild(saveBtn);
+            } else {
+                const loadBtn = document.createElement('button');
+                loadBtn.className = 'btn top-btn';
+                loadBtn.textContent = 'LOAD';
+                loadBtn.disabled = !slot.state;
+                loadBtn.style.opacity = slot.state ? '1' : '0.45';
+                loadBtn.onclick = () => loadFromSlot(index);
+                right.appendChild(loadBtn);
+            }
+
+            const clearBtn = document.createElement('button');
+            clearBtn.className = 'btn top-btn';
+            clearBtn.textContent = 'CLEAR';
+            clearBtn.disabled = !slot.state;
+            clearBtn.style.opacity = slot.state ? '1' : '0.45';
+            clearBtn.onclick = () => clearSlot(index);
+            right.appendChild(clearBtn);
+
+            row.appendChild(left);
+            row.appendChild(right);
+            body.appendChild(row);
+        });
+    }
+
     function animate() {
         requestAnimationFrame(animate);
         renderer.render(scene, camera);
@@ -1310,6 +1613,10 @@
     window.duplicateSelection = duplicateSelection;
     window.deleteSelection = deleteSelection;
     window.resetView = resetView;
+    window.openSavePanel = openSavePanel;
+    window.openLoadPanel = openLoadPanel;
+    window.closeLibraryPanel = closeLibraryPanel;
+    window.addSaveSlot = addSaveSlot;
 </script>
 </body>
 </html>
