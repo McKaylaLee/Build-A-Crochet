@@ -1,8 +1,9 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.48.0 - Builder Mode</title>
+    <title>Build-A-Crochet v5.49.0 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -80,6 +81,7 @@
 
         .stack { display: flex; flex-direction: column; gap: 8px; }
         .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
         .label {
             font-size: 10px;
             color: var(--muted);
@@ -244,24 +246,24 @@
 <div id="app">
     <aside id="leftbar">
         <div class="label">TOOLS</div>
-        <button class="btn tool-btn active" id="tool-pointer" onclick="setToolMode('pointer')"><span class="icon">↖</span><span>SELECT</span></button>
-        <button class="btn tool-btn" id="tool-rotate" onclick="setToolMode('rotate')"><span class="icon">↻</span><span>ROTATE</span></button>
-        <button class="btn tool-btn" id="tool-scale" onclick="setToolMode('scale')"><span class="icon">⤢</span><span>SIZE</span></button>
+        <button class="btn tool-btn active" id="tool-pointer" onclick="setToolMode('pointer')"><span class="icon">&#8598;</span><span>SELECT</span></button>
+        <button class="btn tool-btn" id="tool-rotate" onclick="setToolMode('rotate')"><span class="icon">&#8635;</span><span>ROTATE</span></button>
+        <button class="btn tool-btn" id="tool-scale" onclick="setToolMode('scale')"><span class="icon">&#10530;</span><span>SIZE</span></button>
 
         <div class="divider"></div>
 
         <div class="label">SHAPES</div>
         <button class="btn shape-btn active" id="shape-circle" onclick="spawnShapeFromButton('circle')">
-            <span class="shape-icon">◯</span><span class="shape-label">CIRCLE</span>
+            <span class="shape-icon">&#9711;</span><span class="shape-label">CIRCLE</span>
         </button>
         <button class="btn shape-btn" id="shape-paraboloid" onclick="spawnShapeFromButton('paraboloid')">
-            <span class="shape-icon">∪</span><span class="shape-label">PARA</span>
+            <span class="shape-icon">U</span><span class="shape-label">PARA</span>
         </button>
         <button class="btn shape-btn" id="shape-cylinder" onclick="spawnShapeFromButton('cylinder')">
-            <span class="shape-icon">⬯</span><span class="shape-label">CYL</span>
+            <span class="shape-icon">C</span><span class="shape-label">CYL</span>
         </button>
         <button class="btn shape-btn" id="shape-cone" onclick="spawnShapeFromButton('cone')">
-            <span class="shape-icon">△</span><span class="shape-label">CONE</span>
+            <span class="shape-icon">&#9651;</span><span class="shape-label">CONE</span>
         </button>
     </aside>
 
@@ -285,7 +287,7 @@
     <main id="canvas-wrap">
         <div id="select-box"></div>
         <div id="rotate-readout">0 deg</div>
-        <div id="version-tag">v5.48.0</div>
+        <div id="version-tag">v5.49.0</div>
     </main>
 
     <aside id="rightbar">
@@ -523,6 +525,26 @@
         mesh.userData.shapeType = shapeType;
         mesh.userData.data = { scale: new THREE.Vector3(1, 1, 1) };
         mesh.userData.capMeshes = [];
+        mesh.userData.outlineMeshes = [];
+
+        const blackOutline = new THREE.Mesh(
+            geo.clone(),
+            new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide })
+        );
+        blackOutline.scale.set(1.03, 1.03, 1.03);
+        mesh.add(blackOutline);
+        mesh.userData.blackOutline = blackOutline;
+        mesh.userData.outlineMeshes.push(blackOutline);
+
+        const blueOutline = new THREE.Mesh(
+            geo.clone(),
+            new THREE.MeshBasicMaterial({ color: 0x3b82f6, side: THREE.BackSide })
+        );
+        blueOutline.scale.set(1.07, 1.07, 1.07);
+        blueOutline.visible = false;
+        mesh.add(blueOutline);
+        mesh.userData.blueOutline = blueOutline;
+        mesh.userData.outlineMeshes.push(blueOutline);
 
         addEndCaps(mesh, shapeType, color);
         syncObjectScale(mesh);
@@ -531,14 +553,18 @@
     }
 
     function updateSelectionAppearance(obj, selected) {
-        obj.material.emissive.set(selected ? 0x331122 : 0x000000);
-        obj.material.emissiveIntensity = selected ? 0.7 : 0;
+        obj.material.emissive.set(0x000000);
+        obj.material.emissiveIntensity = 0;
+
         if (obj.userData.capMeshes) {
             obj.userData.capMeshes.forEach(cap => {
-                cap.material.emissive.set(selected ? 0x331122 : 0x000000);
-                cap.material.emissiveIntensity = selected ? 0.7 : 0;
+                cap.material.emissive.set(0x000000);
+                cap.material.emissiveIntensity = 0;
             });
         }
+
+        if (obj.userData.blackOutline) obj.userData.blackOutline.visible = true;
+        if (obj.userData.blueOutline) obj.userData.blueOutline.visible = selected && currentTool === 'pointer';
     }
 
     function disposeShape(obj) {
@@ -548,6 +574,14 @@
                 if (cap.material) cap.material.dispose();
             });
         }
+
+        if (obj.userData.outlineMeshes) {
+            obj.userData.outlineMeshes.forEach(outline => {
+                if (outline.geometry) outline.geometry.dispose();
+                if (outline.material) outline.material.dispose();
+            });
+        }
+
         obj.geometry.dispose();
         obj.material.dispose();
         scene.remove(obj);
@@ -624,6 +658,7 @@
         groupGizmo.visible = false;
 
         currentSelection = selected;
+
         if (selected.length === 0) {
             updateInspector();
             return;
@@ -785,12 +820,14 @@
 
     function updateColor(color) {
         if (currentSelection.length === 0) return;
+
         currentSelection.forEach(obj => {
             obj.material.color.set(color);
             if (obj.userData.capMeshes) {
                 obj.userData.capMeshes.forEach(cap => cap.material.color.set(color));
             }
         });
+
         captureState();
     }
 
@@ -891,8 +928,11 @@
             dragTarget = hit.object;
             hideRotateReadout();
 
-            if (!e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([dragTarget]);
-            else if (e.ctrlKey && !currentSelection.includes(dragTarget)) updateSelectionVisuals([...currentSelection, dragTarget]);
+            if (!e.ctrlKey && !currentSelection.includes(dragTarget)) {
+                updateSelectionVisuals([dragTarget]);
+            } else if (e.ctrlKey && !currentSelection.includes(dragTarget)) {
+                updateSelectionVisuals([...currentSelection, dragTarget]);
+            }
 
             if (currentTool === 'pointer') beginObjectMove(hit, raycaster);
         } else {
@@ -1019,6 +1059,7 @@
                 e.clientY - (window.innerHeight / 2 * (1 - sPos.y)),
                 e.clientX - (window.innerWidth / 2 * (1 + sPos.x))
             );
+
             let deltaAngle = -(angle - startMouseAngle);
             let degrees = normalizeDegrees(THREE.MathUtils.radToDeg(deltaAngle));
             degrees = maybeSnapRotationDegrees(degrees);
@@ -1131,3 +1172,4 @@
 </script>
 </body>
 </html>
+```
