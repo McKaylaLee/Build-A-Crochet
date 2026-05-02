@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.52.0 - Builder Mode</title>
+    <title>Build-A-Crochet v5.52.1 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -287,7 +287,7 @@
     <main id="canvas-wrap">
         <div id="select-box"></div>
         <div id="rotate-readout">0 deg</div>
-        <div id="version-tag">v5.52.0</div>
+        <div id="version-tag">v5.52.1</div>
     </main>
 
     <aside id="rightbar">
@@ -349,6 +349,7 @@
     let groupGizmo;
     let scaleHandles = [];
     let rotateHandles = [];
+    let activeRotateRing = null;
 
     let history = [];
     let historyIndex = -1;
@@ -379,6 +380,7 @@
         scene.add(gridHelper);
 
         scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
         dirLight.position.set(120, 220, 100);
         scene.add(dirLight);
@@ -426,6 +428,7 @@
         document.getElementById('tool-rotate').classList.toggle('active', mode === 'rotate');
         document.getElementById('tool-scale').classList.toggle('active', mode === 'scale');
         hideRotateReadout();
+        hideActiveRotateRing();
         updateSelectionVisuals(currentSelection);
     }
 
@@ -638,6 +641,18 @@
         return h;
     }
 
+    function hideActiveRotateRing() {
+        if (activeRotateRing) activeRotateRing.visible = false;
+    }
+
+    function syncActiveRotateRingFromHandle(handle) {
+        if (!activeRotateRing || !handle) return;
+        activeRotateRing.position.copy(handle.position);
+        activeRotateRing.quaternion.copy(handle.quaternion);
+        activeRotateRing.scale.copy(handle.scale);
+        activeRotateRing.visible = true;
+    }
+
     function createGizmos() {
         groupGizmo = new THREE.LineSegments(
             new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
@@ -676,10 +691,10 @@
             }));
         });
 
-        const mkRot = (color, axis) => {
+        const mkRot = (color, axis, opacity = 0.65) => {
             const r = new THREE.Mesh(
                 new THREE.TorusGeometry(38, 0.8, 16, 64),
-                new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.65, depthTest: false })
+                new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthTest: false })
             );
             r.renderOrder = 998;
             r.visible = false;
@@ -689,6 +704,8 @@
         };
 
         rotateHandles = [mkRot(0xff4e4e, 'x'), mkRot(0x50bd65, 'y'), mkRot(0x4d7fff, 'z')];
+        activeRotateRing = mkRot(0xffd84d, 'active', 0.95);
+        activeRotateRing.renderOrder = 1002;
     }
 
     function getShapeObjects() {
@@ -732,6 +749,7 @@
         scaleHandles.forEach(h => h.visible = false);
         rotateHandles.forEach(h => h.visible = false);
         groupGizmo.visible = false;
+        hideActiveRotateRing();
 
         currentSelection = selected;
 
@@ -781,6 +799,10 @@
             if (i === 0) r.rotateY(Math.PI / 2);
             if (i === 1) r.rotateX(Math.PI / 2);
         });
+
+        if (dragTarget && dragTarget.userData && dragTarget.userData.isRotateHandle && currentTool === 'rotate') {
+            syncActiveRotateRingFromHandle(dragTarget);
+        }
     }
 
     function getPointerRay(e) {
@@ -857,6 +879,7 @@
 
     function executeUndo() {
         hideRotateReadout();
+        hideActiveRotateRing();
         if (historyIndex <= 0) return;
         historyIndex -= 1;
         applyState(history[historyIndex]);
@@ -864,6 +887,7 @@
 
     function executeRedo() {
         hideRotateReadout();
+        hideActiveRotateRing();
         if (historyIndex >= history.length - 1) return;
         historyIndex += 1;
         applyState(history[historyIndex]);
@@ -889,6 +913,7 @@
 
     function deleteSelection() {
         hideRotateReadout();
+        hideActiveRotateRing();
         if (currentSelection.length === 0) return;
         currentSelection.forEach(disposeShape);
         updateSelectionVisuals([]);
@@ -950,6 +975,12 @@
             controls.enabled = false;
             hideRotateReadout();
 
+            if (dragTarget.userData.isRotateHandle) {
+                syncActiveRotateRingFromHandle(dragTarget);
+            } else {
+                hideActiveRotateRing();
+            }
+
             dragPlane = new THREE.Plane(
                 camera.getWorldDirection(new THREE.Vector3()).negate(),
                 -dragTarget.position.dot(camera.getWorldDirection(new THREE.Vector3()).negate())
@@ -1002,6 +1033,8 @@
             );
             return;
         }
+
+        hideActiveRotateRing();
 
         const hits = raycaster.intersectObjects(getShapeObjects());
         if (hits.length > 0) {
@@ -1185,6 +1218,7 @@
                 obj.quaternion.multiplyQuaternions(rotQ, sd.rot);
             });
 
+            syncActiveRotateRingFromHandle(dragTarget);
             showRotateReadout(e.clientX, e.clientY, degrees);
             updateGroupGizmoVisuals();
             updateInspector();
@@ -1224,6 +1258,7 @@
         scaleSession = null;
         controls.enabled = true;
         hideRotateReadout();
+        hideActiveRotateRing();
         updateInspector();
     }
 
