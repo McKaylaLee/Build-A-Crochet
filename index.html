@@ -1,9 +1,8 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.49.0 - Builder Mode</title>
+    <title>Build-A-Crochet v5.50.0 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -287,7 +286,7 @@
     <main id="canvas-wrap">
         <div id="select-box"></div>
         <div id="rotate-readout">0 deg</div>
-        <div id="version-tag">v5.49.0</div>
+        <div id="version-tag">v5.50.0</div>
     </main>
 
     <aside id="rightbar">
@@ -496,21 +495,25 @@
         const points = [];
         const segments = 64;
 
-        for (let i = 0; i <= segments; i++) {
+        for (let i = 0; i < segments; i++) {
             const angle = (i / segments) * Math.PI * 2;
             points.push(new THREE.Vector3(
-                Math.cos(angle) * radius,
+                Math.cos(angle) * (radius + 0.35),
                 0,
-                Math.sin(angle) * radius
+                Math.sin(angle) * (radius + 0.35)
             ));
         }
 
-        const ring = new THREE.Line(
+        const ring = new THREE.LineLoop(
             new THREE.BufferGeometry().setFromPoints(points),
-            new THREE.LineBasicMaterial({ color: 0x000000 })
+            new THREE.LineBasicMaterial({
+                color: 0x000000,
+                depthTest: false
+            })
         );
 
         ring.rotation.x = flip ? Math.PI / 2 : -Math.PI / 2;
+        ring.renderOrder = 1001;
         return ring;
     }
 
@@ -1196,4 +1199,3 @@
 </script>
 </body>
 </html>
-```
