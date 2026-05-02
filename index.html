@@ -492,11 +492,26 @@
         return cap;
     }
 
-    function createLineOverlay(geometry) {
-        return new THREE.LineSegments(
-            new THREE.WireframeGeometry(geometry),
+    function createCapRing(radius, flip = false) {
+        const points = [];
+        const segments = 64;
+
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            points.push(new THREE.Vector3(
+                Math.cos(angle) * radius,
+                0,
+                Math.sin(angle) * radius
+            ));
+        }
+
+        const ring = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints(points),
             new THREE.LineBasicMaterial({ color: 0x000000 })
         );
+
+        ring.rotation.x = flip ? Math.PI / 2 : -Math.PI / 2;
+        return ring;
     }
 
     function addEndCaps(mesh, shapeType, color) {
@@ -511,18 +526,18 @@
 
         if (bottomRadius > 0.11) {
             const cap = createCap(bottomRadius, bottomY, color, false);
-            const capLines = createLineOverlay(cap.geometry);
-            cap.add(capLines);
-            cap.userData.lineOverlay = capLines;
+            const capRing = createCapRing(bottomRadius, false);
+            cap.add(capRing);
+            cap.userData.lineOverlay = capRing;
             mesh.add(cap);
             mesh.userData.capMeshes.push(cap);
         }
 
         if (topRadius > 0.11) {
             const cap = createCap(topRadius, topY, color, true);
-            const capLines = createLineOverlay(cap.geometry);
-            cap.add(capLines);
-            cap.userData.lineOverlay = capLines;
+            const capRing = createCapRing(topRadius, true);
+            cap.add(capRing);
+            cap.userData.lineOverlay = capRing;
             mesh.add(cap);
             mesh.userData.capMeshes.push(cap);
         }
@@ -539,10 +554,6 @@
         mesh.userData.data = { scale: new THREE.Vector3(1, 1, 1) };
         mesh.userData.capMeshes = [];
         mesh.userData.outlineMeshes = [];
-
-        const bodyLines = createLineOverlay(geo);
-        mesh.add(bodyLines);
-        mesh.userData.bodyLines = bodyLines;
 
         const blackOutline = new THREE.Mesh(
             geo.clone(),
@@ -572,7 +583,6 @@
     function updateSelectionAppearance(obj, selected) {
         obj.material.emissive.set(0x000000);
         obj.material.emissiveIntensity = 0;
-
         if (obj.userData.capMeshes) {
             obj.userData.capMeshes.forEach(cap => {
                 if (cap.userData.lineOverlay) {
@@ -582,8 +592,6 @@
                 cap.material.emissiveIntensity = 0;
             });
         }
-
-        if (obj.userData.bodyLines) obj.userData.bodyLines.visible = true;
         if (obj.userData.blackOutline) obj.userData.blackOutline.visible = true;
         if (obj.userData.blueOutline) obj.userData.blueOutline.visible = selected && currentTool === 'pointer';
     }
@@ -599,19 +607,12 @@
                 if (cap.material) cap.material.dispose();
             });
         }
-
         if (obj.userData.outlineMeshes) {
             obj.userData.outlineMeshes.forEach(outline => {
                 if (outline.geometry) outline.geometry.dispose();
                 if (outline.material) outline.material.dispose();
             });
         }
-
-        if (obj.userData.bodyLines) {
-            if (obj.userData.bodyLines.geometry) obj.userData.bodyLines.geometry.dispose();
-            if (obj.userData.bodyLines.material) obj.userData.bodyLines.material.dispose();
-        }
-
         obj.geometry.dispose();
         obj.material.dispose();
         scene.remove(obj);
