@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -353,7 +354,6 @@
     let dragPlane = null;
     let startPositions = [];
     let startGroupData = [];
-    let startMouseAngle = 0;
     let currentSelection = [];
     let isBoxSelecting = false;
     let boxStart = new THREE.Vector2();
@@ -474,6 +474,7 @@
 
     function createProfile(shapeType) {
         const points = [];
+
         if (shapeType === 'circle') {
             for (let i = 0; i <= 24; i++) {
                 const t = i / 24;
@@ -602,15 +603,15 @@
     function updateSelectionAppearance(obj, selected) {
         obj.material.emissive.set(0x000000);
         obj.material.emissiveIntensity = 0;
+
         if (obj.userData.capMeshes) {
             obj.userData.capMeshes.forEach(cap => {
-                if (cap.userData.lineOverlay) {
-                    cap.userData.lineOverlay.visible = true;
-                }
+                if (cap.userData.lineOverlay) cap.userData.lineOverlay.visible = true;
                 cap.material.emissive.set(0x000000);
                 cap.material.emissiveIntensity = 0;
             });
         }
+
         if (obj.userData.blackOutline) obj.userData.blackOutline.visible = true;
         if (obj.userData.blueOutline) obj.userData.blueOutline.visible = selected;
     }
@@ -626,20 +627,22 @@
                 if (cap.material) cap.material.dispose();
             });
         }
+
         if (obj.userData.outlineMeshes) {
             obj.userData.outlineMeshes.forEach(outline => {
                 if (outline.geometry) outline.geometry.dispose();
                 if (outline.material) outline.material.dispose();
             });
         }
+
         obj.geometry.dispose();
         obj.material.dispose();
         scene.remove(obj);
     }
 
-    function createHandle(color, data) {
+    function createHandle(color, data, radius = 2.8) {
         const h = new THREE.Mesh(
-            new THREE.SphereGeometry(2.8, 16, 16),
+            new THREE.SphereGeometry(radius, 20, 20),
             new THREE.MeshBasicMaterial({ color, depthTest: false })
         );
         h.renderOrder = 999;
@@ -647,81 +650,6 @@
         h.userData = data;
         scene.add(h);
         return h;
-    }
-
-    function createRotateBadgeTexture(color, direction) {
-        const size = 128;
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-
-        ctx.clearRect(0, 0, size, size);
-        ctx.strokeStyle = '#' + color.toString(16).padStart(6, '0');
-        ctx.lineWidth = 10;
-        ctx.lineCap = 'round';
-
-        ctx.beginPath();
-        ctx.arc(size / 2, size / 2, 32, Math.PI * 0.18, Math.PI * 1.82);
-        ctx.stroke();
-
-        const arrowColor = '#' + color.toString(16).padStart(6, '0');
-        ctx.fillStyle = arrowColor;
-
-        if (direction === 'cw') {
-            ctx.beginPath();
-            ctx.moveTo(92, 30);
-            ctx.lineTo(110, 33);
-            ctx.lineTo(98, 47);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.moveTo(36, 99);
-            ctx.lineTo(19, 95);
-            ctx.lineTo(31, 82);
-            ctx.closePath();
-            ctx.fill();
-        } else {
-            ctx.beginPath();
-            ctx.moveTo(36, 30);
-            ctx.lineTo(18, 33);
-            ctx.lineTo(30, 47);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.moveTo(92, 99);
-            ctx.lineTo(109, 95);
-            ctx.lineTo(97, 82);
-            ctx.closePath();
-            ctx.fill();
-        }
-
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.needsUpdate = true;
-        return texture;
-    }
-
-    function createRotateBadge(axis, color, direction) {
-        const sprite = new THREE.Sprite(
-            new THREE.SpriteMaterial({
-                map: createRotateBadgeTexture(color, direction),
-                transparent: true,
-                depthTest: false
-            })
-        );
-        sprite.scale.set(20, 20, 20);
-        sprite.visible = false;
-        sprite.renderOrder = 1000;
-        sprite.userData = {
-            isRotateHandle: true,
-            isRotateBadge: true,
-            axis,
-            direction
-        };
-        scene.add(sprite);
-        return sprite;
     }
 
     function getAxisVector(axisName) {
@@ -781,9 +709,9 @@
         });
 
         rotateHandles = [
-            createRotateBadge('x', 0xff8a3d, 'cw'),
-            createRotateBadge('y', 0x4d7fff, 'ccw'),
-            createRotateBadge('z', 0x50bd65, 'cw')
+            createHandle(0xff8a3d, { isRotateHandle: true, axis: 'x', direction: 'cw' }, 5),
+            createHandle(0x4d7fff, { isRotateHandle: true, axis: 'y', direction: 'ccw' }, 5),
+            createHandle(0x50bd65, { isRotateHandle: true, axis: 'z', direction: 'cw' }, 5)
         ];
     }
 
@@ -798,6 +726,7 @@
         groupGizmo.visible = false;
 
         currentSelection = selected;
+
         if (selected.length === 0) {
             updateInspector();
             return;
@@ -807,9 +736,7 @@
 
         if (currentTool === 'scale' || currentTool === 'rotate') groupGizmo.visible = true;
         if (currentTool === 'scale') scaleHandles.forEach(h => h.visible = true);
-        if (currentTool === 'rotate') {
-            rotateHandles.forEach(h => h.visible = true);
-        }
+        if (currentTool === 'rotate') rotateHandles.forEach(h => h.visible = true);
 
         updateGroupGizmoVisuals();
         updateInspector();
@@ -837,9 +764,9 @@
             ));
         });
 
-        rotateHandles.forEach(r => {
-            r.position.copy(getRotateHandlePosition(r, center, size));
-            r.scale.setScalar(dragTarget === r ? 23 : 20);
+        rotateHandles.forEach(h => {
+            h.position.copy(getRotateHandlePosition(h, center, size));
+            h.scale.setScalar(dragTarget === h ? 1.4 : 1);
         });
     }
 
@@ -957,12 +884,14 @@
 
     function updateColor(color) {
         if (currentSelection.length === 0) return;
+
         currentSelection.forEach(obj => {
             obj.material.color.set(color);
             if (obj.userData.capMeshes) {
                 obj.userData.capMeshes.forEach(cap => cap.material.color.set(color));
             }
         });
+
         captureState();
     }
 
@@ -1219,9 +1148,11 @@
                 rotateSession.axis.dot(cross),
                 rotateSession.startVector.dot(currentVector)
             );
+
             if (dragTarget.userData.direction === 'ccw') {
                 deltaAngle *= -1;
             }
+
             let degrees = normalizeDegrees(THREE.MathUtils.radToDeg(deltaAngle));
             degrees = maybeSnapRotationDegrees(degrees);
             deltaAngle = THREE.MathUtils.degToRad(degrees);
@@ -1328,3 +1259,4 @@
 </script>
 </body>
 </html>
+```
