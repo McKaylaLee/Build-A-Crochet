@@ -1,9 +1,8 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Build-A-Crochet v5.53.0 - Builder Mode</title>
+    <title>Build-A-Crochet v5.53.1 - Builder Mode</title>
     <style>
         :root {
             --bg: #f5f5f2;
@@ -300,8 +299,8 @@
     <main id="canvas-wrap">
         <div id="select-box"></div>
         <div id="rotate-readout">0 deg</div>
-        <div id="version-tag">v5.53.0</div>
-        <div id="mode-hint" style="display:none;">Three Tinkercad-style rotate handles</div>
+        <div id="version-tag">v5.53.1</div>
+        <div id="mode-hint" style="display:none;">Protractor shows while dragging a rotate handle</div>
     </main>
 
     <aside id="rightbar">
@@ -363,6 +362,7 @@
     let scaleHandles = [];
     let rotateHandles = [];
     let rotateSession = null;
+    let rotateProtractor = null;
 
     let history = [];
     let historyIndex = -1;
@@ -440,6 +440,7 @@
         document.getElementById('tool-rotate').classList.toggle('active', mode === 'rotate');
         document.getElementById('tool-scale').classList.toggle('active', mode === 'scale');
         hideRotateReadout();
+        hideRotateProtractor();
         document.getElementById('mode-hint').style.display = mode === 'rotate' ? 'block' : 'none';
         updateSelectionVisuals(currentSelection);
     }
@@ -652,6 +653,44 @@
         return h;
     }
 
+    function createRotateRing(color) {
+        const ring = new THREE.LineLoop(
+            new THREE.BufferGeometry(),
+            new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.85, depthTest: false })
+        );
+        ring.visible = false;
+        ring.renderOrder = 995;
+        scene.add(ring);
+        return ring;
+    }
+
+    function createTickLines(color) {
+        const ticks = new THREE.LineSegments(
+            new THREE.BufferGeometry(),
+            new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.55, depthTest: false })
+        );
+        ticks.visible = false;
+        ticks.renderOrder = 996;
+        scene.add(ticks);
+        return ticks;
+    }
+
+    function createRotateHandle(color, axis, direction) {
+        const handle = new THREE.Mesh(
+            new THREE.SphereGeometry(5, 20, 20),
+            new THREE.MeshBasicMaterial({ color, depthTest: false })
+        );
+        handle.visible = false;
+        handle.renderOrder = 1000;
+        handle.userData = {
+            isRotateHandle: true,
+            axis,
+            direction
+        };
+        scene.add(handle);
+        return handle;
+    }
+
     function getAxisVector(axisName) {
         if (axisName === 'x') return new THREE.Vector3(1, 0, 0);
         if (axisName === 'y') return new THREE.Vector3(0, 1, 0);
@@ -672,6 +711,67 @@
         }
 
         return center.clone().add(new THREE.Vector3(-sideOffset, topY, 0));
+    }
+
+    function createRotateProtractor() {
+        rotateProtractor = {
+            outerRing: createRotateRing(0x1f1f1c),
+            innerRing: createRotateRing(0x9a9a92),
+            ticks: createTickLines(0x66665f)
+        };
+    }
+
+    function hideRotateProtractor() {
+        if (!rotateProtractor) return;
+        rotateProtractor.outerRing.visible = false;
+        rotateProtractor.innerRing.visible = false;
+        rotateProtractor.ticks.visible = false;
+    }
+
+    function updateRotateProtractor(center, axisName, radius) {
+        if (!rotateProtractor) return;
+
+        const axis = getAxisVector(axisName);
+        const outerRadius = radius;
+        const innerRadius = radius * 0.68;
+
+        const outerPoints = [];
+        const innerPoints = [];
+        const tickPoints = [];
+        const segments = 96;
+
+        const temp = Math.abs(axis.y) > 0.9
+            ? new THREE.Vector3(1, 0, 0)
+            : new THREE.Vector3(0, 1, 0);
+
+        const u = new THREE.Vector3().crossVectors(axis, temp).normalize();
+        const v = new THREE.Vector3().crossVectors(axis, u).normalize();
+
+        for (let i = 0; i < segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            const dir = u.clone().multiplyScalar(Math.cos(angle)).add(v.clone().multiplyScalar(Math.sin(angle)));
+            outerPoints.push(center.clone().add(dir.clone().multiplyScalar(outerRadius)));
+            innerPoints.push(center.clone().add(dir.clone().multiplyScalar(innerRadius)));
+        }
+
+        for (let i = 0; i < 16; i++) {
+            const angle = (i / 16) * Math.PI * 2;
+            const dir = u.clone().multiplyScalar(Math.cos(angle)).add(v.clone().multiplyScalar(Math.sin(angle)));
+            tickPoints.push(center.clone().add(dir.clone().multiplyScalar(innerRadius)));
+            tickPoints.push(center.clone().add(dir.clone().multiplyScalar(outerRadius)));
+        }
+
+        rotateProtractor.outerRing.geometry.dispose();
+        rotateProtractor.innerRing.geometry.dispose();
+        rotateProtractor.ticks.geometry.dispose();
+
+        rotateProtractor.outerRing.geometry = new THREE.BufferGeometry().setFromPoints(outerPoints);
+        rotateProtractor.innerRing.geometry = new THREE.BufferGeometry().setFromPoints(innerPoints);
+        rotateProtractor.ticks.geometry = new THREE.BufferGeometry().setFromPoints(tickPoints);
+
+        rotateProtractor.outerRing.visible = true;
+        rotateProtractor.innerRing.visible = true;
+        rotateProtractor.ticks.visible = true;
     }
 
     function createGizmos() {
@@ -709,10 +809,12 @@
         });
 
         rotateHandles = [
-            createHandle(0xff8a3d, { isRotateHandle: true, axis: 'x', direction: 'cw' }, 5),
-            createHandle(0x4d7fff, { isRotateHandle: true, axis: 'y', direction: 'ccw' }, 5),
-            createHandle(0x50bd65, { isRotateHandle: true, axis: 'z', direction: 'cw' }, 5)
+            createRotateHandle(0xff8a3d, 'x', 'cw'),
+            createRotateHandle(0x4d7fff, 'y', 'ccw'),
+            createRotateHandle(0x50bd65, 'z', 'cw')
         ];
+
+        createRotateProtractor();
     }
 
     function getShapeObjects() {
@@ -724,6 +826,7 @@
         scaleHandles.forEach(h => h.visible = false);
         rotateHandles.forEach(h => h.visible = false);
         groupGizmo.visible = false;
+        hideRotateProtractor();
 
         currentSelection = selected;
 
@@ -768,6 +871,10 @@
             h.position.copy(getRotateHandlePosition(h, center, size));
             h.scale.setScalar(dragTarget === h ? 1.4 : 1);
         });
+
+        if (dragTarget && dragTarget.userData && dragTarget.userData.isRotateHandle && currentTool === 'rotate') {
+            updateRotateProtractor(center, dragTarget.userData.axis, Math.max(size.x, size.y, size.z) * 0.7 + 16);
+        }
     }
 
     function getPointerRay(e) {
@@ -844,6 +951,7 @@
 
     function executeUndo() {
         hideRotateReadout();
+        hideRotateProtractor();
         if (historyIndex <= 0) return;
         historyIndex -= 1;
         applyState(history[historyIndex]);
@@ -851,6 +959,7 @@
 
     function executeRedo() {
         hideRotateReadout();
+        hideRotateProtractor();
         if (historyIndex >= history.length - 1) return;
         historyIndex += 1;
         applyState(history[historyIndex]);
@@ -876,6 +985,7 @@
 
     function deleteSelection() {
         hideRotateReadout();
+        hideRotateProtractor();
         if (currentSelection.length === 0) return;
         currentSelection.forEach(disposeShape);
         updateSelectionVisuals([]);
@@ -1007,6 +1117,8 @@
                     axis,
                     startVector: startVector.normalize()
                 };
+
+                updateRotateProtractor(groupCenter, dragTarget.userData.axis, Math.max(groupSize.x, groupSize.y, groupSize.z) * 0.7 + 16);
             }
             return;
         }
@@ -1026,6 +1138,7 @@
             scaleSession = null;
             rotateSession = null;
             hideRotateReadout();
+            hideRotateProtractor();
 
             if (currentTool === 'pointer' && e.button === 2) {
                 const rect = document.getElementById('canvas-wrap').getBoundingClientRect();
@@ -1165,8 +1278,8 @@
                 obj.quaternion.multiplyQuaternions(rotQ, sd.rot);
             });
 
-            showRotateReadout(e.clientX, e.clientY, degrees);
             updateGroupGizmoVisuals();
+            showRotateReadout(e.clientX, e.clientY, degrees);
             updateInspector();
         }
     }
@@ -1205,6 +1318,7 @@
         rotateSession = null;
         controls.enabled = true;
         hideRotateReadout();
+        hideRotateProtractor();
         updateInspector();
     }
 
@@ -1259,4 +1373,3 @@
 </script>
 </body>
 </html>
-```
