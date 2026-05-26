@@ -685,7 +685,8 @@
         handle.userData = {
             isRotateHandle: true,
             axis,
-            direction
+            direction,
+            baseColor: color
         };
         scene.add(handle);
         return handle;
@@ -717,7 +718,6 @@
         root.add(outerRing);
         root.add(innerRing);
         root.add(ticks);
-        root.userData = { outerRing, innerRing, ticks };
         scene.add(root);
         return root;
     }
@@ -822,9 +822,7 @@
 
         if (currentTool === 'scale' || currentTool === 'rotate') groupGizmo.visible = true;
         if (currentTool === 'scale') scaleHandles.forEach(h => h.visible = true);
-        if (currentTool === 'rotate') {
-            rotateHandles.forEach(h => h.visible = true);
-        }
+        if (currentTool === 'rotate') rotateHandles.forEach(h => h.visible = true);
 
         updateGroupGizmoVisuals();
         updateInspector();
@@ -853,8 +851,10 @@
         });
 
         rotateHandles.forEach(r => {
+            const isActive = dragTarget === r;
             r.position.copy(getRotateHandlePosition(r, center, size));
-            r.scale.setScalar(dragTarget === r ? 1.25 : 1);
+            r.scale.setScalar(isActive ? 1.4 : 1);
+            r.material.color.setHex(isActive ? 0xfff27a : r.userData.baseColor);
         });
 
         if (dragTarget && dragTarget.userData && dragTarget.userData.isRotateHandle) {
@@ -1302,6 +1302,10 @@
         controls.enabled = true;
         hideRotateReadout();
         hideRotateProtractor();
+        rotateHandles.forEach(r => {
+            r.scale.setScalar(1);
+            r.material.color.setHex(r.userData.baseColor);
+        });
         updateInspector();
     }
 
