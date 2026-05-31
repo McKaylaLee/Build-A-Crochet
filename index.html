@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Build-A-Crochet v5.53.2 - Builder Mode</title>
+<title>Build-A-Crochet v5.57.3 - Builder Mode</title>
 <style>
 :root{--bg:#f5f5f2;--panel:#fff;--line:#d8d8d2;--soft:#ecece6;--text:#1f1f1c;--muted:#66665f;--accent:#ff6ea8}
 *{box-sizing:border-box}body{margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:monospace;touch-action:none;user-select:none}
@@ -20,11 +20,56 @@
 .btn.active{background:var(--accent);color:#fff;border-color:#ff9bc2}.btn.active .shape-icon{color:#fff}
 .divider{height:1px;background:var(--line);margin:2px 0}.top-group{display:flex;gap:8px;align-items:center}.top-btn{min-height:36px;min-width:66px;padding:8px 10px}
 .panel-card{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fcfcfa}.mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.swatch{width:26px;height:26px;border-radius:50%;border:1px solid rgba(0,0,0,.12);cursor:pointer}
+.field-row{display:flex;flex-direction:column;gap:2px}.field-label{font-size:9px;color:var(--muted);letter-spacing:.2px;min-width:42px}
+.inspector-input{width:100%;border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:inherit;font-size:11px;background:#fff;color:var(--text);user-select:text;-moz-appearance:textfield}
+.inspector-input::-webkit-outer-spin-button,.inspector-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.inspector-field-wrap{display:flex;gap:4px;align-items:center;width:100%}
+.inspector-field-wrap .inspector-input{flex:1;min-width:0}
+.inspector-steps{display:flex;flex-direction:column;gap:1px;flex:0 0 auto}
+.inspector-step{width:18px;height:11px;border:1px solid var(--line);background:var(--soft);border-radius:3px;cursor:pointer;font-size:8px;line-height:1;padding:0;color:var(--muted)}
+.inspector-step:hover{border-color:var(--accent);color:var(--text)}
+.inspector-input:disabled{background:var(--soft);color:var(--muted);cursor:not-allowed;opacity:.85}
+.inspector-input:focus{outline:none;border-color:var(--accent)}
+.swatch{width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,0,0,.12);cursor:pointer;padding:0}
+.color-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.top-toggle.active{background:var(--accent);color:#fff;border-color:#ff9bc2}
 #mode-hint,#version-tag{position:absolute;bottom:14px;background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:11px;color:var(--muted);z-index:6;pointer-events:none}
 #mode-hint{left:14px}#version-tag{right:14px}
 #select-box{border:2px dashed var(--accent);background:rgba(255,110,168,.08);position:absolute;pointer-events:none;display:none;z-index:5}
 #rotate-readout{position:absolute;display:none;pointer-events:none;z-index:20;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:8px;padding:4px 8px;font-size:12px;color:var(--text);white-space:nowrap;transform:translate(16px,-18px);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+#save-dialog,#gallery-modal,#delete-confirm-dialog{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(31,31,28,.45);z-index:100;padding:20px}
+#save-dialog.open,#gallery-modal.open,#delete-confirm-dialog.open{display:flex}
+#delete-confirm-dialog{z-index:110;background:rgba(31,31,28,.55)}
+.delete-confirm-actions{display:flex;gap:8px;margin-top:4px}
+.delete-confirm-actions .btn{flex:1}
+.save-modal-card{width:min(440px,92vw);max-height:80vh;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px;box-shadow:0 12px 40px rgba(0,0,0,.15)}
+.save-modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.save-modal-note{font-size:10px;color:var(--muted);line-height:1.45}
+.save-name-input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;font-size:12px;background:#fff;color:var(--text);user-select:text}
+.save-name-input:focus{outline:none;border-color:var(--accent)}
+.save-scope-row{display:flex;gap:8px;flex-wrap:wrap}
+.save-scope-btn{flex:1;min-width:120px}
+.save-scope-btn:disabled{opacity:.45;cursor:not-allowed}
+#gallery-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;overflow-y:auto;max-height:54vh}
+.gallery-empty{font-size:11px;color:var(--muted);padding:12px 4px;line-height:1.5;grid-column:1/-1}
+.gallery-card{border:1px solid var(--line);background:var(--soft);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left;font:inherit;color:var(--text);position:relative}
+.gallery-card:hover{border-color:var(--accent);background:#fff5f9}
+.gallery-card.selected{border-color:var(--accent);background:#fff5f9;box-shadow:0 0 0 2px rgba(255,110,168,.25)}
+.gallery-card-check{position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:4px;border:1px solid var(--line);background:#fff;display:none;align-items:center;justify-content:center;font-size:11px;color:var(--accent);font-weight:bold}
+.gallery-select-mode .gallery-card-check{display:flex}
+.gallery-select-mode .gallery-card.selected .gallery-card-check{background:var(--accent);color:#fff;border-color:var(--accent)}
+.gallery-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.gallery-toolbar .btn{min-height:34px;padding:6px 10px}
+#gallery-selected-count{font-size:10px;color:var(--muted);flex:1;min-width:80px}
+.gallery-bulk-btn:disabled{opacity:.45;cursor:not-allowed}
+.gallery-preview{display:flex;gap:4px;flex-wrap:wrap;min-height:18px}
+.gallery-dot{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.12)}
+.gallery-name{font-size:12px;font-weight:bold;line-height:1.2}
+.gallery-meta{font-size:10px;color:var(--muted)}
+.gallery-badge{display:inline-block;font-size:9px;padding:2px 6px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--muted);margin-right:4px}
+.gallery-card-foot{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.gallery-delete{min-width:28px;height:28px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;font-size:14px;line-height:1;color:var(--muted);padding:0}
+.gallery-delete:hover{color:#c0392b;border-color:#e8a09a}
 </style>
 </head>
 <body>
@@ -45,6 +90,9 @@
 <header id="topbar">
 <div class="top-group"><div><div class="title">Build-A-Crochet</div><div class="subtitle">Builder-style workspace</div></div></div>
 <div class="top-group">
+<button class="btn top-btn" onclick="openSaveDialog()">SAVE</button>
+<button class="btn top-btn" onclick="openGallery()">GALLERY</button>
+<button class="btn top-btn top-toggle active" id="stack-toggle" onclick="toggleStackOnTop()" title="When on, shapes sit on top of others">STACK</button>
 <button class="btn top-btn" onclick="executeUndo()">UNDO</button>
 <button class="btn top-btn" onclick="executeRedo()">REDO</button>
 <button class="btn top-btn" onclick="duplicateSelection()">DUP</button>
@@ -56,28 +104,87 @@
 <main id="canvas-wrap">
 <div id="select-box"></div>
 <div id="rotate-readout">0 deg</div>
-<div id="version-tag">v5.53.2</div>
-<div id="mode-hint" style="display:none;">Drag a rotate dot to show the snapping protractor</div>
+<div id="version-tag">v5.57.3</div>
+<div id="mode-hint" style="display:none;">Rotate on inner ring to snap — pull mouse outward for free rotation</div>
 </main>
 
 <aside id="rightbar">
 <div class="panel-card stack"><div class="label">SELECTION</div><div class="value" id="selection-name">Nothing selected</div><div class="subtitle" id="selection-count">0 objects</div></div>
-<div class="panel-card stack"><div class="label">POSITION</div><div class="mini-grid"><div class="value" id="pos-x">X: -</div><div class="value" id="pos-y">Y: -</div><div class="value" id="pos-z">Z: -</div></div></div>
-<div class="panel-card stack"><div class="label">SIZE</div><div class="mini-grid"><div class="value" id="scale-x">W: -</div><div class="value" id="scale-y">H: -</div><div class="value" id="scale-z">D: -</div></div></div>
-<div class="panel-card stack"><div class="label">COLOR</div><div class="row">
-<button class="swatch" style="background:#ff69b4" onclick="updateColor('#ff69b4')"></button>
-<button class="swatch" style="background:#ffffff" onclick="updateColor('#ffffff')"></button>
-<button class="swatch" style="background:#000000" onclick="updateColor('#000000')"></button>
-<button class="swatch" style="background:#7ed957" onclick="updateColor('#7ed957')"></button>
+<div class="panel-card stack"><div class="label">POSITION</div><div class="mini-grid">
+<div class="field-row"><span class="field-label">WIDTH</span><div class="inspector-field-wrap"><input type="number" id="pos-x" class="inspector-input" step="5" min="-500" max="500" disabled><div class="inspector-steps"><button type="button" class="inspector-step" onclick="stepInspectorField('pos-x',1)" tabindex="-1">&#9650;</button><button type="button" class="inspector-step" onclick="stepInspectorField('pos-x',-1)" tabindex="-1">&#9660;</button></div></div></div>
+<div class="field-row"><span class="field-label">HEIGHT</span><div class="inspector-field-wrap"><input type="number" id="pos-y" class="inspector-input" step="5" min="0" max="500" disabled><div class="inspector-steps"><button type="button" class="inspector-step" onclick="stepInspectorField('pos-y',1)" tabindex="-1">&#9650;</button><button type="button" class="inspector-step" onclick="stepInspectorField('pos-y',-1)" tabindex="-1">&#9660;</button></div></div></div>
+<div class="field-row"><span class="field-label">DEPTH</span><div class="inspector-field-wrap"><input type="number" id="pos-z" class="inspector-input" step="5" min="-500" max="500" disabled><div class="inspector-steps"><button type="button" class="inspector-step" onclick="stepInspectorField('pos-z',1)" tabindex="-1">&#9650;</button><button type="button" class="inspector-step" onclick="stepInspectorField('pos-z',-1)" tabindex="-1">&#9660;</button></div></div></div>
+</div></div>
+<div class="panel-card stack"><div class="label">SIZE</div><div class="mini-grid">
+<div class="field-row"><span class="field-label">WIDTH</span><div class="inspector-field-wrap"><input type="number" id="scale-x" class="inspector-input" step="0.05" min="0.01" max="5" disabled><div class="inspector-steps"><button type="button" class="inspector-step" onclick="stepInspectorField('scale-x',1)" tabindex="-1">&#9650;</button><button type="button" class="inspector-step" onclick="stepInspectorField('scale-x',-1)" tabindex="-1">&#9660;</button></div></div></div>
+<div class="field-row"><span class="field-label">HEIGHT</span><div class="inspector-field-wrap"><input type="number" id="scale-y" class="inspector-input" step="0.05" min="0.01" max="5" disabled><div class="inspector-steps"><button type="button" class="inspector-step" onclick="stepInspectorField('scale-y',1)" tabindex="-1">&#9650;</button><button type="button" class="inspector-step" onclick="stepInspectorField('scale-y',-1)" tabindex="-1">&#9660;</button></div></div></div>
+<div class="field-row"><span class="field-label">DEPTH</span><div class="inspector-field-wrap"><input type="number" id="scale-z" class="inspector-input" step="0.05" min="0.01" max="5" disabled><div class="inspector-steps"><button type="button" class="inspector-step" onclick="stepInspectorField('scale-z',1)" tabindex="-1">&#9650;</button><button type="button" class="inspector-step" onclick="stepInspectorField('scale-z',-1)" tabindex="-1">&#9660;</button></div></div></div>
+</div></div>
+<div class="panel-card stack"><div class="label">COLOR</div><div class="color-grid">
+<button class="swatch" style="background:#ff69b4" onclick="updateColor('#ff69b4')" title="Pink"></button>
+<button class="swatch" style="background:#ff4444" onclick="updateColor('#ff4444')" title="Red"></button>
+<button class="swatch" style="background:#ff8a3d" onclick="updateColor('#ff8a3d')" title="Orange"></button>
+<button class="swatch" style="background:#ffd84d" onclick="updateColor('#ffd84d')" title="Yellow"></button>
+<button class="swatch" style="background:#7ed957" onclick="updateColor('#7ed957')" title="Green"></button>
+<button class="swatch" style="background:#50bd65" onclick="updateColor('#50bd65')" title="Mint"></button>
+<button class="swatch" style="background:#4d7fff" onclick="updateColor('#4d7fff')" title="Blue"></button>
+<button class="swatch" style="background:#9b59ff" onclick="updateColor('#9b59ff')" title="Purple"></button>
+<button class="swatch" style="background:#ffffff" onclick="updateColor('#ffffff')" title="White"></button>
+<button class="swatch" style="background:#c8c8c0" onclick="updateColor('#c8c8c0')" title="Gray"></button>
+<button class="swatch" style="background:#8b5a2b" onclick="updateColor('#8b5a2b')" title="Brown"></button>
+<button class="swatch" style="background:#000000" onclick="updateColor('#000000')" title="Black"></button>
 </div></div>
 </aside>
+</div>
+
+<div id="save-dialog" onclick="if(event.target===this) closeSaveDialog()">
+<div class="save-modal-card">
+<div class="save-modal-head"><div class="title">Save to Gallery</div><button class="btn top-btn" onclick="closeSaveDialog()">CLOSE</button></div>
+<p class="save-modal-note">Saved designs stay in this app only — no files needed. Save a whole design or just the shapes you have selected to finish later.</p>
+<input type="text" id="save-name-input" class="save-name-input" maxlength="48" placeholder="Name this save">
+<div class="save-scope-row">
+<button class="btn top-btn save-scope-btn active" id="save-scope-full" onclick="setSaveScope('full')">WHOLE DESIGN</button>
+<button class="btn top-btn save-scope-btn" id="save-scope-selection" onclick="setSaveScope('selection')">SELECTED ONLY</button>
+</div>
+<div class="save-scope-row">
+<button class="btn top-btn" style="flex:1;background:var(--accent);color:#fff;border-color:#ff9bc2" onclick="confirmSaveDesign()">SAVE</button>
+</div>
+</div>
+</div>
+
+<div id="gallery-modal" onclick="if(event.target===this) closeGallery()">
+<div class="save-modal-card" id="gallery-panel">
+<div class="save-modal-head"><div class="title">My Gallery</div><button class="btn top-btn" onclick="closeGallery()">CLOSE</button></div>
+<p class="save-modal-note" id="gallery-note">Click a saved design to bring it back. Whole designs replace the workspace. Selected saves are added to what you are working on.</p>
+<div class="gallery-toolbar">
+<button class="btn top-btn" id="gallery-select-toggle" onclick="toggleGallerySelectMode()">SELECT</button>
+<span id="gallery-selected-count"></span>
+<button class="btn top-btn gallery-bulk-btn" id="gallery-load-selected" onclick="loadSelectedGalleryProjects()" disabled>LOAD SELECTED</button>
+<button class="btn top-btn gallery-bulk-btn" id="gallery-delete-selected" onclick="deleteSelectedGalleryProjects()" disabled>DELETE SELECTED</button>
+</div>
+<div id="gallery-list"></div>
+</div>
+</div>
+
+<div id="delete-confirm-dialog" onclick="if(event.target===this) cancelDeleteSavedProject()">
+<div class="save-modal-card" style="width:min(360px,90vw)">
+<div class="title" id="delete-confirm-title">Delete this save?</div>
+<p class="save-modal-note" id="delete-confirm-text">Are you sure you want to delete this? This cannot be undone.</p>
+<div class="delete-confirm-actions">
+<button class="btn top-btn" onclick="cancelDeleteSavedProject()">CANCEL</button>
+<button class="btn top-btn" style="background:#ff4444;color:#fff;border-color:#ff8888" onclick="confirmDeleteSavedProject()">DELETE</button>
+</div>
+</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
-let scene,camera,renderer,controls,gridHelper,currentTool='pointer',placementShape='circle',isDragging=false,dragTarget=null,dragStartPoint=null,dragPlane=null,startPositions=[],startGroupData=[],currentSelection=[],isBoxSelecting=false,boxStart=new THREE.Vector2(),scaleSession=null,groupGizmo,scaleHandles=[],rotateHandles=[],rotateSession=null,rotateProtractor=null,history=[],historyIndex=-1;
-const BASE_H=96,BASE_R=36,ROTATION_SNAP_STEP=22.5,PROTRACTOR_TICK_COUNT=16;
+let scene,camera,renderer,controls,gridHelper,currentTool='pointer',placementShape='circle',placementColor=0xff69b4,isPlacing=false,placementArmed=false,ghostMesh=null,stackOnTop=true,isDragging=false,dragTarget=null,dragStartPoint=null,dragPlane=null,startPositions=[],startGroupData=[],currentSelection=[],isBoxSelecting=false,boxStart=new THREE.Vector2(),scaleSession=null,liftSession=null,groupGizmo,scaleHandles=[],rotateHandles=[],liftHandle=null,rotateSession=null,rotateProtractor=null,rotateProtractorOuter=null,rotateAngleDot=null,rotateAngleDotOuter=null,history=[],historyIndex=-1;
+const APP_VERSION='5.57.3',BASE_H=96,BASE_R=36,ROTATION_SNAP_STEP=22.5,PROTRACTOR_TICK_COUNT=16,OUTER_PROTRACTOR_SCALE=1.38,FREE_ZONE_ENTER_RATIO=1.06,FREE_ZONE_EXIT_RATIO=.98,SAVES_STORAGE_KEY='bac-gallery-saves',MAX_SAVED_PROJECTS=50,GRID_HALF=500,POS_Y_MIN=0,POS_Y_MAX=500,SCALE_MIN=.01,SCALE_MAX=5;
+let saveScope='full',pendingDeleteIds=[],gallerySelectMode=false,gallerySelectedIds=new Set();
+const INSPECTOR_FIELD_DEFS=[{id:'pos-x',kind:'pos',axis:'x',step:5,decimals:0,min:-GRID_HALF,max:GRID_HALF},{id:'pos-y',kind:'pos',axis:'y',step:5,decimals:0,min:POS_Y_MIN,max:POS_Y_MAX},{id:'pos-z',kind:'pos',axis:'z',step:5,decimals:0,min:-GRID_HALF,max:GRID_HALF},{id:'scale-x',kind:'scale',axis:'x',step:.05,decimals:2,min:SCALE_MIN,max:SCALE_MAX},{id:'scale-y',kind:'scale',axis:'y',step:.05,decimals:2,min:SCALE_MIN,max:SCALE_MAX},{id:'scale-z',kind:'scale',axis:'z',step:.05,decimals:2,min:SCALE_MIN,max:SCALE_MAX}];
+const INSPECTOR_FIELDS=INSPECTOR_FIELD_DEFS.map(f=>f.id);
 
 function init(){
  scene=new THREE.Scene(); scene.background=new THREE.Color(0xf5f5f2);
@@ -88,11 +195,23 @@ function init(){
  gridHelper=new THREE.GridHelper(1000,50,0x8a8a83,0xd6d6ce); gridHelper.position.y=-.2; scene.add(gridHelper);
  scene.add(new THREE.AmbientLight(0xffffff,1)); const dir=new THREE.DirectionalLight(0xffffff,.9); dir.position.set(120,220,100); scene.add(dir);
  controls=new THREE.OrbitControls(camera,renderer.domElement); controls.mouseButtons={LEFT:THREE.MOUSE.ROTATE,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:null}; controls.target.set(0,BASE_H*.5,0); controls.update();
- createGizmos(); window.addEventListener('resize',onResize); window.addEventListener('pointerdown',onDown); window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); window.addEventListener('keydown',onKey);
+ createGizmos(); setupInspectorInputs(); document.getElementById('save-name-input').addEventListener('keydown',onPanelInputKey); document.getElementById('version-tag').textContent='v'+APP_VERSION; document.title='Build-A-Crochet v'+APP_VERSION+' - Builder Mode'; window.addEventListener('resize',onResize); window.addEventListener('pointerdown',onDown); window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); window.addEventListener('keydown',onKey);
  captureState(); animate(); updateInspector();
 }
 function onResize(){const wrap=document.getElementById('canvas-wrap'); camera.aspect=wrap.clientWidth/wrap.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(wrap.clientWidth,wrap.clientHeight);}
-function onKey(e){if(e.key==='Delete'||e.key==='Backspace') deleteSelection();}
+function isTypingInPanel(){
+ const el=document.activeElement; if(!el) return false;
+ if(el.id==='save-name-input'||INSPECTOR_FIELDS.includes(el.id)) return true;
+ return el.tagName==='INPUT'||el.tagName==='TEXTAREA'||el.isContentEditable;
+}
+function onPanelInputKey(e){
+ if(e.key==='Backspace'||e.key==='Delete') e.stopPropagation();
+ if(e.target.id==='save-name-input'&&e.key==='Enter'){e.preventDefault(); confirmSaveDesign();}
+}
+function onKey(e){
+ if((e.key==='Delete'||e.key==='Backspace')&&!isTypingInPanel()) deleteSelection();
+ if(e.key==='Escape'){cancelPlacement(); closeSaveDialog(); closeGallery(); cancelDeleteSavedProject();}
+}
 function getShapeHeight(t){return t==='circle'?BASE_R*2:BASE_H;}
 function syncObjectScale(o){o.scale.copy(o.userData.data.scale);}
 function setToolMode(mode){
@@ -102,13 +221,57 @@ function setToolMode(mode){
  document.getElementById('tool-scale').classList.toggle('active',mode==='scale');
  hideRotateReadout(); hideRotateProtractor();
  document.getElementById('mode-hint').style.display=mode==='rotate'?'block':'none';
+ if(mode!=='pointer') cancelPlacement();
  updateSelectionVisuals(currentSelection);
 }
 function setPlacementShape(shape){
  placementShape=shape;
  ['circle','paraboloid','cylinder','cone'].forEach(name=>document.getElementById('shape-'+name).classList.toggle('active',name===shape));
 }
-function spawnShapeFromButton(shape){setPlacementShape(shape); spawnShape(new THREE.Vector3(0,0,0));}
+function spawnShapeFromButton(shape){beginPlacement(shape);}
+function toggleStackOnTop(){stackOnTop=!stackOnTop; document.getElementById('stack-toggle').classList.toggle('active',stackOnTop); document.getElementById('stack-toggle').textContent=stackOnTop?'STACK':'FREE';}
+function cancelPlacement(){if(ghostMesh){disposeShape(ghostMesh); ghostMesh=null;} isPlacing=false; placementArmed=false; if(!isDragging) controls.enabled=true;}
+function beginPlacement(shape){
+ cancelPlacement(); setPlacementShape(shape); setToolMode('pointer'); isPlacing=true; controls.enabled=false;
+ ghostMesh=createShapeMesh(shape,placementColor); ghostMesh.material.transparent=true; ghostMesh.material.opacity=.42; scene.add(ghostMesh);
+}
+function getGroundPlaneHit(raycaster){
+ const hit=new THREE.Vector3(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+ if(!raycaster.ray.intersectPlane(plane,hit)) return null; return hit;
+}
+function getShapeRoot(obj){let n=obj; while(n.parent&&!n.userData.isShape) n=n.parent; return n.userData.isShape?n:obj;}
+function getObjectHalfHeight(obj){const box=new THREE.Box3().setFromObject(obj); return(box.max.y-box.min.y)*.5;}
+function getStackSurfaceY(x,z,placingObj,ignoreObj){
+ const ignoreRoot=ignoreObj?getShapeRoot(ignoreObj):null;
+ const raycaster=new THREE.Raycaster(new THREE.Vector3(x,10000,z),new THREE.Vector3(0,-1,0));
+ const hits=raycaster.intersectObjects(getShapeObjects(),true).filter(h=>{const root=getShapeRoot(h.object); return root!==ignoreRoot;});
+ let surfaceY=0; if(hits.length) surfaceY=hits[0].point.y;
+ const halfH=placingObj?getObjectHalfHeight(placingObj):getShapeHeight(placementShape)*.5;
+ return surfaceY+halfH;
+}
+function resolveShapeCenterY(x,z,placingObj,ignoreObj){
+ if(stackOnTop) return getStackSurfaceY(x,z,placingObj,ignoreObj);
+ return placingObj?getObjectHalfHeight(placingObj):getShapeHeight(placementShape)*.5;
+}
+function updateGhostPosition(raycaster){
+ if(!ghostMesh) return;
+ const hit=getGroundPlaneHit(raycaster); if(!hit) return;
+ ghostMesh.position.set(hit.x,resolveShapeCenterY(hit.x,hit.z,ghostMesh,ghostMesh),hit.z);
+}
+function snapSelectionToStack(){
+ if(!stackOnTop||!currentSelection.length) return;
+ currentSelection.forEach(obj=>{obj.position.y=resolveShapeCenterY(obj.position.x,obj.position.z,obj,obj);});
+}
+function getSelectionFrame(){
+ const box=new THREE.Box3(); currentSelection.forEach(obj=>box.union(new THREE.Box3().setFromObject(obj)));
+ const center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3());
+ const quat=currentSelection.length===1?currentSelection[0].quaternion.clone():new THREE.Quaternion();
+ return{center,size,quat};
+}
+function getAxisWorldDir(axisName,quat){return getAxisVector(axisName).clone().applyQuaternion(quat).normalize();}
+function localPointToWorld(center,quat,size,localPoint){
+ return center.clone().add(localPoint.clone().multiply(size).applyQuaternion(quat));
+}
 function resetView(){camera.position.set(260,220,260); controls.target.set(0,BASE_H*.5,0); controls.update();}
 function createSolidMaterial(color){return new THREE.MeshPhongMaterial({color,transparent:false,opacity:1,side:THREE.DoubleSide,flatShading:false});}
 
@@ -160,10 +323,37 @@ function createHandle(color,data,radius=2.8){
 }
 function createCirclePoints(radius,segments){const pts=[]; for(let i=0;i<segments;i++){const a=i/segments*Math.PI*2; pts.push(new THREE.Vector3(Math.cos(a)*radius,Math.sin(a)*radius,0));} return pts;}
 function createTickPoints(innerRadius,outerRadius,count){const pts=[]; for(let i=0;i<count;i++){const a=i/count*Math.PI*2,c=Math.cos(a),s=Math.sin(a); pts.push(new THREE.Vector3(c*innerRadius,s*innerRadius,0)); pts.push(new THREE.Vector3(c*outerRadius,s*outerRadius,0));} return pts;}
+function createCurvedArrowPoints(axis){
+ const radius=12,sweep=Math.PI*.72,segments=28,start=-sweep/2,end=sweep/2,pts=[];
+ for(let i=0;i<=segments;i++){
+  const a=start+(end-start)*(i/segments);
+  if(axis==='x') pts.push(new THREE.Vector3(0,Math.cos(a)*radius,Math.sin(a)*radius));
+  else if(axis==='y') pts.push(new THREE.Vector3(Math.sin(a)*radius,0,Math.cos(a)*radius));
+  else pts.push(new THREE.Vector3(Math.cos(a)*radius,Math.sin(a)*radius,0));
+ }
+ return pts;
+}
+function createArrowHead(tip,dir,color){
+ const head=new THREE.Mesh(new THREE.ConeGeometry(2.6,6,10),new THREE.MeshBasicMaterial({color,depthTest:false}));
+ head.renderOrder=1001; head.position.copy(tip); head.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize()); return head;
+}
+function setRotateHandleColor(handle,color){
+ if(!handle||!handle.userData.arrowParts) return;
+ handle.userData.arrowParts.forEach(part=>{if(part.material&&part.material.color) part.material.color.setHex(color);});
+}
 function createRotateHandle(color,axis,direction){
- const h=new THREE.Mesh(new THREE.SphereGeometry(5,20,20),new THREE.MeshBasicMaterial({color,depthTest:false}));
- const glow=new THREE.Mesh(new THREE.SphereGeometry(8,20,20),new THREE.MeshBasicMaterial({color:0xfff27a,transparent:true,opacity:0,depthTest:false}));
- glow.renderOrder=1000; h.add(glow); h.visible=false; h.renderOrder=1001; h.userData={isRotateHandle:true,axis,direction,baseColor:color,glow}; scene.add(h); return h;
+ const group=new THREE.Group(),pts=createCurvedArrowPoints(axis),curve=new THREE.CatmullRomCurve3(pts);
+ const tubeMat=new THREE.MeshBasicMaterial({color,depthTest:false}),tube=new THREE.Mesh(new THREE.TubeGeometry(curve,32,.85,8,false),tubeMat);
+ tube.renderOrder=1001;
+ const headStart=createArrowHead(pts[0],pts[0].clone().sub(pts[1]),color),headEnd=createArrowHead(pts[pts.length-1],pts[pts.length-1].clone().sub(pts[pts.length-2]),color);
+ const glow=new THREE.Mesh(new THREE.SphereGeometry(16,16,16),new THREE.MeshBasicMaterial({color:0xfff27a,transparent:true,opacity:0,depthTest:false}));
+ glow.renderOrder=1000;
+ const hit=new THREE.Mesh(new THREE.SphereGeometry(14,12,12),new THREE.MeshBasicMaterial({visible:false,depthTest:false}));
+ hit.renderOrder=1001;
+ group.add(tube); group.add(headStart); group.add(headEnd); group.add(glow); group.add(hit); group.visible=false;
+ group.userData={isRotateHandle:true,axis,direction,baseColor:color,glow,arrowParts:[tube,headStart,headEnd],handleRef:group};
+ [tube,headStart,headEnd,glow,hit].forEach(part=>part.userData.handleRef=group);
+ scene.add(group); return group;
 }
 function createRotateProtractor(){
  const root=new THREE.Group(); root.visible=false; root.renderOrder=1000;
@@ -172,18 +362,93 @@ function createRotateProtractor(){
  const ticks=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(createTickPoints(.78,1.02,PROTRACTOR_TICK_COUNT)),new THREE.LineBasicMaterial({color:0x1f1f1c,depthTest:false,transparent:true,opacity:.65}));
  outer.renderOrder=1002; inner.renderOrder=1002; ticks.renderOrder=1002; root.add(outer); root.add(inner); root.add(ticks); scene.add(root); return root;
 }
-function hideRotateProtractor(){if(rotateProtractor) rotateProtractor.visible=false;}
+function createRotateProtractorOuter(){
+ const root=new THREE.Group(); root.visible=false; root.renderOrder=999;
+ const ring=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(createCirclePoints(1,96)),new THREE.LineBasicMaterial({color:0x4d7fff,depthTest:false,transparent:true,opacity:.3}));
+ ring.renderOrder=1001; root.add(ring); root.userData.ring=ring; scene.add(root); return root;
+}
+function setOuterProtractorActive(active){
+ if(!rotateProtractorOuter||!rotateProtractorOuter.userData.ring) return;
+ rotateProtractorOuter.userData.ring.material.opacity=active?.9:.3;
+}
+function getRotatePlaneRadius(point,center,axis){
+ const v=point.clone().sub(center); v.addScaledVector(axis,-v.dot(axis)); return v.length();
+}
+function updateRotateFreeZone(planeRadius){
+ if(!rotateSession) return;
+ const innerR=rotateSession.protractorRadius;
+ if(rotateSession.freeMode){if(planeRadius<innerR*FREE_ZONE_EXIT_RATIO) rotateSession.freeMode=false;}
+ else if(planeRadius>innerR*FREE_ZONE_ENTER_RATIO) rotateSession.freeMode=true;
+ setOuterProtractorActive(rotateSession.freeMode);
+}
+function createRotateAngleDot(){
+ const dot=new THREE.Mesh(new THREE.SphereGeometry(5,20,20),new THREE.MeshBasicMaterial({color:0xfff27a,depthTest:false}));
+ const glow=new THREE.Mesh(new THREE.SphereGeometry(8,20,20),new THREE.MeshBasicMaterial({color:0xff6ea8,transparent:true,opacity:.45,depthTest:false}));
+ glow.renderOrder=1003; dot.add(glow); dot.visible=false; dot.renderOrder=1004; scene.add(dot); return dot;
+}
+function createRotateAngleDotOuter(){
+ const dot=new THREE.Mesh(new THREE.SphereGeometry(4.5,20,20),new THREE.MeshBasicMaterial({color:0x4d7fff,depthTest:false}));
+ dot.visible=false; dot.renderOrder=1004; scene.add(dot); return dot;
+}
+function hideRotateProtractor(){
+ if(rotateProtractor) rotateProtractor.visible=false;
+ if(rotateProtractorOuter) rotateProtractorOuter.visible=false;
+ if(rotateAngleDot) rotateAngleDot.visible=false;
+ if(rotateAngleDotOuter) rotateAngleDotOuter.visible=false;
+ setOuterProtractorActive(false);
+}
+function updateProtractorDot(dot,protractor,degrees,snapped){
+ if(!dot||!rotateSession||!protractor) return;
+ dot.visible=true;
+ const tickStep=(Math.PI*2)/PROTRACTOR_TICK_COUNT,tickRadius=1.02;
+ let totalRad=rotateSession.startAngleLocal+THREE.MathUtils.degToRad(degrees);
+ if(snapped) totalRad=Math.round(totalRad/tickStep)*tickStep;
+ const localPoint=new THREE.Vector3(Math.cos(totalRad)*tickRadius,Math.sin(totalRad)*tickRadius,0);
+ protractor.updateMatrixWorld(true);
+ dot.position.copy(localPoint.applyMatrix4(protractor.matrixWorld));
+}
+function updateRotateAngleDot(snappedDegrees){updateProtractorDot(rotateAngleDot,rotateProtractor,snappedDegrees,true);}
+function updateRotateAngleDotOuter(freeDegrees){updateProtractorDot(rotateAngleDotOuter,rotateProtractorOuter,freeDegrees,false);}
 function updateRotateProtractor(center,radius,axisName){
  if(!rotateProtractor) return; rotateProtractor.visible=true; rotateProtractor.position.copy(center); rotateProtractor.scale.setScalar(radius); rotateProtractor.rotation.set(0,0,0);
  if(axisName==='x') rotateProtractor.rotation.y=Math.PI/2; if(axisName==='y') rotateProtractor.rotation.x=Math.PI/2;
 }
-function getRotateHandlePosition(handle,center,size){
- const sideOffset=Math.max(size.x,size.z)*.45+20,topY=size.y*.5+26,bottomY=-size.y*.5-26;
- if(handle.userData.axis==='z') return center.clone().add(new THREE.Vector3(0,bottomY,0));
- if(handle.userData.axis==='x') return center.clone().add(new THREE.Vector3(sideOffset,topY,0));
- return center.clone().add(new THREE.Vector3(-sideOffset,topY,0));
+function updateRotateProtractorOuter(center,radius,axisName){
+ if(!rotateProtractorOuter) return; rotateProtractorOuter.visible=true; rotateProtractorOuter.position.copy(center); rotateProtractorOuter.scale.setScalar(radius*OUTER_PROTRACTOR_SCALE); rotateProtractorOuter.rotation.set(0,0,0);
+ if(axisName==='x') rotateProtractorOuter.rotation.y=Math.PI/2; if(axisName==='y') rotateProtractorOuter.rotation.x=Math.PI/2;
+}
+function getRotateHandlePosition(handle,center,size,quat){
+ const sideOffset=Math.max(size.x,size.z)*.45+20,topY=size.y*.5+26,bottomY=-size.y*.5-26,offset=new THREE.Vector3();
+ if(handle.userData.axis==='z') offset.set(0,bottomY,0);
+ else if(handle.userData.axis==='x') offset.set(sideOffset,topY,0);
+ else offset.set(-sideOffset,topY,0);
+ return center.clone().add(offset.applyQuaternion(quat));
 }
 function getAxisVector(axisName){if(axisName==='x') return new THREE.Vector3(1,0,0); if(axisName==='y') return new THREE.Vector3(0,1,0); return new THREE.Vector3(0,0,1);}
+function createLiftHandle(){
+ const group=new THREE.Group(),black=0x1f1f1c,mat=new THREE.MeshBasicMaterial({color:black,depthTest:false});
+ const stem=new THREE.Mesh(new THREE.CylinderGeometry(.75,.75,16,8),mat); stem.position.y=8; stem.renderOrder=1001;
+ const topCone=new THREE.Mesh(new THREE.ConeGeometry(3.2,9,10),mat); topCone.position.y=20; topCone.renderOrder=1001;
+ const bottomCone=new THREE.Mesh(new THREE.ConeGeometry(3.2,9,10),mat); bottomCone.position.y=-2; bottomCone.rotation.x=Math.PI; bottomCone.renderOrder=1001;
+ const hit=new THREE.Mesh(new THREE.SphereGeometry(12,10,10),new THREE.MeshBasicMaterial({visible:false,depthTest:false})); hit.position.y=9; hit.renderOrder=1002;
+ group.add(stem); group.add(topCone); group.add(bottomCone); group.add(hit); group.visible=false; group.renderOrder=1001;
+ group.userData={isLiftHandle:true,handleRef:group,parts:[stem,topCone,bottomCone],baseColor:black};
+ [stem,topCone,bottomCone,hit].forEach(part=>part.userData.handleRef=group); scene.add(group); return group;
+}
+function setLiftHandleActive(active){
+ if(!liftHandle||!liftHandle.userData.parts) return;
+ const color=active?0xfff27a:liftHandle.userData.baseColor;
+ liftHandle.userData.parts.forEach(part=>{if(part.material) part.material.color.setHex(color);});
+ liftHandle.scale.setScalar(active?1.15:1);
+}
+function getLiftHandlePosition(center,size){
+ return new THREE.Vector3(center.x,center.y+size.y*.5+18,center.z);
+}
+function getVerticalDragDeltaY(e,session){
+ const rect=renderer.domElement.getBoundingClientRect(),dist=camera.position.distanceTo(session.center);
+ const worldPerPixel=(2*Math.tan((camera.fov*Math.PI/180)/2)*dist)/Math.max(1,rect.height);
+ return (session.startClientY-e.clientY)*worldPerPixel;
+}
 
 function createGizmos(){
  groupGizmo=new THREE.BoxHelper(new THREE.Mesh(new THREE.BoxGeometry(1,1,1)),0xff6ea8); groupGizmo.visible=false; scene.add(groupGizmo);
@@ -196,34 +461,46 @@ function createGizmos(){
  ];
  defs.forEach((def,i)=>scaleHandles.push(createHandle(def.kind==='uniform'?0xff8a3d:0xffd84d,{isScaleHandle:true,id:i,point:new THREE.Vector3(def.pos[0],def.pos[1],def.pos[2]),kind:def.kind,activeAxes:def.active||[],signs:def.signs||{x:0,y:0,z:0}})));
  rotateHandles=[createRotateHandle(0xff8a3d,'x','cw'),createRotateHandle(0x4d7fff,'y','ccw'),createRotateHandle(0x50bd65,'z','cw')];
- rotateProtractor=createRotateProtractor();
+ rotateProtractor=createRotateProtractor(); rotateProtractorOuter=createRotateProtractorOuter(); rotateAngleDot=createRotateAngleDot(); rotateAngleDotOuter=createRotateAngleDotOuter(); liftHandle=createLiftHandle();
+}
+function getProtractorLocalAngle(center,worldDir){
+ rotateProtractor.updateMatrixWorld(true);
+ const wp=center.clone().add(worldDir.clone().normalize());
+ const lp=rotateProtractor.worldToLocal(wp);
+ return Math.atan2(lp.y,lp.x);
 }
 function getShapeObjects(){return scene.children.filter(o=>o.userData.isShape);}
 function updateSelectionVisuals(selected){
- getShapeObjects().forEach(o=>updateSelectionAppearance(o,false)); scaleHandles.forEach(h=>h.visible=false); rotateHandles.forEach(h=>h.visible=false); groupGizmo.visible=false; hideRotateProtractor();
- currentSelection=selected; if(!selected.length){updateInspector(); return;}
+ getShapeObjects().forEach(o=>updateSelectionAppearance(o,false)); scaleHandles.forEach(h=>h.visible=false); rotateHandles.forEach(h=>h.visible=false); if(liftHandle) liftHandle.visible=false; groupGizmo.visible=false; hideRotateProtractor();
+ currentSelection=selected; if(!selected.length){setLiftHandleActive(false); updateInspector(); return;}
  selected.forEach(o=>updateSelectionAppearance(o,true));
  if(currentTool==='scale'||currentTool==='rotate') groupGizmo.visible=true;
  if(currentTool==='scale') scaleHandles.forEach(h=>h.visible=true);
  if(currentTool==='rotate') rotateHandles.forEach(h=>h.visible=true);
+ if(currentTool==='pointer'&&liftHandle) liftHandle.visible=true;
  updateGroupGizmoVisuals(); updateInspector();
 }
 function updateGroupGizmoVisuals(){
  if(!currentSelection.length) return;
- const box=new THREE.Box3(); currentSelection.forEach(obj=>box.union(new THREE.Box3().setFromObject(obj)));
- const center=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3()),helper=new THREE.Mesh(new THREE.BoxGeometry(size.x,size.y,size.z));
- helper.position.copy(center); groupGizmo.update(helper);
- scaleHandles.forEach(h=>h.position.copy(center).add(new THREE.Vector3(h.userData.point.x*size.x,h.userData.point.y*size.y,h.userData.point.z*size.z)));
+ const frame=getSelectionFrame(),center=frame.center,size=frame.size,quat=frame.quat;
+ const helper=new THREE.Mesh(new THREE.BoxGeometry(size.x,size.y,size.z)); helper.position.copy(center); helper.quaternion.copy(quat); groupGizmo.update(helper); helper.geometry.dispose();
+ scaleHandles.forEach(h=>h.position.copy(localPointToWorld(center,quat,size,h.userData.point)));
  rotateHandles.forEach(r=>{
   const active=dragTarget===r;
-  r.position.copy(getRotateHandlePosition(r,center,size));
+  r.position.copy(getRotateHandlePosition(r,center,size,quat));
+  r.quaternion.copy(quat);
   r.scale.setScalar(active?1.4:1);
-  r.material.color.setHex(active?0xfff27a:r.userData.baseColor);
+  setRotateHandleColor(r,active?0xfff27a:r.userData.baseColor);
   if(r.userData.glow){r.userData.glow.material.opacity=active?.35:0; r.userData.glow.scale.setScalar(active?1.2:1);}
  });
  if(dragTarget&&dragTarget.userData&&dragTarget.userData.isRotateHandle){
-  const protractorRadius=Math.max(size.x,size.y,size.z)*.55+18;
-  updateRotateProtractor(center,protractorRadius,dragTarget.userData.axis);
+  const protractorRadius=Math.max(size.x,size.y,size.z)*.55+18,axis=dragTarget.userData.axis;
+  updateRotateProtractor(center,protractorRadius,axis); updateRotateProtractorOuter(center,protractorRadius,axis);
+ }
+ if(liftHandle&&liftHandle.visible){
+  liftHandle.position.copy(getLiftHandlePosition(center,size));
+  liftHandle.rotation.set(0,0,0);
+  setLiftHandleActive(dragTarget===liftHandle);
  }
 }
 function getPointerRay(e){
@@ -233,12 +510,110 @@ function getPointerRay(e){
 }
 function normalizeDegrees(deg){let n=deg%360; if(n>180) n-=360; if(n<=-180) n+=360; return n;}
 function snapRotationDegreesToProtractor(degrees){const n=normalizeDegrees(degrees),step=Math.round(n/ROTATION_SNAP_STEP)*ROTATION_SNAP_STEP; return normalizeDegrees(step);}
-function showRotateReadout(x,y,deg){const el=document.getElementById('rotate-readout'),rect=document.getElementById('canvas-wrap').getBoundingClientRect(); el.textContent=Math.round(deg)+' deg'; el.style.left=(x-rect.left)+'px'; el.style.top=(y-rect.top)+'px'; el.style.display='block';}
+function showRotateReadout(x,y,deg,freeMode){const el=document.getElementById('rotate-readout'),rect=document.getElementById('canvas-wrap').getBoundingClientRect(); el.textContent=Math.round(deg)+' deg'+(freeMode?' (free)':' (snap)'); el.style.left=(x-rect.left)+'px'; el.style.top=(y-rect.top)+'px'; el.style.display='block';}
 function hideRotateReadout(){document.getElementById('rotate-readout').style.display='none';}
 
+function serializeShape(obj){
+ return {pos:{x:obj.position.x,y:obj.position.y,z:obj.position.z},rot:{x:obj.quaternion.x,y:obj.quaternion.y,z:obj.quaternion.z,w:obj.quaternion.w},scale:{x:obj.userData.data.scale.x,y:obj.userData.data.scale.y,z:obj.userData.data.scale.z},col:obj.material.color.getHex(),shapeType:obj.userData.shapeType};
+}
+function getSceneStateJson(){return JSON.stringify(getShapeObjects().map(serializeShape));}
+function getSelectionStateJson(){return JSON.stringify(currentSelection.map(serializeShape));}
+function loadSceneState(json){
+ cancelPlacement(); hideRotateReadout(); hideRotateProtractor(); applyState(json); history=[json]; historyIndex=0; updateInspector();
+}
+function addSceneState(json,offsetX=0,offsetZ=0){
+ const added=[]; JSON.parse(json).forEach(d=>{const obj=createShapeMesh(d.shapeType||'circle',new THREE.Color(d.col)); obj.position.set(d.pos.x+offsetX,d.pos.y,d.pos.z+offsetZ); obj.quaternion.set(d.rot.x,d.rot.y,d.rot.z,d.rot.w); obj.userData.data.scale.set(d.scale.x,d.scale.y,d.scale.z); syncObjectScale(obj); scene.add(obj); added.push(obj);});
+ updateSelectionVisuals(added); captureState(); updateInspector(); return added;
+}
+function updateGalleryBulkBar(){
+ const count=gallerySelectedIds.size;
+ document.getElementById('gallery-selected-count').textContent=gallerySelectMode?(count?count+' selected':'Tap designs to select'):'';
+ document.getElementById('gallery-load-selected').disabled=!count;
+ document.getElementById('gallery-delete-selected').disabled=!count;
+ document.getElementById('gallery-select-toggle').classList.toggle('active',gallerySelectMode);
+ document.getElementById('gallery-panel').classList.toggle('gallery-select-mode',gallerySelectMode);
+ document.getElementById('gallery-note').textContent=gallerySelectMode?'Select designs, then load them all into the app or delete them together.':'Click a saved design to bring it back. Whole designs replace the workspace. Selected saves are added to what you are working on.';
+}
+function toggleGallerySelectMode(){gallerySelectMode=!gallerySelectMode; if(!gallerySelectMode) gallerySelectedIds.clear(); updateGalleryBulkBar(); renderGallery();}
+function toggleGallerySelection(id){
+ if(gallerySelectedIds.has(id)) gallerySelectedIds.delete(id); else gallerySelectedIds.add(id);
+ updateGalleryBulkBar(); renderGallery();
+}
+function openGallery(){gallerySelectMode=false; gallerySelectedIds.clear(); document.getElementById('gallery-modal').classList.add('open'); updateGalleryBulkBar(); renderGallery();}
+function closeGallery(){gallerySelectMode=false; gallerySelectedIds.clear(); document.getElementById('gallery-modal').classList.remove('open');}
+function renderGallery(){
+ const listEl=document.getElementById('gallery-list'),saves=getSavedProjects();
+ if(!saves.length){listEl.innerHTML='<div class="gallery-empty">Nothing saved yet. Click SAVE to store a whole design or your selected shapes here in the app.</div>'; updateGalleryBulkBar(); return;}
+ listEl.innerHTML=saves.map(s=>{
+  const colors=getSavePreviewColors(s.state),dots=colors.map(c=>'<span class="gallery-dot" style="background:'+c+'"></span>').join(''),badge=s.kind==='selection'?'<span class="gallery-badge">SELECTED</span>':'<span class="gallery-badge">WHOLE</span>';
+  const selected=gallerySelectedIds.has(s.id),cardClick=gallerySelectMode?('toggleGallerySelection(\''+s.id+'\')'):('loadSavedProject(\''+s.id+'\')');
+  return '<div class="gallery-card'+(selected?' selected':'')+'" onclick="'+cardClick+'"><div class="gallery-card-check">'+(selected?'✓':'')+'</div><div class="gallery-preview">'+dots+'</div><div class="gallery-name">'+escapeSaveHtml(s.name)+'</div><div class="gallery-card-foot"><div class="gallery-meta">'+badge+(s.count||0)+' shape'+(s.count===1?'':'s')+' · '+formatSaveDate(s.savedAt)+'</div>'+(gallerySelectMode?'':'<button class="gallery-delete" onclick="event.stopPropagation(); deleteSavedProject(\''+s.id+'\')" title="Delete">×</button>')+'</div></div>';
+ }).join('');
+ updateGalleryBulkBar();
+}
+function loadSavedProject(id){
+ const save=getSavedProjects().find(s=>s.id===id); if(!save) return;
+ if(save.kind==='selection') addSceneState(save.state); else loadSceneState(save.state);
+ closeGallery();
+}
+function loadSelectedGalleryProjects(){
+ if(!gallerySelectedIds.size) return;
+ const saves=getSavedProjects().filter(s=>gallerySelectedIds.has(s.id)); if(!saves.length) return;
+ cancelPlacement(); hideRotateReadout(); hideRotateProtractor();
+ const fullSaves=saves.filter(s=>s.kind==='full'),partSaves=saves.filter(s=>s.kind!=='full');
+ if(fullSaves.length===1&&!partSaves.length){loadSceneState(fullSaves[0].state); closeGallery(); return;}
+ if(fullSaves.length){
+  loadSceneState(fullSaves[0].state);
+  fullSaves.slice(1).forEach((save,i)=>addSceneState(save.state,(i+1)*14,(i+1)*14));
+  partSaves.forEach((save,i)=>addSceneState(save.state,(fullSaves.length+i)*14,(fullSaves.length+i)*14));
+ } else partSaves.forEach((save,i)=>addSceneState(save.state,i*14,i*14));
+ captureState(); updateInspector(); closeGallery();
+}
+function deleteSavedProject(id){requestDeleteGalleryProjects([id]);}
+function deleteSelectedGalleryProjects(){if(!gallerySelectedIds.size) return; requestDeleteGalleryProjects([...gallerySelectedIds]);}
+function requestDeleteGalleryProjects(ids){
+ const saves=getSavedProjects().filter(s=>ids.includes(s.id)); if(!saves.length) return;
+ pendingDeleteIds=ids;
+ document.getElementById('delete-confirm-title').textContent=ids.length===1?'Delete this save?':'Delete these saves?';
+ document.getElementById('delete-confirm-text').textContent=ids.length===1?('Are you sure you want to delete "'+saves[0].name+'"? This cannot be undone.'):('Are you sure you want to delete '+ids.length+' saved designs? This cannot be undone.');
+ document.getElementById('delete-confirm-dialog').classList.add('open');
+}
+function cancelDeleteSavedProject(){pendingDeleteIds=[]; document.getElementById('delete-confirm-dialog').classList.remove('open');}
+function confirmDeleteSavedProject(){
+ if(!pendingDeleteIds.length) return;
+ writeSavedProjects(getSavedProjects().filter(s=>!pendingDeleteIds.includes(s.id)));
+ pendingDeleteIds.forEach(id=>gallerySelectedIds.delete(id)); pendingDeleteIds=[]; document.getElementById('delete-confirm-dialog').classList.remove('open'); renderGallery();
+}
+function getSavedProjects(){try{return JSON.parse(localStorage.getItem(SAVES_STORAGE_KEY)||'[]');}catch(e){return[];}}
+function writeSavedProjects(list){localStorage.setItem(SAVES_STORAGE_KEY,JSON.stringify(list.slice(0,MAX_SAVED_PROJECTS)));}
+function formatSaveDate(iso){const d=new Date(iso); return d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+function escapeSaveHtml(text){return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+function getSavePreviewColors(state){try{return JSON.parse(state).slice(0,8).map(item=>'#'+(item.col>>>0).toString(16).padStart(6,'0'));}catch(e){return[];}}
+function setSaveScope(scope){
+ saveScope=scope;
+ document.getElementById('save-scope-full').classList.toggle('active',scope==='full');
+ document.getElementById('save-scope-selection').classList.toggle('active',scope==='selection');
+}
+function updateSaveDialog(){
+ const selectionBtn=document.getElementById('save-scope-selection');
+ selectionBtn.disabled=!currentSelection.length;
+ if(!currentSelection.length&&saveScope==='selection') setSaveScope('full');
+ document.getElementById('save-name-input').value='Design '+(getSavedProjects().length+1);
+}
+function openSaveDialog(){updateSaveDialog(); document.getElementById('save-dialog').classList.add('open'); setTimeout(()=>document.getElementById('save-name-input').focus(),0);}
+function closeSaveDialog(){document.getElementById('save-dialog').classList.remove('open');}
+function confirmSaveDesign(){
+ const name=document.getElementById('save-name-input').value.trim(); if(!name) return;
+ const selectionOnly=saveScope==='selection';
+ if(selectionOnly&&!currentSelection.length) return;
+ const state=selectionOnly?getSelectionStateJson():getSceneStateJson(),items=JSON.parse(state);
+ if(!items.length) return;
+ const saves=getSavedProjects();
+ saves.unshift({id:Date.now().toString(),name,kind:selectionOnly?'selection':'full',savedAt:new Date().toISOString(),state,count:items.length});
+ writeSavedProjects(saves); closeSaveDialog();
+}
 function captureState(){
- const state=getShapeObjects().map(obj=>({pos:{x:obj.position.x,y:obj.position.y,z:obj.position.z},rot:{x:obj.quaternion.x,y:obj.quaternion.y,z:obj.quaternion.z,w:obj.quaternion.w},scale:{x:obj.userData.data.scale.x,y:obj.userData.data.scale.y,z:obj.userData.data.scale.z},col:obj.material.color.getHex(),shapeType:obj.userData.shapeType}));
- const json=JSON.stringify(state); if(historyIndex>=0&&history[historyIndex]===json) return; history=history.slice(0,historyIndex+1); history.push(json); historyIndex=history.length-1;
+ const json=getSceneStateJson(); if(historyIndex>=0&&history[historyIndex]===json) return; history=history.slice(0,historyIndex+1); history.push(json); historyIndex=history.length-1;
 }
 function applyState(json){
  getShapeObjects().forEach(disposeShape);
@@ -253,54 +628,86 @@ function duplicateSelection(){
  updateSelectionVisuals(clones); captureState();
 }
 function deleteSelection(){hideRotateReadout(); hideRotateProtractor(); if(!currentSelection.length) return; currentSelection.forEach(disposeShape); updateSelectionVisuals([]); captureState();}
-function updateColor(color){if(!currentSelection.length) return; currentSelection.forEach(obj=>{obj.material.color.set(color); if(obj.userData.capMeshes) obj.userData.capMeshes.forEach(cap=>cap.material.color.set(color));}); captureState();}
-function spawnShape(pos){const obj=createShapeMesh(placementShape,0xff69b4); obj.position.copy(pos); obj.position.y+=getShapeHeight(placementShape)*.5; scene.add(obj); updateSelectionVisuals([obj]); captureState();}
+function updateColor(color){
+ placementColor=typeof color==='string'?parseInt(color.replace('#',''),16):color;
+ if(!currentSelection.length) return;
+ currentSelection.forEach(obj=>{obj.material.color.set(color); if(obj.userData.capMeshes) obj.userData.capMeshes.forEach(cap=>cap.material.color.set(color));});
+ captureState();
+}
+function spawnShape(pos){const obj=createShapeMesh(placementShape,placementColor); obj.position.copy(pos); scene.add(obj); updateSelectionVisuals([obj]); captureState(); cancelPlacement();}
+function placeGhostShape(){
+ if(!ghostMesh||!isPlacing) return;
+ const obj=createShapeMesh(placementShape,placementColor); obj.position.copy(ghostMesh.position); obj.quaternion.copy(ghostMesh.quaternion); scene.add(obj);
+ updateSelectionVisuals([obj]); captureState(); cancelPlacement();
+}
 function beginObjectMove(hit,raycaster){
  dragTarget=hit.object; isDragging=true; controls.enabled=false;
- dragPlane=new THREE.Plane(camera.getWorldDirection(new THREE.Vector3()).negate(),-dragTarget.position.dot(camera.getWorldDirection(new THREE.Vector3()).negate()));
+ const planeY=dragTarget.position.y;
+ dragPlane=new THREE.Plane(new THREE.Vector3(0,1,0),-planeY);
  const intersection=new THREE.Vector3();
  if(raycaster.ray.intersectPlane(dragPlane,intersection)){dragStartPoint=intersection.clone(); startPositions=currentSelection.map(obj=>obj.position.clone());}
  else {dragStartPoint=null; startPositions=[];}
 }
 function onDown(e){
  if(e.target.tagName!=='CANVAS') return;
- const raycaster=getPointerRay(e),activeGizmos=currentTool==='scale'?scaleHandles:(currentTool==='rotate'?rotateHandles:[]),gizmoHits=raycaster.intersectObjects(activeGizmos);
+ const raycaster=getPointerRay(e);
+ if(isPlacing&&e.button===0){placementArmed=true; return;}
+ if(e.button===2){
+  if(currentTool==='pointer'&&!isPlacing){
+   updateSelectionVisuals([]);
+   const rect=document.getElementById('canvas-wrap').getBoundingClientRect(),box=document.getElementById('select-box');
+   isBoxSelecting=true; boxStart.set(e.clientX-rect.left,e.clientY-rect.top); box.style.display='block'; box.style.left=boxStart.x+'px'; box.style.top=boxStart.y+'px'; box.style.width='0px'; box.style.height='0px'; controls.enabled=false;
+  }
+  return;
+ }
+ const gizmoHits=currentTool==='scale'?raycaster.intersectObjects(scaleHandles):(currentTool==='rotate'?raycaster.intersectObjects(rotateHandles,true):[]);
+ if(currentTool==='pointer'&&liftHandle&&liftHandle.visible){
+  const liftHits=raycaster.intersectObjects([liftHandle],true);
+  if(liftHits.length){
+   dragTarget=liftHandle; isDragging=true; controls.enabled=false; e.preventDefault();
+   const frame=getSelectionFrame();
+   liftSession={startClientY:e.clientY,center:frame.center.clone(),startPositions:currentSelection.map(obj=>obj.position.clone())};
+   updateGroupGizmoVisuals(); return;
+  }
+ }
  if(gizmoHits.length){
-  dragTarget=gizmoHits[0].object; isDragging=true; controls.enabled=false; hideRotateReadout(); hideRotateProtractor();
-  const box=new THREE.Box3(); currentSelection.forEach(obj=>box.union(new THREE.Box3().setFromObject(obj)));
-  const groupCenter=box.getCenter(new THREE.Vector3()),groupSize=box.getSize(new THREE.Vector3());
+  dragTarget=gizmoHits[0].object.userData.handleRef||gizmoHits[0].object; isDragging=true; controls.enabled=false; hideRotateReadout(); hideRotateProtractor();
+  const frame=getSelectionFrame(),groupCenter=frame.center,groupSize=frame.size;
   startGroupData=currentSelection.map(obj=>({pos:obj.position.clone(),scale:obj.userData.data.scale.clone(),rot:obj.quaternion.clone()}));
   if(dragTarget.userData.isScaleHandle){
    dragPlane=new THREE.Plane(camera.getWorldDirection(new THREE.Vector3()).negate(),-dragTarget.position.dot(camera.getWorldDirection(new THREE.Vector3()).negate()));
    const intersect=new THREE.Vector3(); raycaster.ray.intersectPlane(dragPlane,intersect);
-   const signs=dragTarget.userData.signs,kind=dragTarget.userData.kind,anchor=groupCenter.clone();
-   if(kind==='axis'){if(signs.x!==0) anchor.x-=signs.x*groupSize.x*.5; if(signs.y!==0) anchor.y-=signs.y*groupSize.y*.5; if(signs.z!==0) anchor.z-=signs.z*groupSize.z*.5;}
-   scaleSession={startPoint:intersect.clone(),startCenter:groupCenter.clone(),startSize:groupSize.clone(),anchor,activeAxes:dragTarget.userData.activeAxes,signs,kind};
+   const signs=dragTarget.userData.signs,kind=dragTarget.userData.kind;
+   const localAnchor=new THREE.Vector3(kind==='axis'&&signs.x?-signs.x*.5:0,kind==='axis'&&signs.y?-signs.y*.5:0,kind==='axis'&&signs.z?-signs.z*.5:0);
+   const anchor=localPointToWorld(groupCenter,frame.quat,groupSize,localAnchor);
+   scaleSession={startPoint:intersect.clone(),startCenter:groupCenter.clone(),startSize:groupSize.clone(),anchor,activeAxes:dragTarget.userData.activeAxes,signs,kind,quat:frame.quat.clone()};
   } else if(dragTarget.userData.isRotateHandle){
    const axis=getAxisVector(dragTarget.userData.axis); dragPlane=new THREE.Plane().setFromNormalAndCoplanarPoint(axis,groupCenter);
    const intersect=new THREE.Vector3(); if(!raycaster.ray.intersectPlane(dragPlane,intersect)){isDragging=false; dragTarget=null; controls.enabled=true; return;}
    const startVector=intersect.clone().sub(groupCenter); startVector.addScaledVector(axis,-startVector.dot(axis));
    if(startVector.lengthSq()<.0001){isDragging=false; dragTarget=null; controls.enabled=true; return;}
-   rotateSession={center:groupCenter.clone(),axis,startVector:startVector.normalize()};
-   updateRotateProtractor(groupCenter,Math.max(groupSize.x,groupSize.y,groupSize.z)*.55+18,dragTarget.userData.axis);
+   const protractorRadius=Math.max(groupSize.x,groupSize.y,groupSize.z)*.55+18,axisName=dragTarget.userData.axis;
+   const startPullRadius=getRotatePlaneRadius(intersect,groupCenter,axis);
+   updateRotateProtractor(groupCenter,protractorRadius,axisName); updateRotateProtractorOuter(groupCenter,protractorRadius,axisName);
+   const startAngleLocal=getProtractorLocalAngle(groupCenter,startVector.normalize());
+   rotateSession={center:groupCenter.clone(),axis,startVector:startVector.normalize(),protractorRadius,startAngleLocal,freeMode:startPullRadius>protractorRadius*FREE_ZONE_ENTER_RATIO};
+   setOuterProtractorActive(rotateSession.freeMode);
+   updateRotateAngleDot(0); if(rotateSession.freeMode) updateRotateAngleDotOuter(0); else if(rotateAngleDotOuter) rotateAngleDotOuter.visible=false;
   }
   return;
  }
  const hits=raycaster.intersectObjects(getShapeObjects());
  if(hits.length){
   const hit=hits[0]; dragTarget=hit.object; hideRotateReadout(); hideRotateProtractor();
-  if(!e.ctrlKey&&!currentSelection.includes(dragTarget)) updateSelectionVisuals([dragTarget]);
-  else if(e.ctrlKey&&!currentSelection.includes(dragTarget)) updateSelectionVisuals([...currentSelection,dragTarget]);
+  if(!currentSelection.includes(dragTarget)) updateSelectionVisuals([dragTarget]);
   if(currentTool==='pointer') beginObjectMove(hit,raycaster);
  } else {
-  dragTarget=null; scaleSession=null; rotateSession=null; hideRotateReadout(); hideRotateProtractor();
-  if(currentTool==='pointer'&&e.button===2){
-   const rect=document.getElementById('canvas-wrap').getBoundingClientRect(),box=document.getElementById('select-box');
-   isBoxSelecting=true; boxStart.set(e.clientX-rect.left,e.clientY-rect.top); box.style.display='block'; box.style.left=boxStart.x+'px'; box.style.top=boxStart.y+'px'; box.style.width='0px'; box.style.height='0px'; controls.enabled=false; updateSelectionVisuals([]);
-  } else updateSelectionVisuals([]);
+  dragTarget=null; scaleSession=null; rotateSession=null; liftSession=null; hideRotateReadout(); hideRotateProtractor();
+  if(!isPlacing) updateSelectionVisuals([]);
  }
 }
 function onMove(e){
+ if(isPlacing&&ghostMesh){updateGhostPosition(getPointerRay(e)); return;}
  if(isBoxSelecting){
   const rect=document.getElementById('canvas-wrap').getBoundingClientRect(),localX=e.clientX-rect.left,localY=e.clientY-rect.top,el=document.getElementById('select-box');
   const x=Math.min(boxStart.x,localX),y=Math.min(boxStart.y,localY),w=Math.abs(localX-boxStart.x),h=Math.abs(localY-boxStart.y);
@@ -308,33 +715,62 @@ function onMove(e){
  }
  if(!isDragging||!dragTarget) return;
  const raycaster=getPointerRay(e),intersect=new THREE.Vector3();
- if(dragTarget.userData.isShape&&currentTool==='pointer'){
+ if(dragTarget===liftHandle&&currentTool==='pointer'){
+  if(!liftSession) return;
+  const deltaY=getVerticalDragDeltaY(e,liftSession);
+  currentSelection.forEach((obj,i)=>{obj.position.y=clampPositionAxis('y',liftSession.startPositions[i].y+deltaY);});
+  updateGroupGizmoVisuals(); updateInspector();
+ } else if(dragTarget.userData.isShape&&currentTool==='pointer'){
   if(!dragPlane||dragStartPoint===null) return; if(!raycaster.ray.intersectPlane(dragPlane,intersect)) return;
-  const delta=intersect.clone().sub(dragStartPoint); currentSelection.forEach((obj,i)=>obj.position.copy(startPositions[i]).add(delta)); updateGroupGizmoVisuals(); updateInspector();
+  const deltaX=intersect.x-dragStartPoint.x,deltaZ=intersect.z-dragStartPoint.z;
+  currentSelection.forEach((obj,i)=>{obj.position.x=startPositions[i].x+deltaX; obj.position.z=startPositions[i].z+deltaZ; obj.position.y=startPositions[i].y; clampObjectPosition(obj);});
+  updateGroupGizmoVisuals(); updateInspector();
  } else if(dragTarget.userData.isScaleHandle&&currentTool==='scale'){
   if(!raycaster.ray.intersectPlane(dragPlane,intersect)||!scaleSession) return;
   if(scaleSession.kind==='uniform'){
    const startDist=Math.max(.0001,scaleSession.startPoint.distanceTo(scaleSession.startCenter)),currentDist=Math.max(.0001,intersect.distanceTo(scaleSession.startCenter)),ratio=Math.max(.15,currentDist/startDist);
    currentSelection.forEach((obj,i)=>{const start=startGroupData[i]; obj.userData.data.scale.set(start.scale.x*ratio,start.scale.y*ratio,start.scale.z*ratio); syncObjectScale(obj); obj.position.copy(scaleSession.startCenter).add(start.pos.clone().sub(scaleSession.startCenter).multiplyScalar(ratio));});
   } else {
-   const delta=intersect.clone().sub(scaleSession.startPoint),newSize=scaleSession.startSize.clone(),ratios={x:1,y:1,z:1};
-   ['x','y','z'].forEach(axis=>{if(!scaleSession.activeAxes.includes(axis)) return; const sign=scaleSession.signs[axis]; let change=0; if(axis==='y') change=delta.y*sign; else if(axis==='x') change=delta.x*sign; else change=delta.z*sign; newSize[axis]=Math.max(8,scaleSession.startSize[axis]+change); ratios[axis]=newSize[axis]/Math.max(.0001,scaleSession.startSize[axis]);});
-   currentSelection.forEach((obj,i)=>{const start=startGroupData[i]; obj.userData.data.scale.set(start.scale.x*ratios.x,start.scale.y*ratios.y,start.scale.z*ratios.z); syncObjectScale(obj); obj.position.set(scaleSession.activeAxes.includes('x')?scaleSession.anchor.x+(start.pos.x-scaleSession.anchor.x)*ratios.x:start.pos.x,scaleSession.activeAxes.includes('y')?scaleSession.anchor.y+(start.pos.y-scaleSession.anchor.y)*ratios.y:start.pos.y,scaleSession.activeAxes.includes('z')?scaleSession.anchor.z+(start.pos.z-scaleSession.anchor.z)*ratios.z:start.pos.z);});
+   const delta=intersect.clone().sub(scaleSession.startPoint),newSize=scaleSession.startSize.clone(),ratios={x:1,y:1,z:1},invQuat=scaleSession.quat.clone().invert();
+   scaleSession.activeAxes.forEach(axis=>{
+    const worldAxis=getAxisWorldDir(axis,scaleSession.quat).multiplyScalar(scaleSession.signs[axis]||1);
+    const change=delta.dot(worldAxis);
+    newSize[axis]=Math.max(8,scaleSession.startSize[axis]+change);
+    ratios[axis]=newSize[axis]/Math.max(.0001,scaleSession.startSize[axis]);
+   });
+   currentSelection.forEach((obj,i)=>{
+    const start=startGroupData[i];
+    obj.userData.data.scale.set(start.scale.x*ratios.x,start.scale.y*ratios.y,start.scale.z*ratios.z); syncObjectScale(obj);
+    const localOffset=start.pos.clone().sub(scaleSession.anchor).applyQuaternion(invQuat);
+    if(scaleSession.activeAxes.includes('x')) localOffset.x*=ratios.x;
+    if(scaleSession.activeAxes.includes('y')) localOffset.y*=ratios.y;
+    if(scaleSession.activeAxes.includes('z')) localOffset.z*=ratios.z;
+    obj.position.copy(scaleSession.anchor).add(localOffset.applyQuaternion(scaleSession.quat));
+   });
   }
   updateGroupGizmoVisuals(); updateInspector();
  } else if(dragTarget.userData.isRotateHandle&&currentTool==='rotate'){
   if(!raycaster.ray.intersectPlane(dragPlane,intersect)||!rotateSession) return;
+  updateRotateFreeZone(getRotatePlaneRadius(intersect,rotateSession.center,rotateSession.axis));
   const currentVector=intersect.clone().sub(rotateSession.center); currentVector.addScaledVector(rotateSession.axis,-currentVector.dot(rotateSession.axis)); if(currentVector.lengthSq()<.0001) return; currentVector.normalize();
   const cross=new THREE.Vector3().crossVectors(rotateSession.startVector,currentVector);
   let deltaAngle=Math.atan2(rotateSession.axis.dot(cross),rotateSession.startVector.dot(currentVector));
   if(dragTarget.userData.direction==='ccw') deltaAngle*=-1;
-  let degrees=normalizeDegrees(THREE.MathUtils.radToDeg(deltaAngle)); degrees=snapRotationDegreesToProtractor(degrees); deltaAngle=THREE.MathUtils.degToRad(degrees);
-  const rotQ=new THREE.Quaternion().setFromAxisAngle(rotateSession.axis,deltaAngle);
+  const freeDegrees=normalizeDegrees(THREE.MathUtils.radToDeg(deltaAngle)),snappedDegrees=snapRotationDegreesToProtractor(freeDegrees);
+  const appliedDegrees=rotateSession.freeMode?freeDegrees:snappedDegrees;
+  updateRotateAngleDot(snappedDegrees);
+  if(rotateSession.freeMode){updateRotateAngleDotOuter(freeDegrees);} else if(rotateAngleDotOuter) rotateAngleDotOuter.visible=false;
+  const rotQ=new THREE.Quaternion().setFromAxisAngle(rotateSession.axis,THREE.MathUtils.degToRad(appliedDegrees));
   currentSelection.forEach((obj,i)=>{const sd=startGroupData[i]; obj.position.copy(rotateSession.center).add(sd.pos.clone().sub(rotateSession.center).applyQuaternion(rotQ)); obj.quaternion.multiplyQuaternions(rotQ,sd.rot);});
-  showRotateReadout(e.clientX,e.clientY,degrees); updateGroupGizmoVisuals(); updateInspector();
+  showRotateReadout(e.clientX,e.clientY,appliedDegrees,rotateSession.freeMode); updateGroupGizmoVisuals(); updateInspector();
  }
 }
 function onUp(e){
+ if(placementArmed&&e.button===0){
+  placementArmed=false;
+  if(isPlacing&&e.target.tagName==='CANVAS') placeGhostShape();
+  return;
+ }
  if(isBoxSelecting){
   isBoxSelecting=false; document.getElementById('select-box').style.display='none';
   const rect=document.getElementById('canvas-wrap').getBoundingClientRect(),endX=e.clientX-rect.left,endY=e.clientY-rect.top,minX=Math.min(boxStart.x,endX),minY=Math.min(boxStart.y,endY),maxX=Math.max(boxStart.x,endX),maxY=Math.max(boxStart.y,endY);
@@ -344,18 +780,77 @@ function onUp(e){
   }
  }
  if(isDragging) captureState();
- isDragging=false; dragTarget=null; dragStartPoint=null; dragPlane=null; startPositions=[]; scaleSession=null; rotateSession=null; controls.enabled=true; hideRotateReadout(); hideRotateProtractor();
- rotateHandles.forEach(r=>{r.scale.setScalar(1); r.material.color.setHex(r.userData.baseColor); if(r.userData.glow){r.userData.glow.material.opacity=0; r.userData.glow.scale.setScalar(1);}});
+ isDragging=false; dragTarget=null; dragStartPoint=null; dragPlane=null; startPositions=[]; scaleSession=null; rotateSession=null; liftSession=null; controls.enabled=true; hideRotateReadout(); hideRotateProtractor();
+ setLiftHandleActive(false);
+ rotateHandles.forEach(r=>{r.scale.setScalar(1); setRotateHandleColor(r,r.userData.baseColor); if(r.userData.glow){r.userData.glow.material.opacity=0; r.userData.glow.scale.setScalar(1);}});
  updateInspector();
 }
+function clampPositionAxis(axis,value){
+ if(axis==='y') return Math.max(POS_Y_MIN,Math.min(POS_Y_MAX,value));
+ return Math.max(-GRID_HALF,Math.min(GRID_HALF,value));
+}
+function clampScaleValue(value){return Math.max(SCALE_MIN,Math.min(SCALE_MAX,value));}
+function clampObjectPosition(obj){
+ obj.position.x=clampPositionAxis('x',obj.position.x);
+ obj.position.y=clampPositionAxis('y',obj.position.y);
+ obj.position.z=clampPositionAxis('z',obj.position.z);
+}
+function clampInspectorValue(field,value){
+ if(field.kind==='pos') return clampPositionAxis(field.axis,value);
+ return clampScaleValue(value);
+}
+function setupInspectorInputs(){
+ INSPECTOR_FIELD_DEFS.forEach(field=>{
+  const el=document.getElementById(field.id);
+  el.addEventListener('keydown',e=>{
+   if(e.key==='Backspace'||e.key==='Delete') e.stopPropagation();
+   if(e.key==='Enter'){e.preventDefault(); el.blur();}
+   if(e.key==='ArrowUp'){e.preventDefault(); stepInspectorField(field.id,1);}
+   if(e.key==='ArrowDown'){e.preventDefault(); stepInspectorField(field.id,-1);}
+  });
+  el.addEventListener('change',()=>applyInspectorField(field.kind,field.axis,el.value));
+ });
+}
+function stepInspectorField(id,direction){
+ if(!currentSelection.length) return;
+ const field=INSPECTOR_FIELD_DEFS.find(f=>f.id===id); if(!field) return;
+ const el=document.getElementById(id); if(el.disabled) return;
+ const current=parseFloat(el.value); if(isNaN(current)) return;
+ let next=clampInspectorValue(field,current+field.step*direction);
+ el.value=next.toFixed(field.decimals);
+ applyInspectorField(field.kind,field.axis,el.value);
+}
+function applyInspectorField(kind,axis,value){
+ if(!currentSelection.length) return;
+ const parsed=parseFloat(value); if(isNaN(parsed)) return;
+ const field=INSPECTOR_FIELD_DEFS.find(f=>f.kind===kind&&f.axis===axis);
+ const clamped=field?clampInspectorValue(field,parsed):(kind==='pos'?clampPositionAxis(axis,parsed):clampScaleValue(parsed));
+ if(kind==='pos'){
+  const delta=clamped-currentSelection[0].position[axis];
+  if(Math.abs(delta)<.0001) return;
+  currentSelection.forEach(obj=>{obj.position[axis]+=delta; clampObjectPosition(obj);});
+ } else {
+  currentSelection.forEach(obj=>{obj.userData.data.scale[axis]=clamped; syncObjectScale(obj);});
+ }
+ updateGroupGizmoVisuals(); captureState(); updateInspector();
+}
+function isInspectorInputFocused(){const active=document.activeElement; return active&&INSPECTOR_FIELDS.includes(active.id);}
+function setInspectorField(el,value,enabled){el.disabled=!enabled; if(!enabled){el.value=''; return;} if(el===document.activeElement) return; el.value=value;}
 function updateInspector(){
  const nameEl=document.getElementById('selection-name'),countEl=document.getElementById('selection-count'),px=document.getElementById('pos-x'),py=document.getElementById('pos-y'),pz=document.getElementById('pos-z'),sx=document.getElementById('scale-x'),sy=document.getElementById('scale-y'),sz=document.getElementById('scale-z');
- if(!currentSelection.length){nameEl.textContent='Nothing selected'; countEl.textContent='0 objects'; px.textContent='X: -'; py.textContent='Y: -'; pz.textContent='Z: -'; sx.textContent='W: -'; sy.textContent='H: -'; sz.textContent='D: -'; return;}
- const obj=currentSelection[0]; nameEl.textContent=obj.userData.shapeType.toUpperCase(); countEl.textContent=currentSelection.length+(currentSelection.length===1?' object':' objects'); px.textContent='X: '+obj.position.x.toFixed(1); py.textContent='Y: '+obj.position.y.toFixed(1); pz.textContent='Z: '+obj.position.z.toFixed(1); sx.textContent='W: '+obj.userData.data.scale.x.toFixed(2); sy.textContent='H: '+obj.userData.data.scale.y.toFixed(2); sz.textContent='D: '+obj.userData.data.scale.z.toFixed(2);
+ if(!currentSelection.length){nameEl.textContent='Nothing selected'; countEl.textContent='0 objects'; setInspectorField(px,'',false); setInspectorField(py,'',false); setInspectorField(pz,'',false); setInspectorField(sx,'',false); setInspectorField(sy,'',false); setInspectorField(sz,'',false); return;}
+ const obj=currentSelection[0]; nameEl.textContent=obj.userData.shapeType.toUpperCase(); countEl.textContent=currentSelection.length+(currentSelection.length===1?' object':' objects');
+ const enabled=true;
+ if(!isInspectorInputFocused()||document.activeElement!==px) setInspectorField(px,obj.position.x.toFixed(0),enabled);
+ if(!isInspectorInputFocused()||document.activeElement!==py) setInspectorField(py,obj.position.y.toFixed(0),enabled);
+ if(!isInspectorInputFocused()||document.activeElement!==pz) setInspectorField(pz,obj.position.z.toFixed(0),enabled);
+ if(!isInspectorInputFocused()||document.activeElement!==sx) setInspectorField(sx,obj.userData.data.scale.x.toFixed(2),enabled);
+ if(!isInspectorInputFocused()||document.activeElement!==sy) setInspectorField(sy,obj.userData.data.scale.y.toFixed(2),enabled);
+ if(!isInspectorInputFocused()||document.activeElement!==sz) setInspectorField(sz,obj.userData.data.scale.z.toFixed(2),enabled);
 }
 function animate(){requestAnimationFrame(animate); renderer.render(scene,camera);}
 window.onload=init;
-window.setToolMode=setToolMode; window.setPlacementShape=setPlacementShape; window.spawnShapeFromButton=spawnShapeFromButton; window.executeUndo=executeUndo; window.executeRedo=executeRedo; window.updateColor=updateColor; window.duplicateSelection=duplicateSelection; window.deleteSelection=deleteSelection; window.resetView=resetView;
+window.setToolMode=setToolMode; window.setPlacementShape=setPlacementShape; window.spawnShapeFromButton=spawnShapeFromButton; window.toggleStackOnTop=toggleStackOnTop; window.openSaveDialog=openSaveDialog; window.closeSaveDialog=closeSaveDialog; window.setSaveScope=setSaveScope; window.confirmSaveDesign=confirmSaveDesign; window.openGallery=openGallery; window.closeGallery=closeGallery; window.toggleGallerySelectMode=toggleGallerySelectMode; window.toggleGallerySelection=toggleGallerySelection; window.loadSavedProject=loadSavedProject; window.loadSelectedGalleryProjects=loadSelectedGalleryProjects; window.deleteSavedProject=deleteSavedProject; window.deleteSelectedGalleryProjects=deleteSelectedGalleryProjects; window.cancelDeleteSavedProject=cancelDeleteSavedProject; window.confirmDeleteSavedProject=confirmDeleteSavedProject; window.stepInspectorField=stepInspectorField; window.executeUndo=executeUndo; window.executeRedo=executeRedo; window.updateColor=updateColor; window.duplicateSelection=duplicateSelection; window.deleteSelection=deleteSelection; window.resetView=resetView;
 </script>
 </body>
 </html>
